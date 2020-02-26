@@ -1,0 +1,9 @@
+.*.swp
+*~
+/.project
+/.vscode
+/composer.lock
+/vendor
+/node_modules
+/.phan/data
+.eslintcache
