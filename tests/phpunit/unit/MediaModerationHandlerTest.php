@@ -27,8 +27,7 @@ use MediaWikiUnitTestCase;
  * @group MediaModeration
  */
 class MediaModerationHandlerTest extends MediaWikiUnitTestCase {
-	use MockTitleFactoryTrait;
-	use MockLocalRepoTrait;
+	use MocksHelperTrait;
 
 	/**
 	 * @covers ::__construct
@@ -54,7 +53,7 @@ class MediaModerationHandlerTest extends MediaWikiUnitTestCase {
 	 * @covers ::__construct
 	 * @covers ::handleMedia
 	 */
-	public function testHandleMediaFileFound() {
+	public function testHandleMediaFileFoundWrongResult() {
 		$localRepo = $this->getMockLocalRepo();
 
 		$file = $this->getMockLocalFile();
@@ -64,7 +63,7 @@ class MediaModerationHandlerTest extends MediaWikiUnitTestCase {
 
 		$request = $this->getMockRequestModerationCheck();
 		$request->expects( $this->once() )->method( 'requestModeration' )->willReturn(
-			new CheckResultValue( false )
+			new CheckResultValue( false, false )
 		);
 
 		$service = new MediaModerationHandler(
@@ -72,6 +71,36 @@ class MediaModerationHandlerTest extends MediaWikiUnitTestCase {
 			$localRepo,
 			$request,
 			$this->getMockProcessModerationCheckResult(),
+			$logger
+		);
+		$this->assertTrue( $service->handleMedia( 'File:Foom.png', NS_FILE ) );
+	}
+
+	/**
+	 * @covers ::__construct
+	 * @covers ::handleMedia
+	 */
+	public function testHandleMediaFileFoundGoodResult() {
+		$localRepo = $this->getMockLocalRepo();
+
+		$file = $this->getMockLocalFile();
+
+		$localRepo->expects( $this->once() )->method( 'findFile' )->willReturn( $file );
+		$logger = $this->getMockLogger();
+
+		$request = $this->getMockRequestModerationCheck();
+		$request->expects( $this->once() )->method( 'requestModeration' )->willReturn(
+			new CheckResultValue( true, false )
+		);
+
+		$processResult = $this->getMockProcessModerationCheckResult();
+		$processResult->expects( $this->once() )->method( 'processResult' );
+
+		$service = new MediaModerationHandler(
+			$this->getMockTitleFactory( $this->getMockTitle() ),
+			$localRepo,
+			$request,
+			$processResult,
 			$logger
 		);
 		$this->assertTrue( $service->handleMedia( 'File:Foom.png', NS_FILE ) );

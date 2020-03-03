@@ -18,7 +18,25 @@
  * @file
  */
 
-namespace MediaWiki\Extension\MediaModeration\Client;
+namespace MediaWiki\Extension\MediaModeration;
 
-class PhotoDNAClient {
+use MediaWikiUnitTestCase;
+
+/**
+ * @coversDefaultClass MediaWiki\Extension\MediaModeration\CheckResultValue
+ * @group MediaModeration
+ */
+class CheckResultValueTest extends MediaWikiUnitTestCase {
+
+	/**
+	 * @covers ::__construct
+	 * @covers ::isOk
+	 * @covers ::isChildExploitationFound
+	 */
+	public function testCheckResultValue() {
+		$this->assertTrue( ( new CheckResultValue( true, true ) )->isOk() );
+		$this->assertFalse( ( new CheckResultValue( false, false ) )->isOk() );
+		$this->assertTrue( ( new CheckResultValue( true, true ) )->isChildExploitationFound() );
+		$this->assertFalse( ( new CheckResultValue( true, false ) )->isChildExploitationFound() );
+	}
 }

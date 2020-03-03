@@ -15,8 +15,7 @@
 		"MediaWiki\\Extension\\MediaModeration\\": "src/"
 	},
 	"TestAutoloadClasses": {
-		"MediaWiki\\Extension\\MediaModeration\\MockTitleFactoryTrait": "tests/phpunit/MockTitleFactoryTrait.php",
-		"MediaWiki\\Extension\\MediaModeration\\MockLocalRepoTrait": "tests/phpunit/MockLocalRepoTrait.php"
+		"MediaWiki\\Extension\\MediaModeration\\MocksHelperTrait": "tests/phpunit/MocksHelperTrait.php"
 	},
 	"Hooks": {
 		"UploadComplete": "MediaWiki\\Extension\\MediaModeration\\Hooks::onUploadComplete"
@@ -31,6 +30,19 @@
 		"MediaModeration": [
 			"i18n"
 		]
+	},
+	"ConfigRegistry": {
+		"MediaModeration": "GlobalVarConfig::newInstance"
+	},
+	"config": {
+		"MediaModerationPhotoDNAUrl": {
+			"value": "https://api.microsoftmoderator.com/photodna/v1.0/Match",
+			"description": "Url to photoDNA service endpoint."
+		},
+		"MediaModerationPhotoDNASubscriptionKey": {
+			"value": "subscription-key",
+			"description": "Key for access to photoDNA service endpoint."
+		}
 	},
 	"load_composer_autoloader": true,
 	"manifest_version": 2

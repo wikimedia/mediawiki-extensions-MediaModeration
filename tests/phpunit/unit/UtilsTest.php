@@ -20,27 +20,21 @@
 
 namespace MediaWiki\Extension\MediaModeration;
 
-use MediaWikiIntegrationTestCase;
-use UploadBase;
+use MediaWikiUnitTestCase;
 
 /**
- * @covers MediaWiki\Extension\MediaModeration\RequestModerationCheck
+ * @coversDefaultClass MediaWiki\Extension\MediaModeration\Utils
  * @group MediaModeration
  */
-class HooksIntegrationTest extends MediaWikiIntegrationTestCase {
-	public function testOnUploadComplete() {
-		$uploadBase = $this->createMock( UploadBase::class );
-		$mediaModerationService = $this->getMockBuilder( MediaModerationService::class )
-			->disableOriginalConstructor()
-			->setMethods( [ 'processUploadedMedia' ] )
-			->getMock();
+class UtilsTest extends MediaWikiUnitTestCase {
 
-		$mediaModerationService
-			->expects( $this->once() )
-			->method( 'processUploadedMedia' )
-			->with( $this->equalTo( $uploadBase ) );
-
-		$this->setService( MediaModerationService::class, $mediaModerationService );
-		$res = Hooks::onUploadComplete( $uploadBase );
+	/**
+	 * @covers ::isMediaTypeAllowed
+	 */
+	public function testIsMediaTypeAllowed() {
+		$this->assertTrue( Utils::isMediaTypeAllowed( MEDIATYPE_BITMAP ) );
+		$this->assertFalse( Utils::isMediaTypeAllowed( MEDIATYPE_DRAWING ) );
+		$this->assertFalse( Utils::isMediaTypeAllowed( MEDIATYPE_AUDIO ) );
+		$this->assertFalse( Utils::isMediaTypeAllowed( MEDIATYPE_VIDEO ) );
 	}
 }

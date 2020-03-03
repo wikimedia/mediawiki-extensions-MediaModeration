@@ -24,13 +24,15 @@ namespace MediaWiki\Extension\MediaModeration;
  * Keeps information about moderation check results.
  */
 class CheckResultValue {
+	private $ok;
 	private $childExploitationFound;
 
 	/**
-	 * Creates CheckResultValue object
+	 * @param bool $isOK
 	 * @param bool $childExploitationFound
 	 */
-	public function __construct( bool $childExploitationFound ) {
+	public function __construct( bool $isOK, bool $childExploitationFound ) {
+		$this->ok = $isOK;
 		$this->childExploitationFound = $childExploitationFound;
 	}
 
@@ -47,6 +49,6 @@ class CheckResultValue {
 	 * @return bool
 	 */
 	public function isOk(): bool {
-		return false;
+		return $this->ok;
 	}
 }

@@ -22,44 +22,40 @@ namespace MediaWiki\Extension\MediaModeration;
 
 use MediaWikiUnitTestCase;
 use Title;
-use UploadBase;
 
 /**
  * @coversDefaultClass MediaWiki\Extension\MediaModeration\MediaModerationService
  * @group MediaModeration
  */
 class MediaModerationServiceTest extends MediaWikiUnitTestCase {
+	use MocksHelperTrait;
+
+	private function configureFixture() {
+		$handler = $this->getMockMediaModerationHandler();
+		$file = $this->getMockLocalFile();
+		$uploadBase = $this->getMockUploadBase();
+
+		$title = $this->getMockTitle( Title::class );
+
+		$file->expects( $this->any() )
+			->method( 'getTitle' )
+			->willReturn( $title );
+
+		$uploadBase
+			->expects( $this->once() )
+			->method( 'getLocalFile' )
+			->willReturn( $file );
+
+		$service = new MediaModerationService( $handler );
+		return [ $service, $handler, $file, $uploadBase, $title ];
+	}
+
 	/**
+	 * @covers ::__construct
 	 * @covers ::processUploadedMedia
 	 */
 	public function testProcessUploadedMediaAllowed() {
-		$handler = $this->getMockBuilder( MediaModerationHandler::class )
-			->disableOriginalConstructor()
-			->setMethods( [ 'handleMedia' ] )
-			->getMock();
-
-		$handler
-			->expects( $this->once() )
-			->method( 'handleMedia' );
-
-		$service = new MediaModerationService( $handler );
-
-		$file = $this->getMockBuilder( LocalFile::class )
-			->setMethods( [ 'getMediaType', 'getTitle' ] )
-			->getMock();
-
-		$uploadBase = $this->getMockBuilder( UploadBase::class )
-			->setMethods( [ 'getLocalFile' ] )
-			->getMockForAbstractClass();
-
-		$file
-			->expects( $this->once() )
-			->method( 'getMediaType' )
-			->willReturn( MEDIATYPE_BITMAP );
-
-		$title = $this->getMockBuilder( Title::class )
-			->setMethods( [ 'getDBkey', 'getNamespace' ] )
-			->getMock();
+		list( $service, $handler, $file, $uploadBase, $title ) = $this->configureFixture();
 
 		$title
 			->expects( $this->once() )
@@ -71,14 +67,32 @@ class MediaModerationServiceTest extends MediaWikiUnitTestCase {
 			->method( 'getNamespace' )
 			->willReturn( NS_FILE );
 
-		$file->expects( $this->any() )
-			->method( 'getTitle' )
-			->willReturn( $title );
-
-		$uploadBase
+		$handler
 			->expects( $this->once() )
-			->method( 'getLocalFile' )
-			->willReturn( $file );
+			->method( 'handleMedia' );
+
+		$file
+			->expects( $this->once() )
+			->method( 'getMediaType' )
+			->willReturn( MEDIATYPE_BITMAP );
+		$service->processUploadedMedia( $uploadBase );
+	}
+
+	/**
+	 * @covers ::__construct
+	 * @covers ::processUploadedMedia
+	 */
+	public function testProcessUploadedMediaFirbidden() {
+		list( $service, $handler, $file, $uploadBase, $title ) = $this->configureFixture();
+
+		$handler
+			->expects( $this->never() )
+			->method( 'handleMedia' );
+
+		$file
+			->expects( $this->once() )
+			->method( 'getMediaType' )
+			->willReturn( MEDIATYPE_DRAWING );
 
 		$service->processUploadedMedia( $uploadBase );
 	}

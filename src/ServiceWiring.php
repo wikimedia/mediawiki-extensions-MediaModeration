@@ -20,6 +20,7 @@
 
 namespace MediaWiki\Extension\MediaModeration;
 
+use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\MediaWikiServices;
 
@@ -40,7 +41,17 @@ return [
 		},
 	RequestModerationCheck::class =>
 		function ( MediaWikiServices $services ): RequestModerationCheck {
-			return new RequestModerationCheck();
+			$configFactory = $services->getConfigFactory();
+
+			return new RequestModerationCheck(
+				new ServiceOptions(
+					RequestModerationCheck::CONSTRUCTOR_OPTIONS,
+					$configFactory->makeConfig( 'MediaModeration' )
+				),
+				$services->getHttpRequestFactory(),
+				$services->getRepoGroup()->getLocalRepo()->getBackend(),
+				LoggerFactory::getInstance( 'mediamoderation' )
+			);
 		},
 	ProcessModerationCheckResult::class =>
 		function ( MediaWikiServices $services ): ProcessModerationCheckResult {
