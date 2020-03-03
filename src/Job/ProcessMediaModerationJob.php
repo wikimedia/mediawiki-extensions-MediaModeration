@@ -20,14 +20,45 @@
 
 namespace MediaWiki\Extension\MediaModeration\Job;
 
+use GenericParameterJob;
+use IJobSpecification;
 use Job;
+use JobSpecification;
 use MediaWiki\Extension\MediaModeration\MediaModerationHandler;
 use MediaWiki\MediaWikiServices;
+use Title;
 
-class ProcessMediaModerationJob extends Job {
+class ProcessMediaModerationJob extends Job implements GenericParameterJob {
+	/**
+	 * Callers should use the factory methods instead
+	 *
+	 * @param array $params Job parameters
+	 */
+	public function __construct( array $params ) {
+		parent::__construct( 'processMediaModeration', $params );
+	}
 
 	public function run(): bool {
 		$handler = MediaWikiServices::getInstance()->getService( MediaModerationHandler::class );
-		return $handler->handleFile( $this->params['name'], $this->params['namespace'] );
+		return $handler->handleMedia( $this->title, $this->params['timestamp'] );
+	}
+
+	/**
+	 *
+	 * @param Title $title
+	 * @param string $timestamp
+	 * @return IJobSpecification
+	 */
+	public static function newSpec( Title $title, string $timestamp ): IJobSpecification {
+		return new JobSpecification(
+			'processMediaModeration',
+			[
+				'timestamp' => $timestamp,
+			],
+			[
+				'removeDuplicates' => true,
+			],
+			$title
+		);
 	}
 }

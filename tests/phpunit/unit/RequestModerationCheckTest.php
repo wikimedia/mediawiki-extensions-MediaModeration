@@ -126,14 +126,14 @@ class RequestModerationCheckTest extends MediaWikiUnitTestCase {
 
 	public function requestModerationCorrectContentProvider() {
 		return [
-			'Correst status and code not found Adult content should succeed' => [
+			'Correct status and code and not found Adult content should succeed' => [
 				[
 					'Status' => [ 'Code' => 3000, 'Description' => 'OK' ],
 					'IsMatch' => false
 				],
 				false
 			],
-			'Correst status and code found Adult content should succeed' => [
+			'Correct status and code and found Adult content should succeed' => [
 				[
 					'Status' => [ 'Code' => 3000, 'Description' => 'OK' ],
 					'IsMatch' => true

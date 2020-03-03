@@ -20,6 +20,7 @@
 
 namespace MediaWiki\Extension\MediaModeration;
 
+use JobQueueGroup;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\MediaWikiServices;
@@ -27,12 +28,11 @@ use MediaWiki\MediaWikiServices;
 return [
 	MediaModerationService::class =>
 		function ( MediaWikiServices $services ): MediaModerationService {
-			return new MediaModerationService( $services->getService( MediaModerationHandler::class ) );
+			return new MediaModerationService( JobQueueGroup::singleton() );
 		},
 	MediaModerationHandler::class =>
 		function ( MediaWikiServices $services ): MediaModerationHandler {
 			return new MediaModerationHandler(
-				$services->getTitleFactory(),
 				$services->getRepoGroup()->getLocalRepo(),
 				$services->getService( RequestModerationCheck::class ),
 				$services->getService( ProcessModerationCheckResult::class ),

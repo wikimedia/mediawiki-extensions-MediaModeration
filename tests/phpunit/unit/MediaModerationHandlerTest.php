@@ -35,18 +35,22 @@ class MediaModerationHandlerTest extends MediaWikiUnitTestCase {
 	 */
 	public function testHandleMediaFileNotFound() {
 		$localRepo = $this->getMockLocalRepo();
-		$localRepo->expects( $this->once() )->method( 'findFile' )->willReturn( false );
+
 		$logger = $this->getMockLogger();
 		$logger->expects( $this->once() )->method( 'info' );
+		$title = $this->getMockTitle();
+		$localRepo->expects( $this->once() )
+			->method( 'findFile' )
+			->with( $this->equalTo( $title ), $this->equalTo( [ 'time' => 'timestamp' ] ) )
+			->willReturn( false );
 
 		$service = new MediaModerationHandler(
-			$this->getMockTitleFactory( $this->getMockTitle() ),
 			$localRepo,
 			$this->getMockRequestModerationCheck(),
 			$this->getMockProcessModerationCheckResult(),
 			$logger
 		);
-		$this->assertTrue( $service->handleMedia( 'File:Foom.png', NS_FILE ) );
+		$this->assertTrue( $service->handleMedia( $title, 'timestamp' ) );
 	}
 
 	/**
@@ -57,8 +61,11 @@ class MediaModerationHandlerTest extends MediaWikiUnitTestCase {
 		$localRepo = $this->getMockLocalRepo();
 
 		$file = $this->getMockLocalFile();
+		$title = $this->getMockTitle();
+		$localRepo->expects( $this->once() )->method( 'findFile' )
+			->with( $this->equalTo( $title ), $this->equalTo( [ 'time' => 'timestamp' ] ) )
+			->willReturn( $file );
 
-		$localRepo->expects( $this->once() )->method( 'findFile' )->willReturn( $file );
 		$logger = $this->getMockLogger();
 
 		$request = $this->getMockRequestModerationCheck();
@@ -67,13 +74,12 @@ class MediaModerationHandlerTest extends MediaWikiUnitTestCase {
 		);
 
 		$service = new MediaModerationHandler(
-			$this->getMockTitleFactory( $this->getMockTitle() ),
 			$localRepo,
 			$request,
 			$this->getMockProcessModerationCheckResult(),
 			$logger
 		);
-		$this->assertTrue( $service->handleMedia( 'File:Foom.png', NS_FILE ) );
+		$this->assertTrue( $service->handleMedia( $title, 'timestamp' ) );
 	}
 
 	/**
@@ -83,9 +89,12 @@ class MediaModerationHandlerTest extends MediaWikiUnitTestCase {
 	public function testHandleMediaFileFoundGoodResult() {
 		$localRepo = $this->getMockLocalRepo();
 
+		$title = $this->getMockTitle();
 		$file = $this->getMockLocalFile();
 
-		$localRepo->expects( $this->once() )->method( 'findFile' )->willReturn( $file );
+		$localRepo->expects( $this->once() )->method( 'findFile' )
+			->with( $this->equalTo( $title ), $this->equalTo( [ 'time' => 'timestamp' ] ) )
+			->willReturn( $file );
 		$logger = $this->getMockLogger();
 
 		$request = $this->getMockRequestModerationCheck();
@@ -97,13 +106,12 @@ class MediaModerationHandlerTest extends MediaWikiUnitTestCase {
 		$processResult->expects( $this->once() )->method( 'processResult' );
 
 		$service = new MediaModerationHandler(
-			$this->getMockTitleFactory( $this->getMockTitle() ),
 			$localRepo,
 			$request,
 			$processResult,
 			$logger
 		);
-		$this->assertTrue( $service->handleMedia( 'File:Foom.png', NS_FILE ) );
+		$this->assertTrue( $service->handleMedia( $title, 'timestamp' ) );
 	}
 
 }

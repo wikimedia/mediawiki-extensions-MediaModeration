@@ -20,45 +20,31 @@
 
 namespace MediaWiki\Extension\MediaModeration;
 
-use JobQueueGroup;
 use MediaWiki\Extension\MediaModeration\Job\ProcessMediaModerationJob;
-use UploadBase;
+use MediaWikiIntegrationTestCase;
 
 /**
- * Main entry point for all external calls and hooks.
- *
- * @since 0.1.0
+ * @covers MediaWiki\Extension\MediaModeration\Job\ProcessMediaModerationJob
+ * @group MediaModeration
  */
-class MediaModerationService {
+class ProcessMediaModerationJobIntegrationTest extends MediaWikiIntegrationTestCase {
+	use MocksHelperTrait;
 
-	/**
-	 * @var JobQueueGroup $handler
-	 */
-	private $jobQueueGroup;
+	public function testRunPassArguments() {
+		$mediaModerationHandler = $this->getMockMediaModerationHandler();
 
-	/**
-	 * Constructs class from
-	 *
-	 * @since 0.1.0
-	 * @param JobQueueGroup $jobQueueGroup
-	 */
-	public function __construct( JobQueueGroup $jobQueueGroup ) {
-		$this->jobQueueGroup = $jobQueueGroup;
-	}
+		$mediaModerationHandler
+			->expects( $this->once() )
+			->method( 'handleMedia' )
+			->with( $this->anything(), $this->equalTo( 'timestamp' ) )
+			->willReturn( true );
 
-	/**
-	 * Starts processing of uploaded media
-	 *
-	 * @since 0.1.0
-	 * @param UploadBase $uploadBase uploaded media information
-	 */
-	public function processUploadedMedia( UploadBase $uploadBase ) {
-		$file = $uploadBase->getLocalFile();
-		if ( !Utils::isMediaTypeAllowed( $file->getMediaType() ) ) {
-			return;
-		}
-		$title = $file->getTitle();
-		$timestamp = $file->getTimestamp();
-		$this->jobQueueGroup->lazyPush( ProcessMediaModerationJob::newSpec( $title, $timestamp ) );
+		$this->setService( MediaModerationHandler::class, $mediaModerationHandler );
+		$job = new ProcessMediaModerationJob( [
+			'title' => 'File:Bal.png',
+			'namespace' => NS_FILE,
+			'timestamp' => 'timestamp',
+		] );
+		$this->assertTrue( $job->run() );
 	}
 }

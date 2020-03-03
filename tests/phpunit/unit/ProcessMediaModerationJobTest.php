@@ -20,45 +20,35 @@
 
 namespace MediaWiki\Extension\MediaModeration;
 
-use JobQueueGroup;
 use MediaWiki\Extension\MediaModeration\Job\ProcessMediaModerationJob;
-use UploadBase;
+use MediaWikiUnitTestCase;
 
 /**
- * Main entry point for all external calls and hooks.
- *
- * @since 0.1.0
+ * @coversDefaultClass MediaWiki\Extension\MediaModeration\Job\ProcessMediaModerationJob
+ * @group MediaModeration
  */
-class MediaModerationService {
+class ProcessMediaModerationJobTest extends MediaWikiUnitTestCase {
+	use MocksHelperTrait;
 
 	/**
-	 * @var JobQueueGroup $handler
+	 * @covers ::newSpec
 	 */
-	private $jobQueueGroup;
+	public function testNewSpec() {
+		$title = $this->getMockTitle();
 
-	/**
-	 * Constructs class from
-	 *
-	 * @since 0.1.0
-	 * @param JobQueueGroup $jobQueueGroup
-	 */
-	public function __construct( JobQueueGroup $jobQueueGroup ) {
-		$this->jobQueueGroup = $jobQueueGroup;
-	}
+		$title
+			->expects( $this->any() )
+			->method( 'getDBkey' )
+			->willReturn( 'File:Foom.png' );
 
-	/**
-	 * Starts processing of uploaded media
-	 *
-	 * @since 0.1.0
-	 * @param UploadBase $uploadBase uploaded media information
-	 */
-	public function processUploadedMedia( UploadBase $uploadBase ) {
-		$file = $uploadBase->getLocalFile();
-		if ( !Utils::isMediaTypeAllowed( $file->getMediaType() ) ) {
-			return;
-		}
-		$title = $file->getTitle();
-		$timestamp = $file->getTimestamp();
-		$this->jobQueueGroup->lazyPush( ProcessMediaModerationJob::newSpec( $title, $timestamp ) );
+		$title
+			->expects( $this->any() )
+			->method( 'getNamespace' )
+			->willReturn( NS_FILE );
+
+		$spec = ProcessMediaModerationJob::newSpec( $title, 'timestamp' );
+		$this->assertEquals( 'File:Foom.png', $spec->getParams()['title'] );
+		$this->assertEquals( NS_FILE, $spec->getParams()[ 'namespace' ] );
+		$this->assertEquals( 'timestamp', $spec->getParams()[ 'timestamp' ] );
 	}
 }

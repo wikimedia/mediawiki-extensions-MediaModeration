@@ -31,7 +31,7 @@ class MediaModerationServiceTest extends MediaWikiUnitTestCase {
 	use MocksHelperTrait;
 
 	private function configureFixture() {
-		$handler = $this->getMockMediaModerationHandler();
+		$jobQueueGroup = $this->getMockJobQueueGroup();
 		$file = $this->getMockLocalFile();
 		$uploadBase = $this->getMockUploadBase();
 
@@ -46,8 +46,8 @@ class MediaModerationServiceTest extends MediaWikiUnitTestCase {
 			->method( 'getLocalFile' )
 			->willReturn( $file );
 
-		$service = new MediaModerationService( $handler );
-		return [ $service, $handler, $file, $uploadBase, $title ];
+		$service = new MediaModerationService( $jobQueueGroup );
+		return [ $service, $jobQueueGroup, $file, $uploadBase, $title ];
 	}
 
 	/**
@@ -55,26 +55,31 @@ class MediaModerationServiceTest extends MediaWikiUnitTestCase {
 	 * @covers ::processUploadedMedia
 	 */
 	public function testProcessUploadedMediaAllowed() {
-		list( $service, $handler, $file, $uploadBase, $title ) = $this->configureFixture();
+		list( $service, $jobQueueGroup, $file, $uploadBase, $title ) = $this->configureFixture();
 
 		$title
-			->expects( $this->once() )
+			->expects( $this->any() )
 			->method( 'getDBkey' )
 			->willReturn( 'File:Foom.png' );
 
 		$title
-			->expects( $this->once() )
+			->expects( $this->any() )
 			->method( 'getNamespace' )
 			->willReturn( NS_FILE );
 
-		$handler
+		$jobQueueGroup
 			->expects( $this->once() )
-			->method( 'handleMedia' );
+			->method( 'lazyPush' );
 
 		$file
 			->expects( $this->once() )
 			->method( 'getMediaType' )
 			->willReturn( MEDIATYPE_BITMAP );
+		$file
+			->expects( $this->once() )
+			->method( 'getTimestamp' )
+			->willReturn( 'timestamp' );
+
 		$service->processUploadedMedia( $uploadBase );
 	}
 
@@ -83,11 +88,11 @@ class MediaModerationServiceTest extends MediaWikiUnitTestCase {
 	 * @covers ::processUploadedMedia
 	 */
 	public function testProcessUploadedMediaFirbidden() {
-		list( $service, $handler, $file, $uploadBase, $title ) = $this->configureFixture();
+		list( $service, $jobQueueGroup, $file, $uploadBase, $title ) = $this->configureFixture();
 
-		$handler
+		$jobQueueGroup
 			->expects( $this->never() )
-			->method( 'handleMedia' );
+			->method( 'lazyPush' );
 
 		$file
 			->expects( $this->once() )

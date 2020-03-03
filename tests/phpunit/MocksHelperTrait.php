@@ -21,6 +21,7 @@
 namespace MediaWiki\Extension\MediaModeration;
 
 use FileBackend;
+use JobQueueGroup;
 use LocalFile;
 use LocalRepo;
 use MediaWiki\Http\HttpRequestFactory;
@@ -107,7 +108,9 @@ trait MocksHelperTrait {
 	public function getMockLocalFile(): LocalFile {
 		$file = $this->getMockBuilder( LocalFile::class )
 			->disableOriginalConstructor()
-			->setMethods( [ 'getMediaType', 'getTitle', 'getPath', 'getMimeType' ] )
+			->setMethods( [
+				'getMediaType', 'getTitle', 'getPath', 'getMimeType', 'getTimestamp'
+			] )
 			->getMock();
 		return $file;
 	}
@@ -199,5 +202,18 @@ trait MocksHelperTrait {
 			->getMockForAbstractClass();
 
 		return $uploadBase;
+	}
+
+	/**
+	 * Creates mock object for JobQueueGroup
+	 * @return JobQueueGroup
+	 */
+	public function getMockJobQueueGroup(): JobQueueGroup {
+		$jobQueueGroup = $this->getMockBuilder( JobQueueGroup::class )
+			->disableOriginalConstructor()
+			->setMethods( [ 'lazyPush' ] )
+			->getMock();
+
+		return $jobQueueGroup;
 	}
 }

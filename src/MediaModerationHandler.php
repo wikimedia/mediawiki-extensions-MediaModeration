@@ -22,7 +22,7 @@ namespace MediaWiki\Extension\MediaModeration;
 
 use LocalRepo;
 use Psr\Log\LoggerInterface;
-use TitleFactory;
+use Title;
 
 class MediaModerationHandler {
 
@@ -41,30 +41,22 @@ class MediaModerationHandler {
 	private $localRepo;
 
 	/**
-	 * @var TitleFactory
-	 */
-	private $titleFactory;
-
-	/**
 	 * @var LoggerInterface
 	 */
 	private $logger;
 
 	/**
-	 * @param TitleFactory $titleFactory
 	 * @param LocalRepo $localRepo
 	 * @param RequestModerationCheck $requestModerationCheck
 	 * @param ProcessModerationCheckResult $processModerationCheckResult
 	 * @param LoggerInterface $logger
 	 */
 	public function __construct(
-		TitleFactory $titleFactory,
 		LocalRepo $localRepo,
 		RequestModerationCheck $requestModerationCheck,
 		ProcessModerationCheckResult $processModerationCheckResult,
 		LoggerInterface $logger
 	) {
-		$this->titleFactory = $titleFactory;
 		$this->localRepo = $localRepo;
 		$this->requestModerationCheck = $requestModerationCheck;
 		$this->processModerationCheckResult = $processModerationCheckResult;
@@ -73,13 +65,12 @@ class MediaModerationHandler {
 
 	/**
 	 * Process files with given name and namespace
-	 * @param string $name Name of file to process
-	 * @param int $namespace Namespace of file to process
+	 * @param Title $title
+	 * @param string $timestamp
 	 * @return bool
 	 */
-	public function handleMedia( string $name, int $namespace ): bool {
-		$title = $this->titleFactory->newFromText( $name, $namespace );
-		$file = $this->localRepo->findFile( $title );
+	public function handleMedia( Title $title, string $timestamp ): bool {
+		$file = $this->localRepo->findFile( $title, [ 'time' => $timestamp ] );
 		if ( !$file ) {
 			// File not found. Note that this is an expected scenario. The extension
 			// configuration provides for delaying this job due to the high likelihood of newly
