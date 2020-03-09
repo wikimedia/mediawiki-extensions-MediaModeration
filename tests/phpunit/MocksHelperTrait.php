@@ -25,6 +25,7 @@ use JobQueueGroup;
 use LocalFile;
 use LocalRepo;
 use MediaWiki\Http\HttpRequestFactory;
+use MediaWiki\Mail\IEmailer;
 use MWHttpRequest;
 use Psr\Log\LoggerInterface;
 use Title;
@@ -85,6 +86,7 @@ trait MocksHelperTrait {
 	 */
 	public function getMockProcessModerationCheckResult(): ProcessModerationCheckResult {
 		$mock = $this->getMockBuilder( ProcessModerationCheckResult::class )
+			->disableOriginalConstructor()
 			// ->setMethods( [ 'getMediaType', 'getTitle' ] )
 			->getMock();
 		return $mock;
@@ -139,7 +141,8 @@ trait MocksHelperTrait {
 	 */
 	public function getMockTitle(): Title {
 		$title = $this->getMockBuilder( Title::class )
-			->setMethods( [ 'getDBkey', 'getNamespace' ] )
+			->disableOriginalConstructor()
+			->setMethods( [ 'getDBkey', 'getNamespace', 'getFullURL' ] )
 			->getMock();
 
 		// $title
@@ -215,5 +218,17 @@ trait MocksHelperTrait {
 			->getMock();
 
 		return $jobQueueGroup;
+	}
+
+	/**
+	 * Creates mock object for JobQueueGroup
+	 * @return JobQueueGroup
+	 */
+	public function getMockIEmailer(): IEmailer {
+		$emailer = $this->getMockBuilder( IEmailer::class )
+			->setMethods( [ 'send' ] )
+			->getMock();
+
+		return $emailer;
 	}
 }

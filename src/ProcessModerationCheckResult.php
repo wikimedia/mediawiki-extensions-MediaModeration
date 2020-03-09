@@ -20,6 +20,12 @@
 
 namespace MediaWiki\Extension\MediaModeration;
 
+use File;
+use MailAddress;
+use MediaWiki\Config\ServiceOptions;
+use MediaWiki\Mail\IEmailer;
+use Title;
+
 /**
  * Process moderation check result, update DB and send an email
  *
@@ -27,10 +33,82 @@ namespace MediaWiki\Extension\MediaModeration;
  */
 class ProcessModerationCheckResult {
 
+	public const CONSTRUCTOR_OPTIONS = [
+		'MediaModerationRecipientList',
+		'MediaModerationFrom',
+	];
+
+	/**
+	 * @var string
+	 */
+	private $from;
+
+	/**
+	 * @var array
+	 */
+	private $recipientList;
+
+	/**
+	 * @var IEmailer
+	 */
+	private $emailer;
+
+	/**
+	 * @param ServiceOptions $options
+	 * @param IEmailer $emailer
+	 */
+	public function __construct( ServiceOptions $options, IEmailer $emailer ) {
+		$options->assertRequiredOptions( self::CONSTRUCTOR_OPTIONS );
+		$this->recipientList = $options->get( 'MediaModerationRecipientList' );
+		$this->from = $options->get( 'MediaModerationFrom' );
+
+		$this->emailer = $emailer;
+	}
+
+	/**
+	 * @param Title $title
+	 * @return string
+	 */
+private function getMessageBody( Title $title ): string {
+		$fullUrl = $title->getFullURL();
+		return <<<BODY
+Inapropriate content was found by the link:
+{ $fullUrl }
+BODY;
+}
+
+	/**
+	 * @return string
+	 */
+	private function getMessageCaption(): string {
+		return "Child exploitation content found";
+	}
+
 	/**
 	 * @since 0.1.0
+	 *
 	 * @param CheckResultValue $result
+	 * @param File $file
 	 */
-	public function processResult( CheckResultValue $result ) {
+	public function processResult( CheckResultValue $result, File $file ) {
+		if ( !$result->isChildExploitationFound() ) {
+			return;
+		}
+
+		$title = $file->getTitle();
+		$body = $this->getMessageBody( $title );
+
+		$to = array_map( function ( $address ) {
+			return new MailAddress( $address );
+		}, $this->recipientList );
+
+		$from = new MailAddress( $this->from );
+
+		$this->emailer->send(
+			$to,
+			$from,
+			$this->getMessageCaption(),
+			$this->getMessageBody( $title )
+		);
 	}
 }

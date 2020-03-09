@@ -46,7 +46,7 @@ return [
 			return new RequestModerationCheck(
 				new ServiceOptions(
 					RequestModerationCheck::CONSTRUCTOR_OPTIONS,
-					$configFactory->makeConfig( 'MediaModeration' )
+					$services->getConfigFactory()->makeConfig( 'MediaModeration' )
 				),
 				$services->getHttpRequestFactory(),
 				$services->getRepoGroup()->getLocalRepo()->getBackend(),
@@ -55,6 +55,12 @@ return [
 		},
 	ProcessModerationCheckResult::class =>
 		function ( MediaWikiServices $services ): ProcessModerationCheckResult {
-			return new ProcessModerationCheckResult();
+			return new ProcessModerationCheckResult(
+				new ServiceOptions(
+					ProcessModerationCheckResult::CONSTRUCTOR_OPTIONS,
+					$services->getConfigFactory()->makeConfig( 'MediaModeration' )
+				),
+				$services->getEmailer()
+			);
 		},
 ];

@@ -80,7 +80,7 @@ class MediaModerationHandler {
 		}
 		$result = $this->requestModerationCheck->requestModeration( $file );
 		if ( $result->isOk() ) {
-			$this->processModerationCheckResult->processResult( $result );
+			$this->processModerationCheckResult->processResult( $result, $file );
 		}
 		return true;
 	}
