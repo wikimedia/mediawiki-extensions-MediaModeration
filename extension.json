@@ -44,6 +44,17 @@
 			"value": "https://api.microsoftmoderator.com/photodna/v1.0/Match",
 			"description": "URL to PhotoDNA service endpoint."
 		},
+		"MediaModerationSendThumbnails": {
+			"value": true,
+			"description": "Whether photo should be thumbnailed before sending it to PhotoDNA."
+		},
+		"MediaModerationThumbnailSize": {
+			"value": {
+				"width": 160,
+				"height": 160
+			},
+			"description": "The width and height of the thumbnail."
+		},
 		"MediaModerationPhotoDNASubscriptionKey": {
 			"value": "",
 			"description": "Key for access to PhotoDNA service endpoint."

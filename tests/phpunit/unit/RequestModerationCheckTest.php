@@ -34,14 +34,6 @@ class RequestModerationCheckTest extends MediaWikiUnitTestCase {
 	private function configureFixtureForStatus( $requestStatus ) {
 		$requestFactory = $this->getMockHttpRequestFactory();
 		$httpRequest = $this->getMockHttpRequest();
-		$fileBackend = $this->getMockFileBackend();
-		$fileBackend->expects( $this->once() )
-			->method( 'getFileContentsMulti' )
-			->willReturn( [ '/fake/path/Foo.jpg' => 'File Content Stub' ] );
-
-		$file = $this->getMockLocalFile();
-		$file->expects( $this->once() )->method( 'getSize' )->willReturn( 10 );
-		$file->expects( $this->once() )->method( 'getPath' )->willReturn( '/fake/path/Foo.jpg' );
 
 		$requestFactory->expects( $this->once() )->method( 'create' )->willReturn( $httpRequest );
 
@@ -51,10 +43,6 @@ class RequestModerationCheckTest extends MediaWikiUnitTestCase {
 		$httpRequest->expects( $this->once() )->method( 'execute' )->willReturn( $status );
 
 		$stats = $this->getMockStats();
-		$stats->expects( $this->once() )
-			->method( 'updateCount' )
-			->with( 'mediamoderation.photodna.bandwidth', 10 );
-
 		$logger = $this->getMockLogger();
 
 		$options = new ServiceOptions(
@@ -69,11 +57,10 @@ class RequestModerationCheckTest extends MediaWikiUnitTestCase {
 		$requestModerationCheck = new RequestModerationCheck(
 			$options,
 			$requestFactory,
-			$fileBackend,
 			$stats,
 			$logger
 		);
-		return [ $requestModerationCheck, $httpRequest, $logger, $file, $stats ];
+		return [ $requestModerationCheck, $httpRequest, $logger, $stats ];
 	}
 
 	/**
@@ -84,9 +71,8 @@ class RequestModerationCheckTest extends MediaWikiUnitTestCase {
 	public function testRequestModerationResultInvalidResponse() {
 		list(
 			$requestModerationCheck,
-			$httpRequest,
-			$logger,
-			$file,
+			,
+			,
 			$stats
 		) = $this->configureFixtureForStatus( false );
 
@@ -94,10 +80,13 @@ class RequestModerationCheckTest extends MediaWikiUnitTestCase {
 			->method( 'timing' )
 			->with( 'mediamoderation.photodna.500.latency', $this->anything() );
 
-		$result = $requestModerationCheck->requestModeration( $file );
+		$result = $requestModerationCheck->requestModeration( 'http://example.com/file-url.jpg', 'FileName' );
 		$this->assertFalse( $result->isOk() );
 	}
 
+	/**
+	 * @return array
+	 */
 	public function requestModerationWrongContentProvider() {
 		return [
 			'Invalid JSON should fail' => [ '{asf' ],
@@ -120,7 +109,6 @@ class RequestModerationCheckTest extends MediaWikiUnitTestCase {
 	 * @covers ::__construct
 	 * @covers ::requestModeration
 	 * @covers ::createModerationRequest
-	 * @covers ::getContents
 	 * @covers ::logWarning
 	 */
 	public function testRequestModerationWrongContent( $content ) {
@@ -128,7 +116,6 @@ class RequestModerationCheckTest extends MediaWikiUnitTestCase {
 			$requestModerationCheck,
 			$httpRequest,
 			$logger,
-			$file,
 			$stats
 		) = $this->configureFixtureForStatus( true );
 
@@ -138,10 +125,13 @@ class RequestModerationCheckTest extends MediaWikiUnitTestCase {
 
 		$httpRequest->expects( $this->any() )->method( 'getContent' )->willReturn( $content );
 		$logger->expects( $this->once() )->method( 'warning' );
-		$result = $requestModerationCheck->requestModeration( $file );
+		$result = $requestModerationCheck->requestModeration( 'http://example.com/file-url.jpg', 'FileName' );
 		$this->assertFalse( $result->isOk() );
 	}
 
+	/**
+	 * @return array[]
+	 */
 	public function requestModerationCorrectContentProvider() {
 		return [
 			'Correct status and code with no hash match should succeed' => [
@@ -174,7 +164,6 @@ class RequestModerationCheckTest extends MediaWikiUnitTestCase {
 			$requestModerationCheck,
 			$httpRequest,
 			$logger,
-			$file,
 			$stats
 		) = $this->configureFixtureForStatus( true );
 
@@ -186,7 +175,7 @@ class RequestModerationCheckTest extends MediaWikiUnitTestCase {
 			->method( 'timing' )
 			->with( 'mediamoderation.photodna.200.latency', $this->anything() );
 
-		$result = $requestModerationCheck->requestModeration( $file );
+		$result = $requestModerationCheck->requestModeration( 'http://example.com/file-url.jpg', 'FileName' );
 		$this->assertTrue( $result->isOk() );
 		$this->assertEquals( $found, $result->isChildExploitationFound() );
 	}

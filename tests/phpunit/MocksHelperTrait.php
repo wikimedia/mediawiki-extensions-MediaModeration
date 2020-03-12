@@ -20,7 +20,6 @@
 
 namespace MediaWiki\Extension\MediaModeration;
 
-use FileBackend;
 use JobQueueGroup;
 use Liuggio\StatsdClient\Factory\StatsdDataFactoryInterface;
 use LocalFile;
@@ -29,12 +28,14 @@ use MediaWiki\Http\HttpRequestFactory;
 use MediaWiki\Mail\IEmailer;
 use MWHttpRequest;
 use Psr\Log\LoggerInterface;
+use ThumbnailImage;
 use Title;
 use TitleFactory;
 use UploadBase;
 use Wikimedia\Message\ITextFormatter;
 
 trait MocksHelperTrait {
+
 	/**
 	 * Accessor to TestCase::getMockBuilder
 	 * @param string $class
@@ -96,7 +97,7 @@ trait MocksHelperTrait {
 	 */
 	public function getMockLogger(): LoggerInterface {
 		return $this->getMockBuilder( LoggerInterface::class )
-			->setMethods( [ 'info' ] )
+			->setMethods( [ 'info', 'warning' ] )
 			->getMockForAbstractClass();
 	}
 
@@ -108,7 +109,26 @@ trait MocksHelperTrait {
 		return $this->getMockBuilder( LocalFile::class )
 			->disableOriginalConstructor()
 			->setMethods( [
-				'getMediaType', 'getTitle', 'getPath', 'getMimeType', 'getTimestamp', 'getSize', 'getName'
+				'getMediaType',
+				'getTitle',
+				'getTimestamp',
+				'getName',
+				'canRender',
+				'transform',
+				'getUrl'
+			] )
+			->getMock();
+	}
+
+	/**
+	 * Creates mock object for LocalFile
+	 * @return ThumbnailImage
+	 */
+	public function getMockThumbnailImage(): ThumbnailImage {
+		return $this->getMockBuilder( ThumbnailImage::class )
+			->disableOriginalConstructor()
+			->setMethods( [
+				'getUrl'
 			] )
 			->getMock();
 	}
@@ -165,17 +185,6 @@ trait MocksHelperTrait {
 	}
 
 	/**
-	 * Creates mock object for FileBackend
-	 * @return FileBackend
-	 */
-	public function getMockFileBackend(): FileBackend {
-		return $this->getMockBuilder( FileBackend::class )
-			->disableOriginalConstructor()
-			->setMethods( [ 'getFileContentsMulti' ] )
-			->getMockForAbstractClass();
-	}
-
-	/**
 	 * Creates mock object for UploadBase
 	 * @return UploadBase
 	 */
@@ -222,5 +231,16 @@ trait MocksHelperTrait {
 		return $this->getMockBuilder( ITextFormatter::class )
 			->setMethods( [ 'format' ] )
 			->getMockForAbstractClass();
+	}
+
+	/**
+	 * Creates mock object for ThumbnailProvider
+	 * @return ThumbnailProvider
+	 */
+	public function getMockThumbnailProvider(): ThumbnailProvider {
+		return $this->getMockBuilder( ThumbnailProvider::class )
+			->disableOriginalConstructor()
+			->setMethods( [ 'getThumbnailUrl' ] )
+			->getMock();
 	}
 }

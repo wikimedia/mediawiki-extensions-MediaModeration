@@ -27,9 +27,15 @@ use Title;
 class MediaModerationHandler {
 
 	/**
+	 * @var ThumbnailProvider
+	 */
+	private $thumbnailProvider;
+
+	/**
 	 * @var RequestModerationCheck
 	 */
 	private $requestModerationCheck;
+
 	/**
 	 * @var ProcessModerationCheckResult
 	 */
@@ -47,17 +53,20 @@ class MediaModerationHandler {
 
 	/**
 	 * @param LocalRepo $localRepo
+	 * @param ThumbnailProvider $thumbnailProvider
 	 * @param RequestModerationCheck $requestModerationCheck
 	 * @param ProcessModerationCheckResult $processModerationCheckResult
 	 * @param LoggerInterface $logger
 	 */
 	public function __construct(
 		LocalRepo $localRepo,
+		ThumbnailProvider $thumbnailProvider,
 		RequestModerationCheck $requestModerationCheck,
 		ProcessModerationCheckResult $processModerationCheckResult,
 		LoggerInterface $logger
 	) {
 		$this->localRepo = $localRepo;
+		$this->thumbnailProvider = $thumbnailProvider;
 		$this->requestModerationCheck = $requestModerationCheck;
 		$this->processModerationCheckResult = $processModerationCheckResult;
 		$this->logger = $logger;
@@ -79,7 +88,13 @@ class MediaModerationHandler {
 		}
 		$this->logger->debug( 'Requesting hash check of file {file}.',
 			[ 'file' => $file->getName() ] );
-		$result = $this->requestModerationCheck->requestModeration( $file );
+
+		$thumbUrl = $this->thumbnailProvider->getThumbnailUrl( $file );
+		$result = $this->requestModerationCheck->requestModeration(
+			$thumbUrl,
+			$file->getName() ?? ''
+		);
+
 		if ( $result->isOk() ) {
 			$this->processModerationCheckResult->processResult( $result, $file );
 		} else {

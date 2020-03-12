@@ -32,15 +32,20 @@ use MediaWikiIntegrationTestCase;
 class RequestModerationCheckIntegrationTest extends MediaWikiIntegrationTestCase {
 	use MocksHelperTrait;
 
+	/**
+	 * @dataProvider requestModerationRealFileProvider
+	 */
 	public function requestModerationRealFileProvider() {
 		return [
 			'Microsoft test file' => [
 				'https://pdnasampleimages.blob.core.windows.net/matchedimages/img_130.jpg',
-				true
+				true,
+				'MicrosoftTestFile'
 			],
 			'External Test file' => [
 				'https://via.placeholder.com/350x150',
-				false
+				false,
+				'ExternalTestFile'
 			]
 		];
 	}
@@ -48,9 +53,10 @@ class RequestModerationCheckIntegrationTest extends MediaWikiIntegrationTestCase
 	/**
 	 * @dataProvider requestModerationRealFileProvider
 	 */
-	public function testRequestModerationRealFile( $url, $isChildExploitationFound ) {
+	public function testRequestModerationRealFile( $url, $isChildExploitationFound, $name ) {
 		$services = MediaWikiServices::getInstance();
 		$configFactory = $services->getConfigFactory();
+
 		$options = new ServiceOptions(
 			RequestModerationCheck::CONSTRUCTOR_OPTIONS,
 			$configFactory->makeConfig( 'MediaModeration' )
@@ -60,31 +66,7 @@ class RequestModerationCheckIntegrationTest extends MediaWikiIntegrationTestCase
 			$this->markTestSkipped( 'Real requests to PhotoDNA should be disabled for CI' );
 		}
 
-		$backend = $this->getMockFileBackend();
-
-		$content = file_get_contents(
-			$url
-		);
-
-		$size = strlen( $content );
-
-		$file = $this->getMockLocalFile();
-		$file->expects( $this->once() )->method( 'getPath' )->willReturn( '/fake/path/Foo.jpg' );
-		$file->expects( $this->once() )->method( 'getSize' )->willReturn( $size );
-
-		$this->assertNotFalse( $content );
-
-		$backend->expects( $this->once() )
-			->method( 'getFileContentsMulti' )
-			->willReturn( [ '/fake/path/Foo.jpg' => $content ] );
-
-			$file->expects( $this->once() )->method( 'getMimeType' )->willReturn( 'image/jpeg' );
-
 		$stats = $this->getMockStats();
-		$stats->expects( $this->once() )
-			->method( 'updateCount' )
-			->with( 'mediamoderation.photodna.bandwidth', $size );
-
 		$stats->expects( $this->once() )
 			->method( 'timing' )
 			->with( 'mediamoderation.photodna.200.latency', $this->anything() );
@@ -92,11 +74,10 @@ class RequestModerationCheckIntegrationTest extends MediaWikiIntegrationTestCase
 		$requestModerationCheck = new RequestModerationCheck(
 			$options,
 			$services->getHttpRequestFactory(),
-			$backend,
 			$stats,
 			LoggerFactory::getInstance( 'mediamoderation' )
 		);
-		$info = $requestModerationCheck->requestModeration( $file );
+		$info = $requestModerationCheck->requestModeration( $url, $name );
 		$this->assertTrue( $info->isOk() );
 		$this->assertEquals( $isChildExploitationFound, $info->isChildExploitationFound() );
 	}

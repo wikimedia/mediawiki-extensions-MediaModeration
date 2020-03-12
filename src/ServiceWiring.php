@@ -41,6 +41,7 @@ return [
 		function ( MediaWikiServices $services ): MediaModerationHandler {
 			return new MediaModerationHandler(
 				$services->getRepoGroup()->getLocalRepo(),
+				$services->getService( ThumbnailProvider::class ),
 				$services->getService( RequestModerationCheck::class ),
 				$services->getService( ProcessModerationCheckResult::class ),
 				LoggerFactory::getInstance( 'mediamoderation' )
@@ -54,7 +55,6 @@ return [
 					$services->getConfigFactory()->makeConfig( 'MediaModeration' )
 				),
 				$services->getHttpRequestFactory(),
-				$services->getRepoGroup()->getLocalRepo()->getBackend(),
 				MediaWikiServices::getInstance()->getStatsdDataFactory(),
 				LoggerFactory::getInstance( 'mediamoderation' )
 			);
@@ -73,6 +73,17 @@ return [
 				 */
 				$services->getMessageFormatterFactory()->getTextFormatter( 'en' ),
 				$services->getEmailer(),
+				LoggerFactory::getInstance( 'mediamoderation' )
+			);
+		},
+	ThumbnailProvider::class =>
+		function ( MediaWikiServices $services ): ThumbnailProvider {
+			$configFactory = $services->getConfigFactory();
+			return new ThumbnailProvider(
+				new ServiceOptions(
+					ThumbnailProvider::CONSTRUCTOR_OPTIONS,
+					$configFactory->makeConfig( 'MediaModeration' )
+				),
 				LoggerFactory::getInstance( 'mediamoderation' )
 			);
 		},

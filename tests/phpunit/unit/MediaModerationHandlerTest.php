@@ -35,6 +35,7 @@ class MediaModerationHandlerTest extends MediaWikiUnitTestCase {
 	 */
 	public function testHandleMediaFileNotFound() {
 		$localRepo = $this->getMockLocalRepo();
+		$thumbnailProvider = $this->getMockThumbnailProvider();
 
 		$logger = $this->getMockLogger();
 		$logger->expects( $this->once() )->method( 'info' );
@@ -46,6 +47,7 @@ class MediaModerationHandlerTest extends MediaWikiUnitTestCase {
 
 		$service = new MediaModerationHandler(
 			$localRepo,
+			$thumbnailProvider,
 			$this->getMockRequestModerationCheck(),
 			$this->getMockProcessModerationCheckResult(),
 			$logger
@@ -60,8 +62,17 @@ class MediaModerationHandlerTest extends MediaWikiUnitTestCase {
 	public function testHandleMediaFileFoundWrongResult() {
 		$localRepo = $this->getMockLocalRepo();
 
+		$thumbnailProvider = $this->getMockThumbnailProvider();
+
 		$file = $this->getMockLocalFile();
 		$title = $this->getMockTitle();
+
+		$thumbnailProvider
+			->expects( $this->once() )
+			->method( 'getThumbnailUrl' )
+			->with( $file )
+			->willReturn( 'ThumbnailContent' );
+
 		$localRepo->expects( $this->once() )->method( 'findFile' )
 			->with( $this->equalTo( $title ), $this->equalTo( [ 'time' => 'timestamp' ] ) )
 			->willReturn( $file );
@@ -75,6 +86,7 @@ class MediaModerationHandlerTest extends MediaWikiUnitTestCase {
 
 		$service = new MediaModerationHandler(
 			$localRepo,
+			$thumbnailProvider,
 			$request,
 			$this->getMockProcessModerationCheckResult(),
 			$logger
@@ -89,6 +101,7 @@ class MediaModerationHandlerTest extends MediaWikiUnitTestCase {
 	public function testHandleMediaFileFoundGoodResult() {
 		$localRepo = $this->getMockLocalRepo();
 
+		$thumbnailProvider = $this->getMockThumbnailProvider();
 		$title = $this->getMockTitle();
 		$file = $this->getMockLocalFile();
 
@@ -107,6 +120,7 @@ class MediaModerationHandlerTest extends MediaWikiUnitTestCase {
 
 		$service = new MediaModerationHandler(
 			$localRepo,
+			$thumbnailProvider,
 			$request,
 			$processResult,
 			$logger

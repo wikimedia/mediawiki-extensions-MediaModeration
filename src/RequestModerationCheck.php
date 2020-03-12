@@ -20,12 +20,11 @@
 
 namespace MediaWiki\Extension\MediaModeration;
 
-use File;
-use FileBackend;
 use FormatJson;
 use Liuggio\StatsdClient\Factory\StatsdDataFactoryInterface;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Http\HttpRequestFactory;
+use Monolog\Utils;
 use MWHttpRequest;
 use Psr\Log\LoggerInterface;
 
@@ -39,17 +38,13 @@ class RequestModerationCheck {
 		'MediaModerationPhotoDNASubscriptionKey',
 		'MediaModerationHttpProxy',
 	];
+
 	private const PHOTODNA_STATS_PREFIX = 'mediamoderation.photodna';
 
 	/**
 	 * @var HttpRequestFactory
 	 */
 	private $httpRequestFactory;
-
-	/**
-	 * @var FileBackend
-	 */
-	private $fileBackend;
 
 	/**
 	 * @var LoggerInterface
@@ -80,20 +75,17 @@ class RequestModerationCheck {
 	/**
 	 * @param ServiceOptions $options
 	 * @param HttpRequestFactory $httpRequestFactory
-	 * @param FileBackend $fileBackend
 	 * @param StatsdDataFactoryInterface $stats
 	 * @param LoggerInterface $logger
 	 */
 	public function __construct(
 		ServiceOptions $options,
 		HttpRequestFactory $httpRequestFactory,
-		FileBackend $fileBackend,
 		StatsdDataFactoryInterface $stats,
 		LoggerInterface $logger
 	) {
 		$options->assertRequiredOptions( self::CONSTRUCTOR_OPTIONS );
 		$this->httpRequestFactory = $httpRequestFactory;
-		$this->fileBackend = $fileBackend;
 		$this->stats = $stats;
 		$this->logger = $logger;
 
@@ -103,14 +95,18 @@ class RequestModerationCheck {
 	}
 
 	/**
-	 * @param File $file
+	 * @param string $url
 	 * @return MWHttpRequest
 	 */
-	private function createModerationRequest( File $file ): MWHttpRequest {
+	private function createModerationRequest( string $url ): MWHttpRequest {
 		$options = [
 			'method' => 'POST',
-			'postData' => $this->getContents( $file )
+			'postData' => Utils::jsonEncode( [
+				'DataRepresentation' => 'URL',
+				'Value' => $url
+			] ),
 		];
+
 		if ( $this->httpProxy ) {
 			$options['proxy'] = $this->httpProxy;
 			$this->logger->debug( 'Using proxy: {proxy}.', [ 'proxy' => $this->httpProxy ] );
@@ -120,17 +116,10 @@ class RequestModerationCheck {
 			$this->photoDNAUrl,
 			$options
 		);
-		$annotationRequest->setHeader( 'Content-Type', $file->getMimeType() );
+		$annotationRequest->setHeader( 'Content-Type', 'application/json' );
 		$annotationRequest->setHeader( 'Ocp-Apim-Subscription-Key', $this->photoDNASubscriptionKey );
-		return $annotationRequest;
-	}
 
-	/**
-	 * @param File $file
-	 * @return string
-	 */
-	private function getContents( File $file ): string {
-		return $this->fileBackend->getFileContents( [ 'src' => $file->getPath() ] );
+		return $annotationRequest;
 	}
 
 	/**
@@ -150,16 +139,20 @@ class RequestModerationCheck {
 	}
 
 	/**
-	 * @param File $file
+	 * @param string $fileUrl
+	 * @param string $fileName
 	 * @return CheckResultValue
 	 */
-	public function requestModeration( File $file ): CheckResultValue {
+	public function requestModeration(
+		string $fileUrl,
+		string $fileName
+	): CheckResultValue {
 		$start = microtime( true );
-		$this->stats->updateCount( self::PHOTODNA_STATS_PREFIX . '.bandwidth', $file->getSize() );
 
 		$this->logger->debug( 'Creating moderation request for file {file}.',
-			[ 'file' => $file->getName() ] );
-		$moderationInfoRequest = $this->createModerationRequest( $file );
+			[ 'file' => $fileName ] );
+
+		$moderationInfoRequest = $this->createModerationRequest( $fileUrl );
 		$status = $moderationInfoRequest->execute();
 
 		$delay = microtime( true ) - $start;
@@ -169,15 +162,16 @@ class RequestModerationCheck {
 		);
 
 		if ( !$status->isOk() ) {
-			$this->logWarning( $file->getName(), 'Request error response: ' . (string)$status . '.' );
+			$this->logWarning( $fileName, 'Request error response: ' . (string)$status . '.' );
 			return new CheckResultValue( false, false );
 		}
 
 		$this->logger->debug( 'Parsing moderation result for file {file}.',
-			[ 'file' => $file->getName() ] );
+			[ 'file' => $fileName ] );
+
 		$parseRes = FormatJson::parse( $moderationInfoRequest->getContent(), FormatJson::FORCE_ASSOC );
 		if ( !$parseRes->isGood() ) {
-			$this->logWarning( $file->getName(),
+			$this->logWarning( $fileName,
 				'Parse error in JSON returned by photoDNA: ' . (string)$parseRes . '.',
 				$moderationInfoRequest->getContent() );
 			return new CheckResultValue( false, false );
@@ -187,20 +181,20 @@ class RequestModerationCheck {
 		if ( !isset( $responseBody['Status']['Code'] )
 				|| !isset( $responseBody['Status']['Description'] )
 				|| !isset( $responseBody['IsMatch'] ) ) {
-			$this->logWarning( $file->getName(), 'Missing keys in response.', $moderationInfoRequest->getContent() );
+			$this->logWarning( $fileName, 'Missing keys in response.', $moderationInfoRequest->getContent() );
 			return new CheckResultValue( false, false );
 		}
 		if ( $responseBody['Status']['Code'] != 3000 ) {
-			$this->logWarning( $file->getName(),
+			$this->logWarning( $fileName,
 				'Error response from PhotoDNA service: ', $moderationInfoRequest->getContent() );
 			return new CheckResultValue( false, false );
 		}
 
 		if ( $responseBody['IsMatch'] ) {
 			$this->logger->debug( 'Hash match found for file {file}: {content}.',
-				[ 'file' => $file->getName(), 'content' => $moderationInfoRequest->getContent() ] );
+				[ 'file' => $fileName, 'content' => $moderationInfoRequest->getContent() ] );
 		} else {
-			$this->logger->debug( 'No hash match found for file {file}.', [ 'file' => $file->getName() ] );
+			$this->logger->debug( 'No hash match found for file {file}.', [ 'file' => $fileName ] );
 		}
 		return new CheckResultValue(
 			true,
