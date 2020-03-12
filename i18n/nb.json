@@ -1,0 +1,8 @@
+{
+	"@metadata": {
+		"authors": [
+			"Jon Harald Søby"
+		]
+	},
+	"mediamoderation-desc": "Tjeneste for å filtrere og fjerne innhold som kan være mulig misbruk av barn."
+}
