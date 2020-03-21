@@ -40,6 +40,7 @@ class RequestModerationCheckTest extends MediaWikiUnitTestCase {
 			->willReturn( [ '/fake/path/Foo.jpg' => 'File Content Stub' ] );
 
 		$file = $this->getMockLocalFile();
+		$file->expects( $this->once() )->method( 'getSize' )->willReturn( 10 );
 		$file->expects( $this->once() )->method( 'getPath' )->willReturn( '/fake/path/Foo.jpg' );
 
 		$requestFactory->expects( $this->once() )->method( 'create' )->willReturn( $httpRequest );
@@ -48,6 +49,11 @@ class RequestModerationCheckTest extends MediaWikiUnitTestCase {
 		$status->setOK( $requestStatus );
 
 		$httpRequest->expects( $this->once() )->method( 'execute' )->willReturn( $status );
+
+		$stats = $this->getMockStats();
+		$stats->expects( $this->once() )
+			->method( 'updateCount' )
+			->with( 'mediamoderation.photodna.bandwidth', 10 );
 
 		$logger = $this->getMockLogger();
 
@@ -63,9 +69,10 @@ class RequestModerationCheckTest extends MediaWikiUnitTestCase {
 			$options,
 			$requestFactory,
 			$fileBackend,
+			$stats,
 			$logger
 		);
-		return [ $requestModerationCheck, $httpRequest, $logger, $file ];
+		return [ $requestModerationCheck, $httpRequest, $logger, $file, $stats ];
 	}
 
 	/**
@@ -78,8 +85,13 @@ class RequestModerationCheckTest extends MediaWikiUnitTestCase {
 			$requestModerationCheck,
 			$httpRequest,
 			$logger,
-			$file
+			$file,
+			$stats
 		) = $this->configureFixtureForStatus( false );
+
+		$stats->expects( $this->once() )
+			->method( 'timing' )
+			->with( 'mediamoderation.photodna.500.latency', $this->anything() );
 
 		$result = $requestModerationCheck->requestModeration( $file );
 		$this->assertFalse( $result->isOk() );
@@ -114,12 +126,16 @@ class RequestModerationCheckTest extends MediaWikiUnitTestCase {
 			$requestModerationCheck,
 			$httpRequest,
 			$logger,
-			$file
+			$file,
+			$stats
 		) = $this->configureFixtureForStatus( true );
+
+		$stats->expects( $this->once() )
+		->method( 'timing' )
+		->with( 'mediamoderation.photodna.200.latency', $this->anything() );
 
 		$httpRequest->expects( $this->any() )->method( 'getContent' )->willReturn( $content );
 		$logger->expects( $this->once() )->method( 'warning' );
-
 		$result = $requestModerationCheck->requestModeration( $file );
 		$this->assertFalse( $result->isOk() );
 	}
@@ -155,13 +171,17 @@ class RequestModerationCheckTest extends MediaWikiUnitTestCase {
 			$requestModerationCheck,
 			$httpRequest,
 			$logger,
-			$file
+			$file,
+			$stats
 		) = $this->configureFixtureForStatus( true );
 
 		$httpRequest->expects( $this->any() )->method( 'getContent' )->willReturn(
 			json_encode( $content )
 		);
 		$logger->expects( $this->never() )->method( 'warning' );
+		$stats->expects( $this->once() )
+			->method( 'timing' )
+			->with( 'mediamoderation.photodna.200.latency', $this->anything() );
 
 		$result = $requestModerationCheck->requestModeration( $file );
 		$this->assertTrue( $result->isOk() );
