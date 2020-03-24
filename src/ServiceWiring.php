@@ -50,6 +50,7 @@ return [
 				),
 				$services->getHttpRequestFactory(),
 				$services->getRepoGroup()->getLocalRepo()->getBackend(),
+				MediaWikiServices::getInstance()->getStatsdDataFactory(),
 				LoggerFactory::getInstance( 'mediamoderation' )
 			);
 		},

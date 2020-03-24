@@ -49,18 +49,28 @@ class RequestModerationCheckIntegrationTest extends MediaWikiIntegrationTestCase
 	 * @dataProvider requestModerationRealFileProvider
 	 */
 	public function testRequestModerationRealFile( $url, $isChildExploitationFound ) {
-		$this->markTestSkipped( 'Real requests to PhotoDNA should be disabled for CI' );
-
 		$services = MediaWikiServices::getInstance();
 		$configFactory = $services->getConfigFactory();
-		$backend = $this->getMockFileBackend();
+		$options = new ServiceOptions(
+			RequestModerationCheck::CONSTRUCTOR_OPTIONS,
+			$configFactory->makeConfig( 'MediaModeration' )
+		);
 
-		$file = $this->getMockLocalFile();
-		$file->expects( $this->once() )->method( 'getPath' )->willReturn( '/fake/path/Foo.jpg' );
+		if ( $options->get( 'MediaModerationPhotoDNASubscriptionKey' ) == 'subscription-key' ) {
+			$this->markTestSkipped( 'Real requests to PhotoDNA should be disabled for CI' );
+		}
+
+		$backend = $this->getMockFileBackend();
 
 		$content = file_get_contents(
 			$url
 		);
+
+		$size = strlen( $content );
+
+		$file = $this->getMockLocalFile();
+		$file->expects( $this->once() )->method( 'getPath' )->willReturn( '/fake/path/Foo.jpg' );
+		$file->expects( $this->once() )->method( 'getSize' )->willReturn( $size );
 
 		$this->assertNotFalse( $content );
 
@@ -70,13 +80,20 @@ class RequestModerationCheckIntegrationTest extends MediaWikiIntegrationTestCase
 
 			$file->expects( $this->once() )->method( 'getMimeType' )->willReturn( 'image/jpeg' );
 
+		$stats = $this->getMockStats();
+		$stats->expects( $this->once() )
+			->method( 'updateCount' )
+			->with( 'mediamoderation.photodna.bandwidth', $size );
+
+		$stats->expects( $this->once() )
+			->method( 'timing' )
+			->with( 'mediamoderation.photodna.200.latency', $this->anything() );
+
 		$requestModerationCheck = new RequestModerationCheck(
-			new ServiceOptions(
-				RequestModerationCheck::CONSTRUCTOR_OPTIONS,
-				$configFactory->makeConfig( 'MediaModeration' )
-			),
+			$options,
 			$services->getHttpRequestFactory(),
 			$backend,
+			$stats,
 			LoggerFactory::getInstance( 'mediamoderation' )
 		);
 		$info = $requestModerationCheck->requestModeration( $file );

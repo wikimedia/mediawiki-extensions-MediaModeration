@@ -22,6 +22,7 @@ namespace MediaWiki\Extension\MediaModeration;
 
 use FileBackend;
 use JobQueueGroup;
+use Liuggio\StatsdClient\Factory\StatsdDataFactoryInterface;
 use LocalFile;
 use LocalRepo;
 use MediaWiki\Http\HttpRequestFactory;
@@ -111,7 +112,7 @@ trait MocksHelperTrait {
 		$file = $this->getMockBuilder( LocalFile::class )
 			->disableOriginalConstructor()
 			->setMethods( [
-				'getMediaType', 'getTitle', 'getPath', 'getMimeType', 'getTimestamp'
+				'getMediaType', 'getTitle', 'getPath', 'getMimeType', 'getTimestamp', 'getSize'
 			] )
 			->getMock();
 		return $file;
@@ -230,5 +231,14 @@ trait MocksHelperTrait {
 			->getMock();
 
 		return $emailer;
+	}
+
+	/**
+	 * Creates mock object for JobQueueGroup
+	 * @return StatsdDataFactoryInterface
+	 */
+	public function getMockStats(): StatsdDataFactoryInterface {
+		$stats = $this->getMockForAbstractClass( StatsdDataFactoryInterface::class );
+		return $stats;
 	}
 }

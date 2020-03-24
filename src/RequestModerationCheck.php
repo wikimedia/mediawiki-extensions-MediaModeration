@@ -23,6 +23,7 @@ namespace MediaWiki\Extension\MediaModeration;
 use File;
 use FileBackend;
 use FormatJson;
+use Liuggio\StatsdClient\Factory\StatsdDataFactoryInterface;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Http\HttpRequestFactory;
 use MWHttpRequest;
@@ -37,6 +38,7 @@ class RequestModerationCheck {
 		'MediaModerationPhotoDNAUrl',
 		'MediaModerationPhotoDNASubscriptionKey',
 	];
+	private const PHOTODNA_STATS_PREFIX = 'mediamoderation.photodna';
 
 	/**
 	 * @var HttpRequestFactory
@@ -54,6 +56,11 @@ class RequestModerationCheck {
 	private $logger;
 
 	/**
+	 * @var StatsdDataFactoryInterface
+	 */
+	private $stats;
+
+	/**
 	 * @var string
 	 */
 	private $photoDNAUrl;
@@ -67,17 +74,20 @@ class RequestModerationCheck {
 	 * @param ServiceOptions $options
 	 * @param HttpRequestFactory $httpRequestFactory
 	 * @param FileBackend $fileBackend
+	 * @param StatsdDataFactoryInterface $stats
 	 * @param LoggerInterface $logger
 	 */
 	public function __construct(
 		ServiceOptions $options,
 		HttpRequestFactory $httpRequestFactory,
 		FileBackend $fileBackend,
+		StatsdDataFactoryInterface $stats,
 		LoggerInterface $logger
 	) {
 		$options->assertRequiredOptions( self::CONSTRUCTOR_OPTIONS );
 		$this->httpRequestFactory = $httpRequestFactory;
 		$this->fileBackend = $fileBackend;
+		$this->stats = $stats;
 		$this->logger = $logger;
 
 		$this->photoDNAUrl = $options->get( 'MediaModerationPhotoDNAUrl' );
@@ -116,8 +126,17 @@ class RequestModerationCheck {
 	 * @return CheckResultValue
 	 */
 	public function requestModeration( File $file ): CheckResultValue {
+		$start = microtime( true );
+		$this->stats->updateCount( self::PHOTODNA_STATS_PREFIX . '.bandwidth', $file->getSize() );
+
 		$moderationInfoRequest = $this->fetchModerationInfo( $file );
 		$status = $moderationInfoRequest->execute();
+
+		$delay = microtime( true ) - $start;
+		$this->stats->timing(
+			self::PHOTODNA_STATS_PREFIX . ( $status->isOk() ? '.200.' : '.500.' ) . 'latency',
+			1000 * $delay
+		);
 
 		if ( !$status->isOk() ) {
 			return new CheckResultValue( false, false );
