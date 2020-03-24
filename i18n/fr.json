@@ -1,8 +1,9 @@
 {
 	"@metadata": {
 		"authors": [
-			"Eneelk"
+			"Eneelk",
+			"Wladek92"
 		]
 	},
-	"mediamoderation-desc": "Service pour le filtrage et la suppression de contenus pouvant relever de l’exploitation infantile."
+	"mediamoderation-desc": "Service pour le filtrage et la suppression de contenus pouvant relever de l’exploitation des enfants."
 }
