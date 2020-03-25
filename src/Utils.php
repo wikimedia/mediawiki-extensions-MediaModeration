@@ -22,11 +22,11 @@ namespace MediaWiki\Extension\MediaModeration;
 
 class Utils {
 
-		/** @var array */
-		private static $allowedMediaTypes = [
-			// @phan-suppress-next-line PhanUndeclaredConstant
-			MEDIATYPE_BITMAP,
-		];
+	/** @var array */
+	private static $allowedMediaTypes = [
+		// @phan-suppress-next-line PhanUndeclaredConstant
+		MEDIATYPE_BITMAP,
+	];
 
 	/**
 	 * Return true if the media type is allowed
