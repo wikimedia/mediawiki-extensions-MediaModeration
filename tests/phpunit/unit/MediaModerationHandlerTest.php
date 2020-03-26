@@ -79,7 +79,7 @@ class MediaModerationHandlerTest extends MediaWikiUnitTestCase {
 			$this->getMockProcessModerationCheckResult(),
 			$logger
 		);
-		$this->assertTrue( $service->handleMedia( $title, 'timestamp' ) );
+		$this->assertFalse( $service->handleMedia( $title, 'timestamp' ) );
 	}
 
 	/**

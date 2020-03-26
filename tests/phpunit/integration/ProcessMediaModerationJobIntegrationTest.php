@@ -30,14 +30,21 @@ use MediaWikiIntegrationTestCase;
 class ProcessMediaModerationJobIntegrationTest extends MediaWikiIntegrationTestCase {
 	use MocksHelperTrait;
 
-	public function testRunPassArguments() {
+	public function runPassArgumentsProvider() {
+		return [ [ true ], [ false ] ];
+	}
+
+	/**
+	 * @dataProvider runPassArgumentsProvider
+	 */
+	public function testRunPassArguments( $hadlerResult ) {
 		$mediaModerationHandler = $this->getMockMediaModerationHandler();
 
 		$mediaModerationHandler
 			->expects( $this->once() )
 			->method( 'handleMedia' )
 			->with( $this->anything(), $this->equalTo( 'timestamp' ) )
-			->willReturn( true );
+			->willReturn( $hadlerResult );
 
 		$this->setService( MediaModerationHandler::class, $mediaModerationHandler );
 		$job = new ProcessMediaModerationJob( [
@@ -45,6 +52,6 @@ class ProcessMediaModerationJobIntegrationTest extends MediaWikiIntegrationTestC
 			'namespace' => NS_FILE,
 			'timestamp' => 'timestamp',
 		] );
-		$this->assertTrue( $job->run() );
+		$this->assertEquals( $hadlerResult,  $job->run() );
 	}
 }
