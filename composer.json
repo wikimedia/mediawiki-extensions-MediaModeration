@@ -1,8 +1,7 @@
 {
 	"name": "mediawiki/media-moderation",
 	"description": "Service for filtering possible child exploitation content",
-	"require": {
-	},
+	"require": {},
 	"require-dev": {
 		"jakub-onderka/php-parallel-lint": "1.0.0",
 		"jakub-onderka/php-console-highlighter": "0.4.0",
