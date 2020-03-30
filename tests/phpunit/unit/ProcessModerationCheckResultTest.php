@@ -38,6 +38,10 @@ class ProcessModerationCheckResultTest extends MediaWikiUnitTestCase {
 	 */
 	public function testProcessResultNegative() {
 		$emailer = $this->getMockIEmailer();
+		$formatter = $this->getMockTextFormatter();
+		$formatter
+			->expects( $this->never() )
+			->method( 'format' );
 
 		$options = new ServiceOptions(
 			ProcessModerationCheckResult::CONSTRUCTOR_OPTIONS,
@@ -52,6 +56,7 @@ class ProcessModerationCheckResultTest extends MediaWikiUnitTestCase {
 
 		$processor = new ProcessModerationCheckResult(
 			$options,
+			$formatter,
 			$emailer
 		);
 
@@ -65,11 +70,17 @@ class ProcessModerationCheckResultTest extends MediaWikiUnitTestCase {
 	/**
 	 * @covers ::processResult
 	 * @covers ::getMessageBody
-	 * @covers ::getMessageCaption
+	 * @covers ::getMessageSubject
 	 * @covers ::__construct
 	 */
 	public function testProcessResultPositive() {
 		$emailer = $this->getMockIEmailer();
+		$formatter = $this->getMockTextFormatter();
+
+		$formatter
+			->method( 'format' )
+			->withConsecutive( [ $this->anything() ], [ $this->anything() ] )
+			->willReturnOnConsecutiveCalls( "Message Body", "Message Subject" );
 
 		$options = new ServiceOptions(
 			ProcessModerationCheckResult::CONSTRUCTOR_OPTIONS,
@@ -81,6 +92,7 @@ class ProcessModerationCheckResultTest extends MediaWikiUnitTestCase {
 
 		$processor = new ProcessModerationCheckResult(
 			$options,
+			$formatter,
 			$emailer
 		);
 
@@ -90,12 +102,15 @@ class ProcessModerationCheckResultTest extends MediaWikiUnitTestCase {
 			->with(
 				$this->anything(),
 				$this->isInstanceOf( MailAddress::class ),
-				$this->stringContains( 'found' ),
-				$this->stringContains( 'found' )
+				'Message Subject',
+				'Message Body'
 			)->willReturn( $result );
 
 		$title = $this->getMockTitle();
-
+		$title
+			->expects( $this->once() )
+			->method( 'getFullUrl' )
+			->willReturn( 'http://example.org/image.jpg' );
 		$file = $this->getMockLocalFile();
 		$file->expects( $this->once() )->method( 'getTitle' )->willReturn( $title );
 
