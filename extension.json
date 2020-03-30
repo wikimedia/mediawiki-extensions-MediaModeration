@@ -52,6 +52,5 @@
 			"description": "Email from which emails are sent."
 		}
 	},
-	"load_composer_autoloader": true,
 	"manifest_version": 2
 }
