@@ -215,7 +215,7 @@ trait MocksHelperTrait {
 	public function getMockJobQueueGroup(): JobQueueGroup {
 		$jobQueueGroup = $this->getMockBuilder( JobQueueGroup::class )
 			->disableOriginalConstructor()
-			->setMethods( [ 'lazyPush' ] )
+			->setMethods( [ 'push' ] )
 			->getMock();
 
 		return $jobQueueGroup;

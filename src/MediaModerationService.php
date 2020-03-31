@@ -59,6 +59,6 @@ class MediaModerationService {
 		}
 		$title = $file->getTitle();
 		$timestamp = $file->getTimestamp();
-		$this->jobQueueGroup->lazyPush( ProcessMediaModerationJob::newSpec( $title, $timestamp ) );
+		$this->jobQueueGroup->push( ProcessMediaModerationJob::newSpec( $title, $timestamp, true ) );
 	}
 }

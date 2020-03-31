@@ -29,13 +29,24 @@ use MediaWiki\MediaWikiServices;
 use Title;
 
 class ProcessMediaModerationJob extends Job implements GenericParameterJob {
+
+	public const JOB_NAME = 'processMediaModeration';
+
+	/**
+	 * @param bool $prioritized
+	 * @return string
+	 */
+	private static function jobName( bool $prioritized ): string {
+		return self::JOB_NAME . ( $prioritized ? 'Prioritized' : '' );
+	}
+
 	/**
 	 * Callers should use the factory methods instead
 	 *
 	 * @param array $params Job parameters
 	 */
 	public function __construct( array $params ) {
-		parent::__construct( 'processMediaModeration', $params );
+		parent::__construct( self::JOB_NAME, $params );
 	}
 
 	public function run(): bool {
@@ -47,17 +58,18 @@ class ProcessMediaModerationJob extends Job implements GenericParameterJob {
 	 *
 	 * @param Title $title
 	 * @param string $timestamp
+	 * @param bool $prioritized
 	 * @return IJobSpecification
 	 */
-	public static function newSpec( Title $title, string $timestamp ): IJobSpecification {
+	public static function newSpec(
+		Title $title,
+		string $timestamp,
+		bool $prioritized
+	): IJobSpecification {
 		return new JobSpecification(
-			'processMediaModeration',
-			[
-				'timestamp' => $timestamp,
-			],
-			[
-				'removeDuplicates' => true,
-			],
+			self::jobName( $prioritized ),
+			[ 'timestamp' => $timestamp ],
+			[ 'removeDuplicates' => true ],
 			$title
 		);
 	}

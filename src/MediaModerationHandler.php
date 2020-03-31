@@ -73,8 +73,7 @@ class MediaModerationHandler {
 		$file = $this->localRepo->findFile( $title, [ 'time' => $timestamp ] );
 		if ( !$file ) {
 			// File not found. Note that this is an expected scenario. The extension
-			// configuration provides for delaying this job due to the high likelihood of newly
-			// uploaded files being deleted.
+			// provides delaying this job if it runs from maintenance script
 			$this->logger->info( 'Local file not found', [ 'title' => $title ] );
 			return true;
 		}
@@ -82,6 +81,6 @@ class MediaModerationHandler {
 		if ( $result->isOk() ) {
 			$this->processModerationCheckResult->processResult( $result, $file );
 		}
-		return true;
+		return $result->isOk();
 	}
 }

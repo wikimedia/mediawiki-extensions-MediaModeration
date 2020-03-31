@@ -46,9 +46,14 @@ class ProcessMediaModerationJobTest extends MediaWikiUnitTestCase {
 			->method( 'getNamespace' )
 			->willReturn( NS_FILE );
 
-		$spec = ProcessMediaModerationJob::newSpec( $title, 'timestamp' );
+		$spec = ProcessMediaModerationJob::newSpec( $title, 'timestamp', false );
+		$this->assertEquals( 'processMediaModeration', $spec->getType() );
 		$this->assertEquals( 'File:Foom.png', $spec->getParams()['title'] );
 		$this->assertEquals( NS_FILE, $spec->getParams()[ 'namespace' ] );
 		$this->assertEquals( 'timestamp', $spec->getParams()[ 'timestamp' ] );
+		$this->assertTrue( $spec->ignoreDuplicates() );
+
+		$specPrioritized = ProcessMediaModerationJob::newSpec( $title, 'timestamp', true );
+		$this->assertEquals( 'processMediaModerationPrioritized', $specPrioritized->getType() );
 	}
 }

@@ -69,7 +69,7 @@ class MediaModerationServiceTest extends MediaWikiUnitTestCase {
 
 		$jobQueueGroup
 			->expects( $this->once() )
-			->method( 'lazyPush' );
+			->method( 'push' );
 
 		$file
 			->expects( $this->once() )
@@ -92,7 +92,7 @@ class MediaModerationServiceTest extends MediaWikiUnitTestCase {
 
 		$jobQueueGroup
 			->expects( $this->never() )
-			->method( 'lazyPush' );
+			->method( 'push' );
 
 		$file
 			->expects( $this->once() )
