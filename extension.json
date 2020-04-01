@@ -53,6 +53,5 @@
 			"description": "Email from which notification are sent."
 		}
 	},
-	"load_composer_autoloader": true,
 	"manifest_version": 2
 }
