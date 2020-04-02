@@ -61,6 +61,12 @@ return [
 					ProcessModerationCheckResult::CONSTRUCTOR_OPTIONS,
 					$services->getConfigFactory()->makeConfig( 'MediaModeration' )
 				),
+				/**
+				 * The purpose of the formatter is to create a message to notify
+				 * a very the limited group of moderators, so that no need to use
+				 * other language than en.
+				 */
+				$services->getMessageFormatterFactory()->getTextFormatter( 'en' ),
 				$services->getEmailer()
 			);
 		},

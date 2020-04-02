@@ -32,6 +32,7 @@ use Psr\Log\LoggerInterface;
 use Title;
 use TitleFactory;
 use UploadBase;
+use Wikimedia\Message\ITextFormatter;
 
 trait MocksHelperTrait {
 	/**
@@ -240,5 +241,17 @@ trait MocksHelperTrait {
 	public function getMockStats(): StatsdDataFactoryInterface {
 		$stats = $this->getMockForAbstractClass( StatsdDataFactoryInterface::class );
 		return $stats;
+	}
+
+	/**
+	 * Creates mock object for TextFormatter
+	 * @return ITextFormatter
+	 */
+	public function getMockTextFormatter(): ITextFormatter {
+		$formatter = $this->getMockBuilder( ITextFormatter::class )
+			->setMethods( [ 'format' ] )
+			->getMockForAbstractClass();
+
+		return $formatter;
 	}
 }

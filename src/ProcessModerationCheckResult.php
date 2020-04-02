@@ -25,6 +25,8 @@ use MailAddress;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Mail\IEmailer;
 use Title;
+use Wikimedia\Message\ITextFormatter;
+use Wikimedia\Message\MessageValue;
 
 /**
  * Process moderation check result, update DB and send an email
@@ -49,19 +51,30 @@ class ProcessModerationCheckResult {
 	private $recipientList;
 
 	/**
+	 * @var ITextFormatter
+	 */
+	private $formatter;
+
+	/**
 	 * @var IEmailer
 	 */
 	private $emailer;
 
 	/**
 	 * @param ServiceOptions $options
+	 * @param ITextFormatter $formatter
 	 * @param IEmailer $emailer
 	 */
-	public function __construct( ServiceOptions $options, IEmailer $emailer ) {
+	public function __construct(
+		ServiceOptions $options,
+		ITextFormatter $formatter,
+		IEmailer $emailer
+	) {
 		$options->assertRequiredOptions( self::CONSTRUCTOR_OPTIONS );
 		$this->recipientList = $options->get( 'MediaModerationRecipientList' );
 		$this->from = $options->get( 'MediaModerationFrom' );
 
+		$this->formatter = $formatter;
 		$this->emailer = $emailer;
 	}
 
@@ -71,17 +84,16 @@ class ProcessModerationCheckResult {
 	 */
 private function getMessageBody( Title $title ): string {
 		$fullUrl = $title->getFullURL();
-		return <<<BODY
-Inapropriate content was found by the link:
-{ $fullUrl }
-BODY;
+		return $this->formatter->format(
+			MessageValue::new( 'mediamoderation-email-body' )->plaintextParams( $fullUrl )
+		);
 }
 
 	/**
 	 * @return string
 	 */
-	private function getMessageCaption(): string {
-		return "Child exploitation content found";
+	private function getMessageSubject(): string {
+		return $this->formatter->format( MessageValue::new( 'mediamoderation-email-subject' ) );
 	}
 
 	/**
@@ -97,6 +109,7 @@ BODY;
 
 		$title = $file->getTitle();
 		$body = $this->getMessageBody( $title );
+		$subject = $this->getMessageSubject();
 
 		$to = array_map( function ( $address ) {
 			return new MailAddress( $address );
@@ -107,8 +120,8 @@ BODY;
 		$this->emailer->send(
 			$to,
 			$from,
-			$this->getMessageCaption(),
-			$this->getMessageBody( $title )
+			$subject,
+			$body
 		);
 	}
 }

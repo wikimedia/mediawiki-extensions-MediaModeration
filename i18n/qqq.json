@@ -4,5 +4,7 @@
 			"Wikimedia Core Platform & Trust and Safety teams"
 		]
 	},
-	"mediamoderation-desc": "{{desc|name=MediaModeration|url=https://www.mediawiki.org/wiki/Extension:MediaModeration}}"
+	"mediamoderation-desc": "{{desc|name=MediaModeration|url=https://www.mediawiki.org/wiki/Extension:MediaModeration}}",
+	"mediamoderation-email-body": "{{notranslate}} A template to be used for the email body when inappropriate content found. Parameters:\n * $1 - URI of a page containing the media",
+	"mediamoderation-email-subject": "{{notranslate}} A template to be used for the email subject when inappropriate content found."
 }
