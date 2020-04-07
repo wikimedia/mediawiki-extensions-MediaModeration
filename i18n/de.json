@@ -1,4 +1,6 @@
 {
-	"@metadata": [],
+	"@metadata": {
+		"authors": []
+	},
 	"mediamoderation-desc": "Dienst zum Filtern und Entfernen von möglichen Inhalten von Ausbeutung von Kindern."
 }
