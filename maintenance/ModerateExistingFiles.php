@@ -20,22 +20,36 @@
  */
 namespace MediaWiki\Extension\MediaModeration\Maintenance;
 
-if ( getenv( 'MW_INSTALL_PATH' ) ) {
-	$IP = getenv( 'MW_INSTALL_PATH' );
-} else {
-	$IP = __DIR__ . '/../../..';
-}
-require_once "$IP/maintenance/Maintenance.php";
-
 use Exception;
 use JobQueueGroup;
 use LocalFile;
 use Maintenance;
 use MediaWiki\Extension\MediaModeration\Job\ProcessMediaModerationJob;
 use MediaWiki\MediaWikiServices;
+use MWException;
 use OldLocalFile;
 use Wikimedia\Rdbms\IDatabase;
 use Wikimedia\Rdbms\IResultWrapper;
+
+// Security: Disable all stream wrappers and reenable individually as needed
+foreach ( stream_get_wrappers() as $wrapper ) {
+	stream_wrapper_unregister( $wrapper );
+}
+
+stream_wrapper_restore( 'file' );
+$basePath = getenv( 'MW_INSTALL_PATH' );
+if ( $basePath ) {
+	if ( !is_dir( $basePath )
+		|| strpos( $basePath, '..' ) !== false
+		|| strpos( $basePath, '~' ) !== false
+	) {
+		throw new MWException( "Bad MediaWiki install path: $basePath" );
+	}
+} else {
+	$basePath = __DIR__ . '/../../..';
+}
+
+require_once "$basePath/maintenance/Maintenance.php";
 
 /**
  * Maintenance script that fixes double redirects.
