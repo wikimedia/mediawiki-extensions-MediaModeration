@@ -28,7 +28,16 @@ use MediaWiki\MediaWikiServices;
 return [
 	MediaModerationService::class =>
 		function ( MediaWikiServices $services ): MediaModerationService {
-			return new MediaModerationService( JobQueueGroup::singleton() );
+			$configFactory = $services->getConfigFactory();
+
+			return new MediaModerationService(
+				new ServiceOptions(
+					MediaModerationService::CONSTRUCTOR_OPTIONS,
+					$services->getConfigFactory()->makeConfig( 'MediaModeration' )
+				),
+				JobQueueGroup::singleton(),
+				LoggerFactory::getInstance( 'mediamoderation' )
+			);
 		},
 	MediaModerationHandler::class =>
 		function ( MediaWikiServices $services ): MediaModerationHandler {

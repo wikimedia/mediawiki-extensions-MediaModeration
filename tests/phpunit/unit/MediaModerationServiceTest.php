@@ -20,6 +20,7 @@
 
 namespace MediaWiki\Extension\MediaModeration;
 
+use MediaWiki\Config\ServiceOptions;
 use MediaWikiUnitTestCase;
 use Title;
 
@@ -30,8 +31,7 @@ use Title;
 class MediaModerationServiceTest extends MediaWikiUnitTestCase {
 	use MocksHelperTrait;
 
-	private function configureFixture() {
-		$jobQueueGroup = $this->getMockJobQueueGroup();
+	private function configureFixture( $checkOnUpload ) {
 		$file = $this->getMockLocalFile();
 		$uploadBase = $this->getMockUploadBase();
 
@@ -41,12 +41,18 @@ class MediaModerationServiceTest extends MediaWikiUnitTestCase {
 			->method( 'getTitle' )
 			->willReturn( $title );
 
-		$uploadBase
-			->expects( $this->once() )
-			->method( 'getLocalFile' )
-			->willReturn( $file );
+		$options = new ServiceOptions(
+			MediaModerationService::CONSTRUCTOR_OPTIONS,
+			[
+				'MediaModerationCheckOnUpload' => $checkOnUpload
+			]
+		);
 
-		$service = new MediaModerationService( $jobQueueGroup );
+		$jobQueueGroup = $this->getMockJobQueueGroup();
+
+		$logger = $this->getMockLogger();
+
+		$service = new MediaModerationService( $options, $jobQueueGroup, $logger );
 		return [ $service, $jobQueueGroup, $file, $uploadBase, $title ];
 	}
 
@@ -55,7 +61,12 @@ class MediaModerationServiceTest extends MediaWikiUnitTestCase {
 	 * @covers ::processUploadedMedia
 	 */
 	public function testProcessUploadedMediaAllowed() {
-		list( $service, $jobQueueGroup, $file, $uploadBase, $title ) = $this->configureFixture();
+		list( $service, $jobQueueGroup, $file, $uploadBase, $title ) = $this->configureFixture( true );
+
+		$uploadBase
+			->expects( $this->once() )
+			->method( 'getLocalFile' )
+			->willReturn( $file );
 
 		$title
 			->expects( $this->any() )
@@ -88,7 +99,12 @@ class MediaModerationServiceTest extends MediaWikiUnitTestCase {
 	 * @covers ::processUploadedMedia
 	 */
 	public function testProcessUploadedMediaFirbidden() {
-		list( $service, $jobQueueGroup, $file, $uploadBase, $title ) = $this->configureFixture();
+		list( $service, $jobQueueGroup, $file, $uploadBase, $title ) = $this->configureFixture( true );
+
+		$uploadBase
+			->expects( $this->once() )
+			->method( 'getLocalFile' )
+			->willReturn( $file );
 
 		$jobQueueGroup
 			->expects( $this->never() )
@@ -98,6 +114,24 @@ class MediaModerationServiceTest extends MediaWikiUnitTestCase {
 			->expects( $this->once() )
 			->method( 'getMediaType' )
 			->willReturn( MEDIATYPE_DRAWING );
+
+		$service->processUploadedMedia( $uploadBase );
+	}
+
+	/**
+	 * @covers ::__construct
+	 * @covers ::processUploadedMedia
+	 */
+	public function testProcessUploadedMediaCheckOnUploadDisabled() {
+		list( $service, $jobQueueGroup, $file, $uploadBase, $title ) = $this->configureFixture( false );
+
+		$uploadBase
+			->expects( $this->never() )
+			->method( 'getLocalFile' );
+
+		$jobQueueGroup
+			->expects( $this->never() )
+			->method( 'push' );
 
 		$service->processUploadedMedia( $uploadBase );
 	}

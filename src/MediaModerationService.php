@@ -21,7 +21,9 @@
 namespace MediaWiki\Extension\MediaModeration;
 
 use JobQueueGroup;
+use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Extension\MediaModeration\Job\ProcessMediaModerationJob;
+use Psr\Log\LoggerInterface;
 use UploadBase;
 
 /**
@@ -31,19 +33,43 @@ use UploadBase;
  */
 class MediaModerationService {
 
+	public const CONSTRUCTOR_OPTIONS = [
+		'MediaModerationCheckOnUpload'
+	];
+
+	/**
+	 * @var bool $checkOnUpload;
+	 */
+	private $checkOnUpload;
+
 	/**
 	 * @var JobQueueGroup $handler
 	 */
 	private $jobQueueGroup;
 
 	/**
+	 * @var LoggerInterface
+	 */
+	private $logger;
+
+	/**
 	 * Constructs class from
 	 *
 	 * @since 0.1.0
+	 * @param ServiceOptions $options
 	 * @param JobQueueGroup $jobQueueGroup
+	 * @param LoggerInterface $logger
 	 */
-	public function __construct( JobQueueGroup $jobQueueGroup ) {
+	public function __construct(
+		ServiceOptions $options,
+		JobQueueGroup $jobQueueGroup,
+		LoggerInterface $logger
+	) {
+		$options->assertRequiredOptions( self::CONSTRUCTOR_OPTIONS );
 		$this->jobQueueGroup = $jobQueueGroup;
+		$this->logger = $logger;
+
+		$this->checkOnUpload = $options->get( 'MediaModerationCheckOnUpload' );
 	}
 
 	/**
@@ -53,6 +79,10 @@ class MediaModerationService {
 	 * @param UploadBase $uploadBase uploaded media information
 	 */
 	public function processUploadedMedia( UploadBase $uploadBase ) {
+		if ( !$this->checkOnUpload ) {
+			$this->logger->debug( 'Checking on upload is disabled.' );
+			return;
+		}
 		$file = $uploadBase->getLocalFile();
 		if ( !Utils::isMediaTypeAllowed( $file->getMediaType() ) ) {
 			return;

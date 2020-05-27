@@ -165,6 +165,7 @@ trait MocksHelperTrait {
 	 */
 	public function getMockHttpRequestFactory(): HttpRequestFactory {
 		$requestFactory = $this->getMockBuilder( HttpRequestFactory::class )
+			->disableOriginalConstructor()
 			->setMethods( [ 'create' ] )
 			->getMock();
 
