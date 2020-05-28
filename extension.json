@@ -37,7 +37,7 @@
 	},
 	"config": {
 		"MediaModerationCheckOnUpload": {
-			"value": "false",
+			"value": false,
 			"description": "Should files be checked on upload."
 		},
 		"MediaModerationPhotoDNAUrl": {
