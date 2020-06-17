@@ -78,7 +78,7 @@ class RequestModerationCheckTest extends MediaWikiUnitTestCase {
 	/**
 	 * @covers ::__construct
 	 * @covers ::requestModeration
-	 * @covers ::fetchModerationInfo
+	 * @covers ::createModerationRequest
 	 */
 	public function testRequestModerationResultInvalidResponse() {
 		list(
@@ -101,7 +101,7 @@ class RequestModerationCheckTest extends MediaWikiUnitTestCase {
 		return [
 			'Invalid JSON should fail' => [ '{asf' ],
 			'No Content field should fail' => [ json_encode( [] ) ],
-			'Content withoud description should fail' => [
+			'Content without description should fail' => [
 				json_encode( [ 'Status' => [ 'Code' => 200 ] ] )
 			],
 			'Content with wrong status should fail' => [
@@ -118,8 +118,9 @@ class RequestModerationCheckTest extends MediaWikiUnitTestCase {
 	 *
 	 * @covers ::__construct
 	 * @covers ::requestModeration
-	 * @covers ::fetchModerationInfo
+	 * @covers ::createModerationRequest
 	 * @covers ::getContents
+	 * @covers ::logWarning
 	 */
 	public function testRequestModerationWrongContent( $content ) {
 		list(
@@ -142,14 +143,14 @@ class RequestModerationCheckTest extends MediaWikiUnitTestCase {
 
 	public function requestModerationCorrectContentProvider() {
 		return [
-			'Correct status and code and not found Adult content should succeed' => [
+			'Correct status and code with no hash match should succeed' => [
 				[
 					'Status' => [ 'Code' => 3000, 'Description' => 'OK' ],
 					'IsMatch' => false
 				],
 				false
 			],
-			'Correct status and code and found Adult content should succeed' => [
+			'Correct status and code with hash match should succeed' => [
 				[
 					'Status' => [ 'Code' => 3000, 'Description' => 'OK' ],
 					'IsMatch' => true
@@ -164,7 +165,8 @@ class RequestModerationCheckTest extends MediaWikiUnitTestCase {
 	 *
 	 * @covers ::__construct
 	 * @covers ::requestModeration
-	 * @covers ::fetchModerationInfo
+	 * @covers ::createModerationRequest
+	 * @covers ::logWarning
 	 */
 	public function testRequestModerationCorrectContent( $content, $found ) {
 		list(

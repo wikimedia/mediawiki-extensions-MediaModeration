@@ -108,7 +108,7 @@ trait MocksHelperTrait {
 		return $this->getMockBuilder( LocalFile::class )
 			->disableOriginalConstructor()
 			->setMethods( [
-				'getMediaType', 'getTitle', 'getPath', 'getMimeType', 'getTimestamp', 'getSize'
+				'getMediaType', 'getTitle', 'getPath', 'getMimeType', 'getTimestamp', 'getSize', 'getName'
 			] )
 			->getMock();
 	}

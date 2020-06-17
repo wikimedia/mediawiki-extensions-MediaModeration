@@ -45,15 +45,15 @@
 			"description": "Url to photoDNA service endpoint."
 		},
 		"MediaModerationPhotoDNASubscriptionKey": {
-			"value": "subscription-key",
+			"value": "",
 			"description": "Key for access to photoDNA service endpoint."
 		},
 		"MediaModerationRecipientList": {
-			"value": [ "recipient1@example.org" , "recipient2@example.org" ],
+			"value": [],
 			"description": "List of emails to be notified when suspicious content is detected."
 		},
 		"MediaModerationFrom": {
-			"value": "no-reply@example.org",
+			"value": "",
 			"description": "Email from which notification are sent."
 		}
 	},

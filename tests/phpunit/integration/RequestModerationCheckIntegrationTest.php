@@ -56,7 +56,7 @@ class RequestModerationCheckIntegrationTest extends MediaWikiIntegrationTestCase
 			$configFactory->makeConfig( 'MediaModeration' )
 		);
 
-		if ( $options->get( 'MediaModerationPhotoDNASubscriptionKey' ) == 'subscription-key' ) {
+		if ( $options->get( 'MediaModerationPhotoDNASubscriptionKey' ) == '' ) {
 			$this->markTestSkipped( 'Real requests to PhotoDNA should be disabled for CI' );
 		}
 

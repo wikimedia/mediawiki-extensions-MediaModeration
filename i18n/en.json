@@ -4,7 +4,7 @@
 			"Wikimedia Core Platform & Trust and Safety teams"
 		]
 	},
-	"mediamoderation-desc": "Service for filtering and removing possible child exploitation content.",
-	"mediamoderation-email-body": "Inappropriate content was found by the link:\n $1",
-	"mediamoderation-email-subject": "Child exploitation content found"
+	"mediamoderation-desc": "Service for detecting matches against known child exploitation image hash datasets.",
+	"mediamoderation-email-body": "Possible match against known child exploitation image hash in file $1.",
+	"mediamoderation-email-subject": "Hash match"
 }

@@ -24,7 +24,9 @@ use File;
 use MailAddress;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Mail\IEmailer;
+use Psr\Log\LoggerInterface;
 use Title;
+use Wikimedia\Assert\Assert;
 use Wikimedia\Message\ITextFormatter;
 use Wikimedia\Message\MessageValue;
 
@@ -61,21 +63,39 @@ class ProcessModerationCheckResult {
 	private $emailer;
 
 	/**
+	 * @var LoggerInterface
+	 */
+	private $logger;
+
+	/**
 	 * @param ServiceOptions $options
 	 * @param ITextFormatter $formatter
 	 * @param IEmailer $emailer
+	 * @param LoggerInterface $logger
 	 */
 	public function __construct(
 		ServiceOptions $options,
 		ITextFormatter $formatter,
-		IEmailer $emailer
+		IEmailer $emailer,
+		LoggerInterface $logger
 	) {
 		$options->assertRequiredOptions( self::CONSTRUCTOR_OPTIONS );
+
 		$this->recipientList = $options->get( 'MediaModerationRecipientList' );
+		Assert::precondition( is_array( $this->recipientList ), 'MediaModerationRecipientList must be an array.' );
+		Assert::precondition( $this->recipientList != [], 'MediaModerationRecipientList must not be empty.' );
+		foreach ( $this->recipientList as $recipient ) {
+			Assert::precondition( filter_var( $recipient, FILTER_VALIDATE_EMAIL ),
+				'MediaModerationRecipientList contains an invalid email: ' . $recipient );
+		}
+
 		$this->from = $options->get( 'MediaModerationFrom' );
+		Assert::precondition( filter_var( $this->from, FILTER_VALIDATE_EMAIL ),
+			'MediaModerationFrom contains an invalid email: ' . $this->from );
 
 		$this->formatter = $formatter;
 		$this->emailer = $emailer;
+		$this->logger = $logger;
 	}
 
 	/**
@@ -103,10 +123,15 @@ class ProcessModerationCheckResult {
 	 * @param File $file
 	 */
 	public function processResult( CheckResultValue $result, File $file ) {
+		$this->logger->debug( 'Processing result of checking file {file}.',
+			[ 'file' => $file->getName() ] );
 		if ( !$result->isChildExploitationFound() ) {
+			$this->logger->debug( 'No hash match for file {file}.',
+				[ 'file' => $file->getName() ] );
 			return;
 		}
 
+		$this->logger->debug( 'Hash match for file {file}.', [ 'file' => $file->getName() ] );
 		$title = $file->getTitle();
 		$body = $this->getMessageBody( $title );
 		$subject = $this->getMessageSubject();
@@ -117,11 +142,20 @@ class ProcessModerationCheckResult {
 
 		$from = new MailAddress( $this->from );
 
-		$this->emailer->send(
+		$this->logger->info( 'Sending email to {to}: {body}',
+			[ 'to' => implode( ',', $to ), 'body' => $body ] );
+		$status = $this->emailer->send(
 			$to,
 			$from,
 			$subject,
 			$body
 		);
+		if ( !$status->isOK() ) {
+			$this->logger->warning( 'Error sending email to report hash match for file {file}: {status}.',
+				[ 'file' => $file->getName(), 'status' => (string)$status ] );
+		} else {
+			$this->logger->debug( 'Email sent to report hash match for file {file}.',
+				[ 'file' => $file->getName() ] );
+		}
 	}
 }

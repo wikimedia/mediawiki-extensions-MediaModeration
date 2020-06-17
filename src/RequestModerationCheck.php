@@ -30,7 +30,7 @@ use MWHttpRequest;
 use Psr\Log\LoggerInterface;
 
 /**
- * Provides a strategy for receiving moderation from 3rd party services
+ * Checks for hash matches against 3rd party service
  */
 class RequestModerationCheck {
 
@@ -98,7 +98,7 @@ class RequestModerationCheck {
 	 * @param File $file
 	 * @return MWHttpRequest
 	 */
-	private function fetchModerationInfo( File $file ): MWHttpRequest {
+	private function createModerationRequest( File $file ): MWHttpRequest {
 		$options = [
 			'method' => 'POST',
 			'postData' => $this->getContents( $file )
@@ -122,6 +122,22 @@ class RequestModerationCheck {
 	}
 
 	/**
+	 * @param string $file
+	 * @param string|null $detail
+	 * @param string|null $response
+	 */
+	private function logWarning( $file, $detail, $response = null ) {
+		$message = 'Hash check of file ' . $file . ' failed.';
+		if ( $detail ) {
+			$message .= ' ' . $detail;
+		}
+		if ( $response ) {
+			$message .= ' ' . $response;
+		}
+		$this->logger->warning( $message );
+	}
+
+	/**
 	 * @param File $file
 	 * @return CheckResultValue
 	 */
@@ -129,7 +145,9 @@ class RequestModerationCheck {
 		$start = microtime( true );
 		$this->stats->updateCount( self::PHOTODNA_STATS_PREFIX . '.bandwidth', $file->getSize() );
 
-		$moderationInfoRequest = $this->fetchModerationInfo( $file );
+		$this->logger->debug( 'Creating moderation request for file {file}.',
+			[ 'file' => $file->getName() ] );
+		$moderationInfoRequest = $this->createModerationRequest( $file );
 		$status = $moderationInfoRequest->execute();
 
 		$delay = microtime( true ) - $start;
@@ -139,57 +157,39 @@ class RequestModerationCheck {
 		);
 
 		if ( !$status->isOk() ) {
+			$this->logWarning( $file->getName(), 'Request error response: ' . (string)$status . '.' );
 			return new CheckResultValue( false, false );
 		}
 
+		$this->logger->debug( 'Parsing moderation result for file {file}.',
+			[ 'file' => $file->getName() ] );
 		$parseRes = FormatJson::parse( $moderationInfoRequest->getContent(), FormatJson::FORCE_ASSOC );
 		if ( !$parseRes->isGood() ) {
-			$this->logger->warning(
-				'JSON provided by photoDNA is wrong',
-				[
-					'error' => (string)$parseRes,
-					'caller' => __METHOD__,
-					'content' => $moderationInfoRequest->getContent()
-				]
-			);
+			$this->logWarning( $file->getName(),
+				'Parse error in JSON returned by photoDNA: ' . (string)$parseRes . '.',
+				$moderationInfoRequest->getContent() );
 			return new CheckResultValue( false, false );
 		}
+
 		$responseBody = $parseRes->getValue();
 		if ( !isset( $responseBody['Status']['Code'] )
-				|| !isset( $responseBody['Status']['Description'] ) ) {
-			$this->logger->warning(
-				'Status or Code keys are not found in response',
-				[
-					'caller' => __METHOD__,
-					'content' => $moderationInfoRequest->getContent()
-				]
-			);
+				|| !isset( $responseBody['Status']['Description'] )
+				|| !isset( $responseBody['IsMatch'] ) ) {
+			$this->logWarning( $file->getName(), 'Missing keys in response.', $moderationInfoRequest->getContent() );
 			return new CheckResultValue( false, false );
 		}
-
 		if ( $responseBody['Status']['Code'] != 3000 ) {
-			$this->logger->warning(
-				'Error on photoDNA service',
-				[
-					'error' => $responseBody['Status']['Description'],
-					'caller' => __METHOD__,
-					'content' => $moderationInfoRequest->getContent()
-				]
-			);
+			$this->logWarning( $file->getName(),
+				'Error response from PhotoDNA service: ', $moderationInfoRequest->getContent() );
 			return new CheckResultValue( false, false );
 		}
 
-		if ( !isset( $responseBody['IsMatch'] ) ) {
-			$this->logger->warning(
-				'EvaluateResponse or it\'s keys are not found in response',
-				[
-					'caller' => __METHOD__,
-					'content' => $moderationInfoRequest->getContent()
-				]
-			);
-			return new CheckResultValue( false, false );
+		if ( $responseBody['IsMatch'] ) {
+			$this->logger->debug( 'Hash match found for file {file}: {content}.',
+				[ 'file' => $file->getName(), 'content' => $moderationInfoRequest->getContent() ] );
+		} else {
+			$this->logger->debug( 'No hash match found for file {file}.', [ 'file' => $file->getName() ] );
 		}
-
 		return new CheckResultValue(
 			true,
 			$responseBody['IsMatch']

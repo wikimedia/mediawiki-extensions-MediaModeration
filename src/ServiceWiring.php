@@ -72,7 +72,8 @@ return [
 				 * other language than en.
 				 */
 				$services->getMessageFormatterFactory()->getTextFormatter( 'en' ),
-				$services->getEmailer()
+				$services->getEmailer(),
+				LoggerFactory::getInstance( 'mediamoderation' )
 			);
 		},
 ];

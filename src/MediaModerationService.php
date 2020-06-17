@@ -84,11 +84,16 @@ class MediaModerationService {
 			return;
 		}
 		$file = $uploadBase->getLocalFile();
-		if ( !Utils::isMediaTypeAllowed( $file->getMediaType() ) ) {
+		$type = $file->getMediaType();
+		if ( !Utils::isMediaTypeAllowed( $type ) ) {
+			$this->logger->debug( 'Media type {type} is not allowed.',
+				[ 'type' => $type ] );
 			return;
 		}
 		$title = $file->getTitle();
 		$timestamp = $file->getTimestamp();
+		$this->logger->debug( 'Adding media moderation job for file {file} to job queue',
+			[ 'file' => $file->getName() ] );
 		$this->jobQueueGroup->push( ProcessMediaModerationJob::newSpec( $title, $timestamp, true ) );
 	}
 }

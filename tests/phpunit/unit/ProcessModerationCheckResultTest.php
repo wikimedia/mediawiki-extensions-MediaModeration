@@ -53,10 +53,14 @@ class ProcessModerationCheckResultTest extends MediaWikiUnitTestCase {
 			]
 		);
 
+		$logger = $this->getMockLogger();
+		$logger->expects( $this->never() )->method( 'info' );
+
 		$processor = new ProcessModerationCheckResult(
 			$options,
 			$formatter,
-			$emailer
+			$emailer,
+			$logger
 		);
 
 		$emailer->expects( $this->never() )->method( 'send' );
@@ -88,10 +92,14 @@ class ProcessModerationCheckResultTest extends MediaWikiUnitTestCase {
 			]
 		);
 
+		$logger = $this->getMockLogger();
+		$logger->expects( $this->once() )->method( 'info' );
+
 		$processor = new ProcessModerationCheckResult(
 			$options,
 			$formatter,
-			$emailer
+			$emailer,
+			$logger
 		);
 
 		$result = new StatusValue();

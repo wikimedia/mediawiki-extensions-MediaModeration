@@ -74,12 +74,17 @@ class MediaModerationHandler {
 		if ( !$file ) {
 			// File not found. Note that this is an expected scenario. The extension
 			// provides delaying this job if it runs from maintenance script
-			$this->logger->info( 'Local file not found', [ 'title' => $title ] );
+			$this->logger->info( 'Local file {file} not found', [ 'file' => $title->getFullText() ] );
 			return true;
 		}
+		$this->logger->debug( 'Requesting hash check of file {file}.',
+			[ 'file' => $file->getName() ] );
 		$result = $this->requestModerationCheck->requestModeration( $file );
 		if ( $result->isOk() ) {
 			$this->processModerationCheckResult->processResult( $result, $file );
+		} else {
+			$this->logger->debug( 'Hash check request failed for file {file}.',
+				[ 'file' => $file->getName() ] );
 		}
 		return $result->isOk();
 	}

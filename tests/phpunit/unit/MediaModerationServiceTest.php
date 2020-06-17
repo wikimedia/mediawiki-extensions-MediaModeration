@@ -92,7 +92,7 @@ class MediaModerationServiceTest extends MediaWikiUnitTestCase {
 	 * @covers ::__construct
 	 * @covers ::processUploadedMedia
 	 */
-	public function testProcessUploadedMediaFirbidden() {
+	public function testProcessUploadedMediaForbidden() {
 		list( $service, $jobQueueGroup, $file, $uploadBase, $title ) = $this->configureFixture( true );
 
 		$uploadBase->expects( $this->once() )
