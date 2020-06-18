@@ -82,12 +82,12 @@ class ProcessModerationCheckResult {
 	 * @param Title $title
 	 * @return string
 	 */
-private function getMessageBody( Title $title ): string {
+	private function getMessageBody( Title $title ): string {
 		$fullUrl = $title->getFullURL();
 		return $this->formatter->format(
 			MessageValue::new( 'mediamoderation-email-body' )->plaintextParams( $fullUrl )
 		);
-}
+	}
 
 	/**
 	 * @return string
