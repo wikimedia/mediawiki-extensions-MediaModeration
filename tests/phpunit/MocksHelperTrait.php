@@ -51,11 +51,10 @@ trait MocksHelperTrait {
 	 * @return LocalRepo
 	 */
 	public function getMockLocalRepo(): LocalRepo {
-		$mock = $this->getMockBuilder( LocalRepo::class )
+		return $this->getMockBuilder( LocalRepo::class )
 			->disableOriginalConstructor()
 			->setMethods( [ 'findFile' ] )
 			->getMock();
-		return $mock;
 	}
 
 	/**
@@ -63,11 +62,10 @@ trait MocksHelperTrait {
 	 * @return RequestModerationCheck
 	 */
 	public function getMockRequestModerationCheck(): RequestModerationCheck {
-		$mock = $this->getMockBuilder( RequestModerationCheck::class )
+		return $this->getMockBuilder( RequestModerationCheck::class )
 			->disableOriginalConstructor()
 			->setMethods( [ 'requestModeration' ] )
 			->getMock();
-		return $mock;
 	}
 
 	/**
@@ -75,11 +73,10 @@ trait MocksHelperTrait {
 	 * @return MediaModerationHandler
 	 */
 	public function getMockMediaModerationHandler(): MediaModerationHandler {
-		$mock = $this->getMockBuilder( MediaModerationHandler::class )
+		return $this->getMockBuilder( MediaModerationHandler::class )
 			->disableOriginalConstructor()
 			->setMethods( [ 'handleMedia' ] )
 			->getMock();
-		return $mock;
 	}
 
 	/**
@@ -87,11 +84,10 @@ trait MocksHelperTrait {
 	 * @return ProcessModerationCheckResult
 	 */
 	public function getMockProcessModerationCheckResult(): ProcessModerationCheckResult {
-		$mock = $this->getMockBuilder( ProcessModerationCheckResult::class )
+		return $this->getMockBuilder( ProcessModerationCheckResult::class )
 			->disableOriginalConstructor()
 			// ->setMethods( [ 'getMediaType', 'getTitle' ] )
 			->getMock();
-		return $mock;
 	}
 
 	/**
@@ -99,10 +95,9 @@ trait MocksHelperTrait {
 	 * @return LoggerInterface
 	 */
 	public function getMockLogger(): LoggerInterface {
-		$mock = $this->getMockBuilder( LoggerInterface::class )
+		return $this->getMockBuilder( LoggerInterface::class )
 			->setMethods( [ 'info' ] )
 			->getMockForAbstractClass();
-		return $mock;
 	}
 
 	/**
@@ -110,13 +105,12 @@ trait MocksHelperTrait {
 	 * @return LocalFile
 	 */
 	public function getMockLocalFile(): LocalFile {
-		$file = $this->getMockBuilder( LocalFile::class )
+		return $this->getMockBuilder( LocalFile::class )
 			->disableOriginalConstructor()
 			->setMethods( [
 				'getMediaType', 'getTitle', 'getPath', 'getMimeType', 'getTimestamp', 'getSize'
 			] )
 			->getMock();
-		return $file;
 	}
 
 	/**
@@ -142,21 +136,10 @@ trait MocksHelperTrait {
 	 * @return Title
 	 */
 	public function getMockTitle(): Title {
-		$title = $this->getMockBuilder( Title::class )
+		return $this->getMockBuilder( Title::class )
 			->disableOriginalConstructor()
 			->setMethods( [ 'getDBkey', 'getNamespace', 'getFullURL' ] )
 			->getMock();
-
-		// $title
-		// 	->expects( $this->once() )
-		// 	->method( 'getDBkey' )
-		// 	->willReturn( 'File:Foom.png' );
-
-		// $title
-		// 	->expects( $this->once() )
-		// 	->method( 'getNamespace' )
-		// 	->willReturn( NS_FILE );
-		return $title;
 	}
 
 	/**
@@ -164,12 +147,10 @@ trait MocksHelperTrait {
 	 * @return HttpRequestFactory
 	 */
 	public function getMockHttpRequestFactory(): HttpRequestFactory {
-		$requestFactory = $this->getMockBuilder( HttpRequestFactory::class )
+		return $this->getMockBuilder( HttpRequestFactory::class )
 			->disableOriginalConstructor()
 			->setMethods( [ 'create' ] )
 			->getMock();
-
-		return $requestFactory;
 	}
 
 	/**
@@ -177,12 +158,10 @@ trait MocksHelperTrait {
 	 * @return MWHttpRequest
 	 */
 	public function getMockHttpRequest(): MWHttpRequest {
-		$request = $this->getMockBuilder( MWHttpRequest::class )
+		return $this->getMockBuilder( MWHttpRequest::class )
 			->disableOriginalConstructor()
 			->setMethods( [ 'setHeader', 'execute', 'getContent' ] )
 			->getMock();
-
-		return $request;
 	}
 
 	/**
@@ -190,12 +169,10 @@ trait MocksHelperTrait {
 	 * @return FileBackend
 	 */
 	public function getMockFileBackend(): FileBackend {
-		$fileBackend = $this->getMockBuilder( FileBackend::class )
+		return $this->getMockBuilder( FileBackend::class )
 			->disableOriginalConstructor()
 			->setMethods( [ 'getFileContentsMulti' ] )
 			->getMockForAbstractClass();
-
-		return $fileBackend;
 	}
 
 	/**
@@ -203,11 +180,9 @@ trait MocksHelperTrait {
 	 * @return UploadBase
 	 */
 	public function getMockUploadBase(): UploadBase {
-		$uploadBase = $this->getMockBuilder( UploadBase::class )
+		return $this->getMockBuilder( UploadBase::class )
 			->setMethods( [ 'getLocalFile' ] )
 			->getMockForAbstractClass();
-
-		return $uploadBase;
 	}
 
 	/**
@@ -215,12 +190,10 @@ trait MocksHelperTrait {
 	 * @return JobQueueGroup
 	 */
 	public function getMockJobQueueGroup(): JobQueueGroup {
-		$jobQueueGroup = $this->getMockBuilder( JobQueueGroup::class )
+		return $this->getMockBuilder( JobQueueGroup::class )
 			->disableOriginalConstructor()
 			->setMethods( [ 'push' ] )
 			->getMock();
-
-		return $jobQueueGroup;
 	}
 
 	/**
@@ -228,11 +201,9 @@ trait MocksHelperTrait {
 	 * @return JobQueueGroup
 	 */
 	public function getMockIEmailer(): IEmailer {
-		$emailer = $this->getMockBuilder( IEmailer::class )
+		return $this->getMockBuilder( IEmailer::class )
 			->setMethods( [ 'send' ] )
 			->getMock();
-
-		return $emailer;
 	}
 
 	/**
@@ -240,8 +211,7 @@ trait MocksHelperTrait {
 	 * @return StatsdDataFactoryInterface
 	 */
 	public function getMockStats(): StatsdDataFactoryInterface {
-		$stats = $this->getMockForAbstractClass( StatsdDataFactoryInterface::class );
-		return $stats;
+		return $this->getMockForAbstractClass( StatsdDataFactoryInterface::class );
 	}
 
 	/**
@@ -249,10 +219,8 @@ trait MocksHelperTrait {
 	 * @return ITextFormatter
 	 */
 	public function getMockTextFormatter(): ITextFormatter {
-		$formatter = $this->getMockBuilder( ITextFormatter::class )
+		return $this->getMockBuilder( ITextFormatter::class )
 			->setMethods( [ 'format' ] )
 			->getMockForAbstractClass();
-
-		return $formatter;
 	}
 }

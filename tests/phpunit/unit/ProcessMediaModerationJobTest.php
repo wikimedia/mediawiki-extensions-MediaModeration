@@ -36,13 +36,11 @@ class ProcessMediaModerationJobTest extends MediaWikiUnitTestCase {
 	public function testNewSpec() {
 		$title = $this->getMockTitle();
 
-		$title
-			->expects( $this->any() )
+		$title->expects( $this->any() )
 			->method( 'getDBkey' )
 			->willReturn( 'File:Foom.png' );
 
-		$title
-			->expects( $this->any() )
+		$title->expects( $this->any() )
 			->method( 'getNamespace' )
 			->willReturn( NS_FILE );
 
