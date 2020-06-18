@@ -5,6 +5,6 @@
 		]
 	},
 	"mediamoderation-desc": "Service for filtering and removing possible child exploitation content.",
-	"mediamoderation-email-body": "Inapropriate content was found by the link:\n $1",
+	"mediamoderation-email-body": "Inappropriate content was found by the link:\n $1",
 	"mediamoderation-email-subject": "Child exploitation content found"
 }
