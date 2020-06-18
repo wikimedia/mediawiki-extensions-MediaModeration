@@ -65,7 +65,6 @@ class ModerateExistingFiles extends Maintenance {
 		$title = $file->getTitle();
 		$timestamp = $file->getTimestamp();
 
-		$url = $title->getFullURL();
 		JobQueueGroup::singleton()->push(
 			ProcessMediaModerationJob::newSpec( $title, $timestamp, false )
 		);
