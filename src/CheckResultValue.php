@@ -37,7 +37,7 @@ class CheckResultValue {
 	}
 
 	/**
-	 * Determines wheather the child exploitation is found in the media
+	 * Determines whether child exploitation is found in the media
 	 * @return bool
 	 */
 	public function isChildExploitationFound(): bool {
@@ -45,7 +45,7 @@ class CheckResultValue {
 	}
 
 	/**
-	 * Determines wheather result is good for further processing
+	 * Determines whether the result is good for further processing
 	 * @return bool
 	 */
 	public function isOk(): bool {

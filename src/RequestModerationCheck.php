@@ -30,7 +30,7 @@ use MWHttpRequest;
 use Psr\Log\LoggerInterface;
 
 /**
- * Provides a strategy for recieving moderation from 3d party services
+ * Provides a strategy for receiving moderation from 3d party services
  */
 class RequestModerationCheck {
 

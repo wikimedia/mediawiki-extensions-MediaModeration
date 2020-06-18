@@ -28,8 +28,6 @@ use MediaWiki\MediaWikiServices;
 return [
 	MediaModerationService::class =>
 		function ( MediaWikiServices $services ): MediaModerationService {
-			$configFactory = $services->getConfigFactory();
-
 			return new MediaModerationService(
 				new ServiceOptions(
 					MediaModerationService::CONSTRUCTOR_OPTIONS,
@@ -50,8 +48,6 @@ return [
 		},
 	RequestModerationCheck::class =>
 		function ( MediaWikiServices $services ): RequestModerationCheck {
-			$configFactory = $services->getConfigFactory();
-
 			return new RequestModerationCheck(
 				new ServiceOptions(
 					RequestModerationCheck::CONSTRUCTOR_OPTIONS,
