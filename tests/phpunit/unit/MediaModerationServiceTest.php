@@ -63,31 +63,25 @@ class MediaModerationServiceTest extends MediaWikiUnitTestCase {
 	public function testProcessUploadedMediaAllowed() {
 		list( $service, $jobQueueGroup, $file, $uploadBase, $title ) = $this->configureFixture( true );
 
-		$uploadBase
-			->expects( $this->once() )
+		$uploadBase->expects( $this->once() )
 			->method( 'getLocalFile' )
 			->willReturn( $file );
 
-		$title
-			->expects( $this->any() )
+		$title->expects( $this->any() )
 			->method( 'getDBkey' )
 			->willReturn( 'File:Foom.png' );
 
-		$title
-			->expects( $this->any() )
+		$title->expects( $this->any() )
 			->method( 'getNamespace' )
 			->willReturn( NS_FILE );
 
-		$jobQueueGroup
-			->expects( $this->once() )
+		$jobQueueGroup->expects( $this->once() )
 			->method( 'push' );
 
-		$file
-			->expects( $this->once() )
+		$file->expects( $this->once() )
 			->method( 'getMediaType' )
 			->willReturn( MEDIATYPE_BITMAP );
-		$file
-			->expects( $this->once() )
+		$file->expects( $this->once() )
 			->method( 'getTimestamp' )
 			->willReturn( 'timestamp' );
 
@@ -101,17 +95,14 @@ class MediaModerationServiceTest extends MediaWikiUnitTestCase {
 	public function testProcessUploadedMediaFirbidden() {
 		list( $service, $jobQueueGroup, $file, $uploadBase, $title ) = $this->configureFixture( true );
 
-		$uploadBase
-			->expects( $this->once() )
+		$uploadBase->expects( $this->once() )
 			->method( 'getLocalFile' )
 			->willReturn( $file );
 
-		$jobQueueGroup
-			->expects( $this->never() )
+		$jobQueueGroup->expects( $this->never() )
 			->method( 'push' );
 
-		$file
-			->expects( $this->once() )
+		$file->expects( $this->once() )
 			->method( 'getMediaType' )
 			->willReturn( MEDIATYPE_DRAWING );
 
@@ -125,12 +116,10 @@ class MediaModerationServiceTest extends MediaWikiUnitTestCase {
 	public function testProcessUploadedMediaCheckOnUploadDisabled() {
 		list( $service, $jobQueueGroup, $file, $uploadBase, $title ) = $this->configureFixture( false );
 
-		$uploadBase
-			->expects( $this->never() )
+		$uploadBase->expects( $this->never() )
 			->method( 'getLocalFile' );
 
-		$jobQueueGroup
-			->expects( $this->never() )
+		$jobQueueGroup->expects( $this->never() )
 			->method( 'push' );
 
 		$service->processUploadedMedia( $uploadBase );

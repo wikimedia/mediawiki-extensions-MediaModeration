@@ -131,8 +131,8 @@ class RequestModerationCheckTest extends MediaWikiUnitTestCase {
 		) = $this->configureFixtureForStatus( true );
 
 		$stats->expects( $this->once() )
-		->method( 'timing' )
-		->with( 'mediamoderation.photodna.200.latency', $this->anything() );
+			->method( 'timing' )
+			->with( 'mediamoderation.photodna.200.latency', $this->anything() );
 
 		$httpRequest->expects( $this->any() )->method( 'getContent' )->willReturn( $content );
 		$logger->expects( $this->once() )->method( 'warning' );

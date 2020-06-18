@@ -39,8 +39,7 @@ class ProcessModerationCheckResultTest extends MediaWikiUnitTestCase {
 	public function testProcessResultNegative() {
 		$emailer = $this->getMockIEmailer();
 		$formatter = $this->getMockTextFormatter();
-		$formatter
-			->expects( $this->never() )
+		$formatter->expects( $this->never() )
 			->method( 'format' );
 
 		$options = new ServiceOptions(
@@ -77,8 +76,7 @@ class ProcessModerationCheckResultTest extends MediaWikiUnitTestCase {
 		$emailer = $this->getMockIEmailer();
 		$formatter = $this->getMockTextFormatter();
 
-		$formatter
-			->method( 'format' )
+		$formatter->method( 'format' )
 			->withConsecutive( [ $this->anything() ], [ $this->anything() ] )
 			->willReturnOnConsecutiveCalls( "Message Body", "Message Subject" );
 
@@ -107,8 +105,7 @@ class ProcessModerationCheckResultTest extends MediaWikiUnitTestCase {
 			)->willReturn( $result );
 
 		$title = $this->getMockTitle();
-		$title
-			->expects( $this->once() )
+		$title->expects( $this->once() )
 			->method( 'getFullUrl' )
 			->willReturn( 'http://example.org/image.jpg' );
 		$file = $this->getMockLocalFile();
