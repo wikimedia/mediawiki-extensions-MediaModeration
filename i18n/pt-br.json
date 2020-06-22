@@ -4,5 +4,5 @@
 			"Eduardo Addad de Oliveira"
 		]
 	},
-	"mediamoderation-desc": "Serviço para filtrar e remover possíveis conteúdos de exploração infantil."
+	"mediamoderation-desc": "Serviço para detectar correspondências em conjuntos de dados de hash de imagem de exploração infantil conhecidos."
 }

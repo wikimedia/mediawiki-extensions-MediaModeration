@@ -4,5 +4,5 @@
 			"Kly"
 		]
 	},
-	"mediamoderation-desc": "用於篩選並移除可能是兒童剝削內容的服務。"
+	"mediamoderation-desc": "與已知的兒童剝削圖片雜湊資料集進行符合檢測的服務。"
 }

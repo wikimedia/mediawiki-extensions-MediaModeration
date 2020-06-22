@@ -5,5 +5,5 @@
 			"Wladek92"
 		]
 	},
-	"mediamoderation-desc": "Service pour le filtrage et la suppression de contenus pouvant relever de l’exploitation des enfants."
+	"mediamoderation-desc": "Service pour détecter les images de contenus connus relatifs à l'exploitation des enfants."
 }
