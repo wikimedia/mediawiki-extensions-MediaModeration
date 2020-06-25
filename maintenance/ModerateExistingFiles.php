@@ -129,15 +129,18 @@ class ModerateExistingFiles extends Maintenance {
 			[ ( $old ? 'oi_name > ' : 'img_name > ' ) .
 			$db->addQuotes( $start ) ],
 			__METHOD__,
-			[ 'LIMIT' => $batchSize ],
+			[
+				'LIMIT' => $batchSize,
+				'ORDER BY' => ( $old ? 'oi_name' : 'img_name' )
+			],
 			$fileQuery['joins']
 		);
 	}
 
 	public function __construct() {
 		parent::__construct();
-		$this->addDescription( 'Script for processing all existing files against photoDNA' );
-		$this->addOption( 'start', 'Name of file to start from, default ""' );
+		$this->addDescription( 'Script for processing all existing files against PhotoDNA' );
+		$this->addOption( 'start', 'Name of file to start after, default ""' );
 		$this->addOption( 'type', 'Could be either "old" or "new", default is "new"' );
 		$this->addOption(
 			'batch-count',

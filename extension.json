@@ -42,11 +42,11 @@
 		},
 		"MediaModerationPhotoDNAUrl": {
 			"value": "https://api.microsoftmoderator.com/photodna/v1.0/Match",
-			"description": "Url to photoDNA service endpoint."
+			"description": "URL to PhotoDNA service endpoint."
 		},
 		"MediaModerationPhotoDNASubscriptionKey": {
 			"value": "",
-			"description": "Key for access to photoDNA service endpoint."
+			"description": "Key for access to PhotoDNA service endpoint."
 		},
 		"MediaModerationRecipientList": {
 			"value": [],
@@ -55,6 +55,10 @@
 		"MediaModerationFrom": {
 			"value": "",
 			"description": "Email from which notification are sent."
+		},
+		"MediaModerationHttpProxy": {
+			"value": null,
+			"description": "HTTP proxy to use when calling PhotoDNA service."
 		}
 	},
 	"manifest_version": 2

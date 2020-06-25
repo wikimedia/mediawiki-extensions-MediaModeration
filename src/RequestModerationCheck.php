@@ -37,6 +37,7 @@ class RequestModerationCheck {
 	public const CONSTRUCTOR_OPTIONS = [
 		'MediaModerationPhotoDNAUrl',
 		'MediaModerationPhotoDNASubscriptionKey',
+		'MediaModerationHttpProxy',
 	];
 	private const PHOTODNA_STATS_PREFIX = 'mediamoderation.photodna';
 
@@ -66,6 +67,12 @@ class RequestModerationCheck {
 	private $photoDNAUrl;
 
 	/**
+	 * Outgoing HTTP proxy
+	 * @var string|null
+	 */
+	private $httpProxy;
+
+	/**
 	 * @var string
 	 */
 	private $photoDNASubscriptionKey;
@@ -92,6 +99,7 @@ class RequestModerationCheck {
 
 		$this->photoDNAUrl = $options->get( 'MediaModerationPhotoDNAUrl' );
 		$this->photoDNASubscriptionKey = $options->get( 'MediaModerationPhotoDNASubscriptionKey' );
+		$this->httpProxy = $options->get( 'MediaModerationHttpProxy' );
 	}
 
 	/**
@@ -103,6 +111,10 @@ class RequestModerationCheck {
 			'method' => 'POST',
 			'postData' => $this->getContents( $file )
 		];
+		if ( $this->httpProxy ) {
+			$options['proxy'] = $this->httpProxy;
+			$this->logger->debug( 'Using proxy: {proxy}.', [ 'proxy' => $this->httpProxy ] );
+		}
 
 		$annotationRequest = $this->httpRequestFactory->create(
 			$this->photoDNAUrl,

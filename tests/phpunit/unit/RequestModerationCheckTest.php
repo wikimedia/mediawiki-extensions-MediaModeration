@@ -61,7 +61,8 @@ class RequestModerationCheckTest extends MediaWikiUnitTestCase {
 			RequestModerationCheck::CONSTRUCTOR_OPTIONS,
 			[
 				'MediaModerationPhotoDNAUrl' => 'https://api.microsoftmoderator.com/photodna/v1.0/Match',
-				'MediaModerationPhotoDNASubscriptionKey' => 'subscription-key'
+				'MediaModerationPhotoDNASubscriptionKey' => 'subscription-key',
+				'MediaModerationHttpProxy' => null
 			]
 		);
 
