@@ -148,6 +148,7 @@ class ModerateExistingFiles extends Maintenance {
 				'    0 - means work till the end, default 1'
 		);
 		$this->setBatchSize( 1000 );
+		$this->requireExtension( 'MediaModeration' );
 	}
 
 	public function execute() {
