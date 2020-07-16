@@ -24,12 +24,13 @@ use MediaWiki\MediaWikiServices;
 use UploadBase;
 
 class Hooks {
+
 	/**
 	 * @param UploadBase $uploadBase
 	 * @see https://www.mediawiki.org/wiki/Manual:Hooks/UploadComplete
 	 */
 	public static function onUploadComplete( UploadBase $uploadBase ) {
-		$service = MediaWikiServices::getInstance()->getService( MediaModerationService::class );
+		$service = MediaWikiServices::getInstance()->getService( 'MediaModerationService' );
 		$service->processUploadedMedia( $uploadBase );
 	}
 }

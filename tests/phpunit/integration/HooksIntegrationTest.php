@@ -28,9 +28,13 @@ use UploadBase;
  * @group MediaModeration
  */
 class HooksIntegrationTest extends MediaWikiIntegrationTestCase {
+
+	/**
+	 * @throws \Exception
+	 */
 	public function testOnUploadComplete() {
 		$uploadBase = $this->createMock( UploadBase::class );
-		$mediaModerationService = $this->getMockBuilder( MediaModerationService::class )
+		$mediaModerationService = $this->getMockBuilder( 'MediaModerationService' )
 			->disableOriginalConstructor()
 			->setMethods( [ 'processUploadedMedia' ] )
 			->getMock();
@@ -40,7 +44,7 @@ class HooksIntegrationTest extends MediaWikiIntegrationTestCase {
 			->method( 'processUploadedMedia' )
 			->with( $this->equalTo( $uploadBase ) );
 
-		$this->setService( MediaModerationService::class, $mediaModerationService );
-		$res = Hooks::onUploadComplete( $uploadBase );
+		$this->setService( 'MediaModerationService', $mediaModerationService );
+		Hooks::onUploadComplete( $uploadBase );
 	}
 }

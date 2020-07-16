@@ -24,7 +24,6 @@ use GenericParameterJob;
 use IJobSpecification;
 use Job;
 use JobSpecification;
-use MediaWiki\Extension\MediaModeration\MediaModerationHandler;
 use MediaWiki\MediaWikiServices;
 use Title;
 
@@ -49,8 +48,11 @@ class ProcessMediaModerationJob extends Job implements GenericParameterJob {
 		parent::__construct( self::JOB_NAME, $params );
 	}
 
+	/**
+	 * @return bool
+	 */
 	public function run(): bool {
-		$handler = MediaWikiServices::getInstance()->getService( MediaModerationHandler::class );
+		$handler = MediaWikiServices::getInstance()->getService( 'MediaModerationHandler' );
 		return $handler->handleMedia( $this->title, $this->params['timestamp'] );
 	}
 

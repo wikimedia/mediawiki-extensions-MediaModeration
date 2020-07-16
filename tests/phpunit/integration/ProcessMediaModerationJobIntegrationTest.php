@@ -30,6 +30,9 @@ use MediaWikiIntegrationTestCase;
 class ProcessMediaModerationJobIntegrationTest extends MediaWikiIntegrationTestCase {
 	use MocksHelperTrait;
 
+	/**
+	 * @return \bool[][]
+	 */
 	public function runPassArgumentsProvider() {
 		return [ [ true ], [ false ] ];
 	}
@@ -46,7 +49,7 @@ class ProcessMediaModerationJobIntegrationTest extends MediaWikiIntegrationTestC
 			->with( $this->anything(), $this->equalTo( 'timestamp' ) )
 			->willReturn( $hadlerResult );
 
-		$this->setService( MediaModerationHandler::class, $mediaModerationHandler );
+		$this->setService( 'MediaModerationHandler', $mediaModerationHandler );
 		$job = new ProcessMediaModerationJob( [
 			'title' => 'File:Bal.png',
 			'namespace' => NS_FILE,

@@ -31,6 +31,10 @@ use Status;
 class RequestModerationCheckTest extends MediaWikiUnitTestCase {
 	use MocksHelperTrait;
 
+	/**
+	 * @param $requestStatus
+	 * @return array
+	 */
 	private function configureFixtureForStatus( $requestStatus ) {
 		$requestFactory = $this->getMockHttpRequestFactory();
 		$httpRequest = $this->getMockHttpRequest();

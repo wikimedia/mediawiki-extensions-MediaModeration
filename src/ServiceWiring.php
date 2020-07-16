@@ -26,7 +26,7 @@ use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\MediaWikiServices;
 
 return [
-	MediaModerationService::class =>
+	'MediaModerationService' =>
 		function ( MediaWikiServices $services ): MediaModerationService {
 			return new MediaModerationService(
 				new ServiceOptions(
@@ -37,17 +37,17 @@ return [
 				LoggerFactory::getInstance( 'mediamoderation' )
 			);
 		},
-	MediaModerationHandler::class =>
+	'MediaModerationHandler' =>
 		function ( MediaWikiServices $services ): MediaModerationHandler {
 			return new MediaModerationHandler(
 				$services->getRepoGroup()->getLocalRepo(),
-				$services->getService( ThumbnailProvider::class ),
-				$services->getService( RequestModerationCheck::class ),
-				$services->getService( ProcessModerationCheckResult::class ),
+				$services->getService( 'ThumbnailProvider' ),
+				$services->getService( 'RequestModerationCheck' ),
+				$services->getService( 'ProcessModerationCheckResult' ),
 				LoggerFactory::getInstance( 'mediamoderation' )
 			);
 		},
-	RequestModerationCheck::class =>
+	'RequestModerationCheck' =>
 		function ( MediaWikiServices $services ): RequestModerationCheck {
 			return new RequestModerationCheck(
 				new ServiceOptions(
@@ -59,7 +59,7 @@ return [
 				LoggerFactory::getInstance( 'mediamoderation' )
 			);
 		},
-	ProcessModerationCheckResult::class =>
+	'ProcessModerationCheckResult' =>
 		function ( MediaWikiServices $services ): ProcessModerationCheckResult {
 			return new ProcessModerationCheckResult(
 				new ServiceOptions(
@@ -76,7 +76,7 @@ return [
 				LoggerFactory::getInstance( 'mediamoderation' )
 			);
 		},
-	ThumbnailProvider::class =>
+	'ThumbnailProvider' =>
 		function ( MediaWikiServices $services ): ThumbnailProvider {
 			$configFactory = $services->getConfigFactory();
 			return new ThumbnailProvider(
