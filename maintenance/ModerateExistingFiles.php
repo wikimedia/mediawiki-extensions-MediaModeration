@@ -18,18 +18,14 @@
  * @file
  * @ingroup Maintenance
  */
-namespace MediaWiki\Extension\MediaModeration\Maintenance;
+namespace MediaWiki\Extension\MediaModeration;
 
 use Exception;
-use JobQueueGroup;
 use LocalFile;
 use Maintenance;
-use MediaWiki\Extension\MediaModeration\Job\ProcessMediaModerationJob;
 use MediaWiki\MediaWikiServices;
 use MWException;
 use OldLocalFile;
-use Wikimedia\Rdbms\IDatabase;
-use Wikimedia\Rdbms\IResultWrapper;
 
 // Security: Disable all stream wrappers and reenable individually as needed
 foreach ( stream_get_wrappers() as $wrapper ) {
@@ -49,141 +45,106 @@ if ( $basePath ) {
 	$basePath = __DIR__ . '/../../..';
 }
 
-require_once "$basePath/maintenance/Maintenance.php";
+require_once $basePath . '/maintenance/Maintenance.php';
+require_once 'includes/ModerateExistingFilesHelper.php';
 
 /**
- * Maintenance script that fixes double redirects.
+ * Maintenance script that processes existing files against PhotoDNA.
  *
  * @ingroup Maintenance
  */
 class ModerateExistingFiles extends Maintenance {
 
 	/**
-	 * @param LocalFile $file
+	 * The script description.
 	 */
-	private function processFile( LocalFile $file ) {
-		$title = $file->getTitle();
-		$timestamp = $file->getTimestamp();
-
-		JobQueueGroup::singleton()->push(
-			ProcessMediaModerationJob::newSpec( $title, $timestamp, false )
-		);
-	}
+	private const SCRIPT_DESCRIPTION = 'Script for processing existing file against PhotoDNA';
 
 	/**
-	 * @param string &$start
-	 * @param IResultWrapper $rows
-	 * @param bool $old
+	 * The image type, can be "old" or "new".
 	 */
-	private function processBatch( string &$start, IResultWrapper $rows, bool $old ) {
-		$repo = MediaWikiServices::getInstance()->getRepoGroup()->getLocalRepo();
-		foreach ( $rows as $id => $row ) {
-			$file = $repo->newFileFromRow( $row );
-			$this->processFile( $file );
-			$start = $old ? $row->oi_name : $row->img_timestamp;
-		}
-	}
+	private const OPTION_TYPE = 'type';
 
 	/**
-	 * @param string &$start
-	 * @param IDatabase $db
-	 * @param int $batchSize
-	 * @param int $batchCount
-	 * @param bool $old
-	 * @return bool
+	 * Timestamp of file to start after.
 	 */
-	private function processAll(
-			string &$start,
-			IDatabase $db,
-			int $batchSize,
-			int $batchCount,
-			bool $old
-		): bool {
-		$i = 0;
-		do {
-			$rows = $this->selectFiles( $start, $db, $batchSize, $old );
-			$this->processBatch( $start, $rows, $old );
-			$i++;
-		} while ( ( $batchCount <= 0 || $i < $batchCount ) && $rows->numRows() );
-		return (bool)$rows->numRows();
-	}
+	private const OPTION_START = 'start';
 
 	/**
-	 * @param string $start
-	 * @param IDatabase $db
-	 * @param int $batchSize
-	 * @param bool $old
-	 * @return IResultWrapper
+	 * Number of batches should be processed in one call.
 	 */
-	private function selectFiles(
-		string $start,
-		IDatabase $db,
-		int $batchSize,
-		bool $old
-	): IResultWrapper {
-		$fileQuery = $old ? OldLocalFile::getQueryInfo() : LocalFile::getQueryInfo();
+	private const OPTION_BATCH_COUNT = 'batch-count';
 
-		$condition = '';
+	/**
+	 * Type option description.
+	 */
+	private const OPTION_TYPE_DESCRIPTION = 'Could be either "old" or "new", default is "new"';
 
-		if ( $start ) {
-			$condition = [ ( $old ? 'oi_name > ' : 'img_timestamp > ' ) .
-				$db->addQuotes( $old ? $start : $db->timestamp( $start ) ) ];
-		}
+	/**
+	 * Start option description.
+	 */
+	private const OPTION_START_DESCRIPTION = 'Timestamp for new images or file name for old images to start ' .
+	' after, default ""';
 
-		return $db->select(
-			$fileQuery['tables'],
-			$fileQuery['fields'],
-			$condition,
-			__METHOD__,
-			[
-				'LIMIT' => $batchSize,
-				'ORDER BY' => ( $old ? 'oi_name' : 'img_timestamp' )
-			],
-			$fileQuery['joins']
-		);
-	}
+	/**
+	 * Batch count option description.
+	 */
+	private const OPTION_BATCH_COUNT_DESCRIPTION = 'Number of batches should be processed in one call.' .
+	'    0 - means work till the end, default: 1';
 
+	/**
+	 * The number of operations to do in a batch
+	 */
+	private const BATCH_SIZE = 1000;
+
+	/**
+	 * Script failed - message.
+	 */
+	private const MESSAGE_SCRIPT_FAILED = 'Script failed';
+
+	/**
+	 * ModerateExistingFiles constructor.
+	 */
 	public function __construct() {
 		parent::__construct();
-		$this->addDescription( 'Script for processing all existing files against PhotoDNA' );
-		$this->addOption( 'start', 'Timestamp for new images or file name for old images to start ' .
-			' after, default ""' );
-		$this->addOption( 'type', 'Could be either "old" or "new", default is "new"' );
-		$this->addOption(
-			'batch-count',
-			"Number of batches should be processed in one call." .
-				'    0 - means work till the end, default 1'
-		);
-		$this->setBatchSize( 1000 );
+
+		$this->addDescription( self::SCRIPT_DESCRIPTION );
+
+		$this->addOption( self::OPTION_START, self::OPTION_START_DESCRIPTION );
+		$this->addOption( self::OPTION_TYPE, self::OPTION_TYPE_DESCRIPTION );
+		$this->addOption( self::OPTION_BATCH_COUNT, self::OPTION_BATCH_COUNT_DESCRIPTION );
+
+		$this->setBatchSize( self::BATCH_SIZE );
 		$this->requireExtension( 'MediaModeration' );
 	}
 
+	/**
+	 * @return bool|void|null
+	 */
 	public function execute() {
-		$start = $this->getOption( 'start', '' );
+		$start = $this->getOption( self::OPTION_START, '' );
+		$batchCount = $this->getOption( self::OPTION_BATCH_COUNT, 1 );
+		$old = $this->getOption( self::OPTION_TYPE, 'new' ) === 'old';
+
 		$dbr = $this->getDB( DB_REPLICA );
 		$batchSize = $this->getBatchSize();
-		$batchCount = $this->getOption( 'batch-count', 1 );
-		$old = $this->getOption( 'type', 'new' ) === 'old';
+
 		$completed = false;
 		$error = null;
+
+		$moderationHelper = new ModerateExistingFilesHelper(
+			MediaWikiServices::getInstance()->getRepoGroup()->getLocalRepo(),
+			$old ? OldLocalFile::getQueryInfo() : LocalFile::getQueryInfo()
+		);
+
 		try {
-			$completed = !$this->processAll( $start, $dbr, $batchSize, $batchCount, $old );
+			$completed = !$moderationHelper->process( $start, $dbr, $batchSize, $batchCount, $old );
 		} catch ( Exception $e ) {
 			$error = $e;
-			$this->output( "Script failed\n" );
+			$this->output( self::MESSAGE_SCRIPT_FAILED . "\n" );
 		}
-		if ( $completed ) {
-			$this->output( "Script processed all files. Nothing left!\n" );
-			return true;
-		} else {
-			$this->output( "Script finished file: '$start'\n" );
-			if ( $error ) {
-				$this->output( "due to error: '$error'\n" );
-			}
-			$this->output( "To continue script from this point, " .
-				"run ModerateExistingFiles.php adding argument --start=$start\n\n" );
-				return false;
-		}
+
+		$this->output( $moderationHelper->getOutput( $completed, $start, $error, self::OPTION_START ) );
 	}
 }
 
