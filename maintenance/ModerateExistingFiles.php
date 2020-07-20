@@ -80,7 +80,7 @@ class ModerateExistingFiles extends Maintenance {
 		foreach ( $rows as $id => $row ) {
 			$file = $repo->newFileFromRow( $row );
 			$this->processFile( $file );
-			$start = $old ? $row->oi_name : $row->img_name;
+			$start = $old ? $row->oi_name : $row->img_timestamp;
 		}
 	}
 
@@ -123,15 +123,21 @@ class ModerateExistingFiles extends Maintenance {
 	): IResultWrapper {
 		$fileQuery = $old ? OldLocalFile::getQueryInfo() : LocalFile::getQueryInfo();
 
+		$condition = '';
+
+		if ( $start ) {
+			$condition = [ ( $old ? 'oi_name > ' : 'img_timestamp > ' ) .
+				$db->addQuotes( $old ? $start : $db->timestamp( $start ) ) ];
+		}
+
 		return $db->select(
 			$fileQuery['tables'],
 			$fileQuery['fields'],
-			[ ( $old ? 'oi_name > ' : 'img_name > ' ) .
-			$db->addQuotes( $start ) ],
+			$condition,
 			__METHOD__,
 			[
 				'LIMIT' => $batchSize,
-				'ORDER BY' => ( $old ? 'oi_name' : 'img_name' )
+				'ORDER BY' => ( $old ? 'oi_name' : 'img_timestamp' )
 			],
 			$fileQuery['joins']
 		);
@@ -140,7 +146,8 @@ class ModerateExistingFiles extends Maintenance {
 	public function __construct() {
 		parent::__construct();
 		$this->addDescription( 'Script for processing all existing files against PhotoDNA' );
-		$this->addOption( 'start', 'Name of file to start after, default ""' );
+		$this->addOption( 'start', 'Timestamp for new images or file name for old images to start ' .
+			' after, default ""' );
 		$this->addOption( 'type', 'Could be either "old" or "new", default is "new"' );
 		$this->addOption(
 			'batch-count',
@@ -174,7 +181,7 @@ class ModerateExistingFiles extends Maintenance {
 				$this->output( "due to error: '$error'\n" );
 			}
 			$this->output( "To continue script from this point, " .
-				"run ModerateExistingFiles.php adding argument --start='$start'\n\n" );
+				"run ModerateExistingFiles.php adding argument --start=$start\n\n" );
 				return false;
 		}
 	}
