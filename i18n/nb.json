@@ -4,5 +4,5 @@
 			"Jon Harald Søby"
 		]
 	},
-	"mediamoderation-desc": "Tjeneste for å filtrere og fjerne innhold som kan være mulig misbruk av barn."
+	"mediamoderation-desc": "Tjeneste for å oppdage treff mot kjente hash-datasett for bilder av overgrep mot barn."
 }
