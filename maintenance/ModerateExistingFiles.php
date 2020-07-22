@@ -49,7 +49,7 @@ require_once $basePath . '/maintenance/Maintenance.php';
 require_once 'includes/ModerateExistingFilesHelper.php';
 
 /**
- * Maintenance script that processes existing files against PhotoDNA.
+ * Maintenance script that processes existing file(s) against PhotoDNA.
  *
  * @ingroup Maintenance
  */
@@ -58,7 +58,7 @@ class ModerateExistingFiles extends Maintenance {
 	/**
 	 * The script description.
 	 */
-	private const SCRIPT_DESCRIPTION = 'Script for processing existing file against PhotoDNA';
+	private const SCRIPT_DESCRIPTION = 'Script for processing existing file(s) against PhotoDNA';
 
 	/**
 	 * The image type, can be "old" or "new".
@@ -76,6 +76,11 @@ class ModerateExistingFiles extends Maintenance {
 	private const OPTION_BATCH_COUNT = 'batch-count';
 
 	/**
+	 * File name to to scan.
+	 */
+	private const OPTION_FILE_NAME = 'file-name';
+
+	/**
 	 * Type option description.
 	 */
 	private const OPTION_TYPE_DESCRIPTION = 'Could be either "old" or "new", default is "new"';
@@ -91,6 +96,11 @@ class ModerateExistingFiles extends Maintenance {
 	 */
 	private const OPTION_BATCH_COUNT_DESCRIPTION = 'Number of batches should be processed in one call.' .
 	'    0 - means work till the end, default: 1';
+
+	/**
+	 * File name option description.
+	 */
+	private const OPTION_FILE_NAME_DESCRIPTION = 'File name to scan (only this file will be scanned).';
 
 	/**
 	 * The number of operations to do in a batch
@@ -113,6 +123,7 @@ class ModerateExistingFiles extends Maintenance {
 		$this->addOption( self::OPTION_START, self::OPTION_START_DESCRIPTION );
 		$this->addOption( self::OPTION_TYPE, self::OPTION_TYPE_DESCRIPTION );
 		$this->addOption( self::OPTION_BATCH_COUNT, self::OPTION_BATCH_COUNT_DESCRIPTION );
+		$this->addOption( self::OPTION_FILE_NAME, self::OPTION_FILE_NAME_DESCRIPTION );
 
 		$this->setBatchSize( self::BATCH_SIZE );
 		$this->requireExtension( 'MediaModeration' );
@@ -125,6 +136,7 @@ class ModerateExistingFiles extends Maintenance {
 		$start = $this->getOption( self::OPTION_START, '' );
 		$batchCount = $this->getOption( self::OPTION_BATCH_COUNT, 1 );
 		$old = $this->getOption( self::OPTION_TYPE, 'new' ) === 'old';
+		$fileName = $this->getOption( self::OPTION_FILE_NAME, null );
 
 		$dbr = $this->getDB( DB_REPLICA );
 		$batchSize = $this->getBatchSize();
@@ -138,13 +150,21 @@ class ModerateExistingFiles extends Maintenance {
 		);
 
 		try {
-			$completed = !$moderationHelper->process( $start, $dbr, $batchSize, $batchCount, $old );
+			if ( null === $fileName ) {
+				$completed = !$moderationHelper->processSeveral( $start, $dbr, $batchSize, $batchCount, $old );
+			} else {
+				$completed = $moderationHelper->processSingle( $fileName, $dbr, $old );
+			}
 		} catch ( Exception $e ) {
 			$error = $e;
 			$this->output( self::MESSAGE_SCRIPT_FAILED . "\n" );
 		}
 
-		$this->output( $moderationHelper->getOutput( $completed, $start, $error, self::OPTION_START ) );
+		if ( null === $fileName ) {
+			$this->output( $moderationHelper->getOutputSeveral( $completed, $start, $error, self::OPTION_START ) );
+		} else {
+			$this->output( $moderationHelper->getOutputSingle( $completed, $fileName, $error ) );
+		}
 	}
 }
 

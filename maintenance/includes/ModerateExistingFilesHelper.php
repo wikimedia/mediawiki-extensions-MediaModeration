@@ -50,6 +50,11 @@ class ModerateExistingFilesHelper {
 	private const MESSAGE_ERROR_POINTER = 'due to error:';
 
 	/**
+	 * No file error - message.
+	 */
+	private const MESSAGE_ERROR_NO_FILE = 'There is no file with the name:';
+
+	/**
 	 * Continue script - message.
 	 */
 	private const MESSAGE_CONTINUE_SCRIPT = 'To continue script from this point, ' .
@@ -105,7 +110,7 @@ class ModerateExistingFilesHelper {
 	 * @param bool $old
 	 * @return bool
 	 */
-	public function process(
+	public function processSeveral(
 		string &$start,
 		IDatabase $db,
 		int $batchSize,
@@ -121,6 +126,28 @@ class ModerateExistingFilesHelper {
 		} while ( ( $batchCount <= 0 || $i < $batchCount ) && $rows->numRows() );
 
 		return (bool)$rows->numRows();
+	}
+
+	/**
+	 * @param string $fileName
+	 * @param IDatabase $db
+	 * @param bool $old
+	 * @return bool
+	 */
+	public function processSingle(
+		string $fileName,
+		IDatabase $db,
+		bool $old
+	): bool {
+		$result = $this->selectFile( $fileName, $db, $old );
+
+		if ( $result->numRows() ) {
+			$this->processBatch( $fileName, $result, $old );
+
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
@@ -157,13 +184,36 @@ class ModerateExistingFilesHelper {
 	}
 
 	/**
+	 * @param string $fileName
+	 * @param IDatabase $db
+	 * @param bool $old
+	 * @return IResultWrapper
+	 */
+	private function selectFile(
+		string $fileName,
+		IDatabase $db,
+		bool $old
+	): IResultWrapper {
+		return $db->select(
+			$this->fileQuery['tables'],
+			$this->fileQuery['fields'],
+			[ ( $old ? 'oi_name = ' : 'img_name = ' ) . $db->addQuotes( $fileName ) ],
+			__METHOD__,
+			[
+				'LIMIT' => 1,
+			],
+			$this->fileQuery['joins']
+		);
+	}
+
+	/**
 	 * @param bool $completed
 	 * @param string $start
 	 * @param string|null $error
 	 * @param string $optionName
 	 * @return string
 	 */
-	public function getOutput(
+	public function getOutputSeveral(
 		bool $completed,
 		string $start,
 		?string $error,
@@ -181,6 +231,32 @@ class ModerateExistingFilesHelper {
 			}
 
 			$output .= self::MESSAGE_CONTINUE_SCRIPT . $optionName . '=' . $start . "\n\n";
+		}
+
+		return $output;
+	}
+
+	/**
+	 * @param bool $completed
+	 * @param string $fileName
+	 * @param string|null $error
+	 * @return string
+	 */
+	public function getOutputSingle(
+		bool $completed,
+		string $fileName,
+		?string $error
+	): string {
+		$output = '';
+
+		if ( $completed ) {
+			$output .= self::MESSAGE_SCRIPT_FINISHED_FILE . ' ' . $fileName . "\n";
+		} else {
+			$output .= self::MESSAGE_ERROR_NO_FILE . ' ' . $fileName . "\n";
+
+			if ( $error ) {
+				$output .= self::MESSAGE_ERROR_POINTER . ' ' . $error . "\n";
+			}
 		}
 
 		return $output;
