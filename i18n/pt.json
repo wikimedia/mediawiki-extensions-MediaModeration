@@ -1,0 +1,8 @@
+{
+	"@metadata": {
+		"authors": [
+			"Hamilton Abreu"
+		]
+	},
+	"mediamoderation-desc": "Serviço para detetar correspondências em conjuntos de dados conhecidos de imagens de exploração infantil."
+}
