@@ -38,12 +38,12 @@ class MediaModerationService {
 	];
 
 	/**
-	 * @var bool $checkOnUpload;
+	 * @var bool
 	 */
 	private $checkOnUpload;
 
 	/**
-	 * @var JobQueueGroup $handler
+	 * @var JobQueueGroup
 	 */
 	private $jobQueueGroup;
 
