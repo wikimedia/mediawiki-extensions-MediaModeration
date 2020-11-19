@@ -150,7 +150,7 @@ class ModerateExistingFiles extends Maintenance {
 		);
 
 		try {
-			if ( null === $fileName ) {
+			if ( $fileName === null ) {
 				$completed = !$moderationHelper->processSeveral( $start, $dbr, $batchSize, $batchCount, $old );
 			} else {
 				$completed = $moderationHelper->processSingle( $fileName, $dbr, $old );
@@ -160,7 +160,7 @@ class ModerateExistingFiles extends Maintenance {
 			$this->output( self::MESSAGE_SCRIPT_FAILED . "\n" );
 		}
 
-		if ( null === $fileName ) {
+		if ( $fileName === null ) {
 			$this->output( $moderationHelper->getOutputSeveral( $completed, $start, $error, self::OPTION_START ) );
 		} else {
 			$this->output( $moderationHelper->getOutputSingle( $completed, $fileName, $error ) );
