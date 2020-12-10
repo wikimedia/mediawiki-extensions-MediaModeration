@@ -20,6 +20,7 @@
  */
 namespace MediaWiki\Extension\MediaModeration;
 
+use Exception;
 use JobQueueGroup;
 use LocalFile;
 use LocalRepo;
@@ -84,9 +85,16 @@ class ModerateExistingFilesHelper {
 	 * @param LocalFile $file
 	 */
 	private function processFile( LocalFile $file ) {
-		JobQueueGroup::singleton()->push(
-			ProcessMediaModerationJob::newSpec( $file->getTitle(), $file->getTimestamp(), false )
-		);
+		for ( $i = 0; $i < 3; $i++ ) {
+			try {
+				JobQueueGroup::singleton()->push(
+					ProcessMediaModerationJob::newSpec( $file->getTitle(), $file->getTimestamp(), false )
+				);
+				break;
+			} catch ( Exception $e ) {
+				continue;
+			}
+		}
 	}
 
 	/**
