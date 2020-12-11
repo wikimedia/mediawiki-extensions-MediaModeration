@@ -1,0 +1,8 @@
+{
+	"@metadata": {
+		"authors": [
+			"Yusuke1109"
+		]
+	},
+	"mediamoderation-desc": "既知の児童搾取画像のハッシュデータセットとの一致を検出するサービス"
+}
