@@ -24,7 +24,9 @@ namespace MediaWiki\Extension\MediaModeration;
  * Keeps information about moderation check results.
  */
 class CheckResultValue {
+	/** @var bool */
 	private $ok;
+	/** @var bool */
 	private $childExploitationFound;
 
 	/**

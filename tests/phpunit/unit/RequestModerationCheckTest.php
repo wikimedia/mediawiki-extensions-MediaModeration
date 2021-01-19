@@ -32,7 +32,7 @@ class RequestModerationCheckTest extends MediaWikiUnitTestCase {
 	use MocksHelperTrait;
 
 	/**
-	 * @param $requestStatus
+	 * @param bool $requestStatus
 	 * @return array
 	 */
 	private function configureFixtureForStatus( $requestStatus ) {
