@@ -36,7 +36,7 @@ class HooksIntegrationTest extends MediaWikiIntegrationTestCase {
 		$uploadBase = $this->createMock( UploadBase::class );
 		$mediaModerationService = $this->getMockBuilder( MediaModerationService::class )
 			->disableOriginalConstructor()
-			->setMethods( [ 'processUploadedMedia' ] )
+			->onlyMethods( [ 'processUploadedMedia' ] )
 			->getMock();
 
 		$mediaModerationService

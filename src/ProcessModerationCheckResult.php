@@ -136,7 +136,7 @@ class ProcessModerationCheckResult {
 		$body = $this->getMessageBody( $title );
 		$subject = $this->getMessageSubject();
 
-		$to = array_map( function ( $address ) {
+		$to = array_map( static function ( $address ) {
 			return new MailAddress( $address );
 		}, $this->recipientList );
 

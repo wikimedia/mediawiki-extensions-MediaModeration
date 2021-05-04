@@ -27,7 +27,7 @@ use MediaWiki\MediaWikiServices;
 
 return [
 	'MediaModerationService' =>
-		function ( MediaWikiServices $services ): MediaModerationService {
+		static function ( MediaWikiServices $services ): MediaModerationService {
 			return new MediaModerationService(
 				new ServiceOptions(
 					MediaModerationService::CONSTRUCTOR_OPTIONS,
@@ -38,7 +38,7 @@ return [
 			);
 		},
 	'MediaModerationHandler' =>
-		function ( MediaWikiServices $services ): MediaModerationHandler {
+		static function ( MediaWikiServices $services ): MediaModerationHandler {
 			return new MediaModerationHandler(
 				$services->getRepoGroup()->getLocalRepo(),
 				$services->getService( 'ThumbnailProvider' ),
@@ -48,7 +48,7 @@ return [
 			);
 		},
 	'RequestModerationCheck' =>
-		function ( MediaWikiServices $services ): RequestModerationCheck {
+		static function ( MediaWikiServices $services ): RequestModerationCheck {
 			return new RequestModerationCheck(
 				new ServiceOptions(
 					RequestModerationCheck::CONSTRUCTOR_OPTIONS,
@@ -60,7 +60,7 @@ return [
 			);
 		},
 	'ProcessModerationCheckResult' =>
-		function ( MediaWikiServices $services ): ProcessModerationCheckResult {
+		static function ( MediaWikiServices $services ): ProcessModerationCheckResult {
 			return new ProcessModerationCheckResult(
 				new ServiceOptions(
 					ProcessModerationCheckResult::CONSTRUCTOR_OPTIONS,
@@ -77,7 +77,7 @@ return [
 			);
 		},
 	'ThumbnailProvider' =>
-		function ( MediaWikiServices $services ): ThumbnailProvider {
+		static function ( MediaWikiServices $services ): ThumbnailProvider {
 			$configFactory = $services->getConfigFactory();
 			return new ThumbnailProvider(
 				new ServiceOptions(
