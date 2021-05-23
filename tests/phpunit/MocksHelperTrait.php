@@ -54,7 +54,7 @@ trait MocksHelperTrait {
 	public function getMockLocalRepo(): LocalRepo {
 		return $this->getMockBuilder( LocalRepo::class )
 			->disableOriginalConstructor()
-			->setMethods( [ 'findFile' ] )
+			->onlyMethods( [ 'findFile' ] )
 			->getMock();
 	}
 
@@ -65,7 +65,7 @@ trait MocksHelperTrait {
 	public function getMockRequestModerationCheck(): RequestModerationCheck {
 		return $this->getMockBuilder( RequestModerationCheck::class )
 			->disableOriginalConstructor()
-			->setMethods( [ 'requestModeration' ] )
+			->onlyMethods( [ 'requestModeration' ] )
 			->getMock();
 	}
 
@@ -76,7 +76,7 @@ trait MocksHelperTrait {
 	public function getMockMediaModerationHandler(): MediaModerationHandler {
 		return $this->getMockBuilder( MediaModerationHandler::class )
 			->disableOriginalConstructor()
-			->setMethods( [ 'handleMedia' ] )
+			->onlyMethods( [ 'handleMedia' ] )
 			->getMock();
 	}
 
@@ -87,7 +87,7 @@ trait MocksHelperTrait {
 	public function getMockProcessModerationCheckResult(): ProcessModerationCheckResult {
 		return $this->getMockBuilder( ProcessModerationCheckResult::class )
 			->disableOriginalConstructor()
-			// ->setMethods( [ 'getMediaType', 'getTitle' ] )
+			// ->onlyMethods( [ 'getMediaType', 'getTitle' ] )
 			->getMock();
 	}
 
@@ -97,7 +97,7 @@ trait MocksHelperTrait {
 	 */
 	public function getMockLogger(): LoggerInterface {
 		return $this->getMockBuilder( LoggerInterface::class )
-			->setMethods( [ 'info', 'warning' ] )
+			->onlyMethods( [ 'info', 'warning' ] )
 			->getMockForAbstractClass();
 	}
 
@@ -108,7 +108,7 @@ trait MocksHelperTrait {
 	public function getMockLocalFile(): LocalFile {
 		return $this->getMockBuilder( LocalFile::class )
 			->disableOriginalConstructor()
-			->setMethods( [
+			->onlyMethods( [
 				'getMediaType',
 				'getTitle',
 				'getTimestamp',
@@ -127,7 +127,7 @@ trait MocksHelperTrait {
 	public function getMockThumbnailImage(): ThumbnailImage {
 		return $this->getMockBuilder( ThumbnailImage::class )
 			->disableOriginalConstructor()
-			->setMethods( [
+			->onlyMethods( [
 				'getUrl'
 			] )
 			->getMock();
@@ -141,7 +141,7 @@ trait MocksHelperTrait {
 	 */
 	public function getMockTitleFactory( Title $title ) {
 		$mock = $this->getMockBuilder( TitleFactory::class )
-			->setMethods( [ 'newFromText' ] )
+			->onlyMethods( [ 'newFromText' ] )
 			->getMock();
 
 		$mock->expects( $this->once() )
@@ -158,7 +158,7 @@ trait MocksHelperTrait {
 	public function getMockTitle(): Title {
 		return $this->getMockBuilder( Title::class )
 			->disableOriginalConstructor()
-			->setMethods( [ 'getDBkey', 'getNamespace', 'getFullURL' ] )
+			->onlyMethods( [ 'getDBkey', 'getNamespace', 'getFullURL' ] )
 			->getMock();
 	}
 
@@ -169,7 +169,7 @@ trait MocksHelperTrait {
 	public function getMockHttpRequestFactory(): HttpRequestFactory {
 		return $this->getMockBuilder( HttpRequestFactory::class )
 			->disableOriginalConstructor()
-			->setMethods( [ 'create' ] )
+			->onlyMethods( [ 'create' ] )
 			->getMock();
 	}
 
@@ -180,7 +180,7 @@ trait MocksHelperTrait {
 	public function getMockHttpRequest(): MWHttpRequest {
 		return $this->getMockBuilder( MWHttpRequest::class )
 			->disableOriginalConstructor()
-			->setMethods( [ 'setHeader', 'execute', 'getContent' ] )
+			->onlyMethods( [ 'setHeader', 'execute', 'getContent' ] )
 			->getMock();
 	}
 
@@ -190,7 +190,7 @@ trait MocksHelperTrait {
 	 */
 	public function getMockUploadBase(): UploadBase {
 		return $this->getMockBuilder( UploadBase::class )
-			->setMethods( [ 'getLocalFile' ] )
+			->onlyMethods( [ 'getLocalFile' ] )
 			->getMockForAbstractClass();
 	}
 
@@ -201,7 +201,7 @@ trait MocksHelperTrait {
 	public function getMockJobQueueGroup(): JobQueueGroup {
 		return $this->getMockBuilder( JobQueueGroup::class )
 			->disableOriginalConstructor()
-			->setMethods( [ 'push' ] )
+			->onlyMethods( [ 'push' ] )
 			->getMock();
 	}
 
@@ -211,7 +211,7 @@ trait MocksHelperTrait {
 	 */
 	public function getMockIEmailer(): IEmailer {
 		return $this->getMockBuilder( IEmailer::class )
-			->setMethods( [ 'send' ] )
+			->onlyMethods( [ 'send' ] )
 			->getMock();
 	}
 
@@ -229,7 +229,7 @@ trait MocksHelperTrait {
 	 */
 	public function getMockTextFormatter(): ITextFormatter {
 		return $this->getMockBuilder( ITextFormatter::class )
-			->setMethods( [ 'format' ] )
+			->onlyMethods( [ 'format' ] )
 			->getMockForAbstractClass();
 	}
 
@@ -240,7 +240,7 @@ trait MocksHelperTrait {
 	public function getMockThumbnailProvider(): ThumbnailProvider {
 		return $this->getMockBuilder( ThumbnailProvider::class )
 			->disableOriginalConstructor()
-			->setMethods( [ 'getThumbnailUrl' ] )
+			->onlyMethods( [ 'getThumbnailUrl' ] )
 			->getMock();
 	}
 }
