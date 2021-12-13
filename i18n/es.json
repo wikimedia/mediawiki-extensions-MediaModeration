@@ -1,8 +1,9 @@
 {
 	"@metadata": {
 		"authors": [
-			"Fitoschido"
+			"Fitoschido",
+			"ArenaL5"
 		]
 	},
-	"mediamoderation-desc": "Servicio para filtrar posibles contenidos de explotación infantil."
+	"mediamoderation-desc": "Servicio para detectar coincidencias con conjuntos de hashes de imágenes de explotación infantil conocidas."
 }

@@ -1,0 +1,8 @@
+{
+	"@metadata": {
+		"authors": [
+			"Sabelöga"
+		]
+	},
+	"mediamoderation-desc": "Tjänst för att upptäcka träffar mot kända hash-dataset för bilder av övergrepp mot barn."
+}
