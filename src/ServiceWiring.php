@@ -20,7 +20,6 @@
 
 namespace MediaWiki\Extension\MediaModeration;
 
-use JobQueueGroup;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\MediaWikiServices;
@@ -33,7 +32,7 @@ return [
 					MediaModerationService::CONSTRUCTOR_OPTIONS,
 					$services->getConfigFactory()->makeConfig( 'MediaModeration' )
 				),
-				JobQueueGroup::singleton(),
+				$services->getJobQueueGroup(),
 				LoggerFactory::getInstance( 'mediamoderation' )
 			);
 		},

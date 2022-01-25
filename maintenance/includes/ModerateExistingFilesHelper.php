@@ -21,10 +21,10 @@
 namespace MediaWiki\Extension\MediaModeration;
 
 use Exception;
-use JobQueueGroup;
 use LocalFile;
 use LocalRepo;
 use MediaWiki\Extension\MediaModeration\Job\ProcessMediaModerationJob;
+use MediaWiki\MediaWikiServices;
 use Wikimedia\Rdbms\IDatabase;
 use Wikimedia\Rdbms\IResultWrapper;
 
@@ -85,9 +85,10 @@ class ModerateExistingFilesHelper {
 	 * @param LocalFile $file
 	 */
 	private function processFile( LocalFile $file ) {
+		$jobQueueGroup = MediaWikiServices::getInstance()->getJobQueueGroup();
 		for ( $i = 0; $i < 3; $i++ ) {
 			try {
-				JobQueueGroup::singleton()->push(
+				$jobQueueGroup->push(
 					ProcessMediaModerationJob::newSpec( $file->getTitle(), $file->getTimestamp(), false )
 				);
 				break;
