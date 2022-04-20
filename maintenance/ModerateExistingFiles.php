@@ -76,7 +76,7 @@ class ModerateExistingFiles extends Maintenance {
 	private const OPTION_BATCH_COUNT = 'batch-count';
 
 	/**
-	 * File name to to scan.
+	 * File name to scan.
 	 */
 	private const OPTION_FILE_NAME = 'file-name';
 
@@ -108,6 +108,11 @@ class ModerateExistingFiles extends Maintenance {
 	private const BATCH_SIZE = 1000;
 
 	/**
+	 * Script started - message.
+	 */
+	private const MESSAGE_SCRIPT_STARTED = 'Script successfully started';
+
+	/**
 	 * Script failed - message.
 	 */
 	private const MESSAGE_SCRIPT_FAILED = 'Script failed';
@@ -130,7 +135,7 @@ class ModerateExistingFiles extends Maintenance {
 	}
 
 	/**
-	 * @return bool|void|null
+	 * @return void bool|void|null
 	 */
 	public function execute() {
 		$start = $this->getOption( self::OPTION_START, '' );
@@ -148,6 +153,7 @@ class ModerateExistingFiles extends Maintenance {
 			MediaWikiServices::getInstance()->getRepoGroup()->getLocalRepo(),
 			$old ? OldLocalFile::getQueryInfo() : LocalFile::getQueryInfo()
 		);
+		$this->output( self::MESSAGE_SCRIPT_STARTED . PHP_EOL );
 
 		try {
 			if ( $fileName === null ) {

@@ -25,6 +25,7 @@ use LocalFile;
 use LocalRepo;
 use MediaWiki\Extension\MediaModeration\Job\ProcessMediaModerationJob;
 use MediaWiki\MediaWikiServices;
+use MWException;
 use Wikimedia\Rdbms\IDatabase;
 use Wikimedia\Rdbms\IResultWrapper;
 
@@ -62,7 +63,7 @@ class ModerateExistingFilesHelper {
 	'run ModerateExistingFiles.php adding argument --';
 
 	/**
-	 * @var \LocalRepo
+	 * @var LocalRepo
 	 */
 	private $repository = null;
 
@@ -91,8 +92,10 @@ class ModerateExistingFilesHelper {
 				$jobQueueGroup->push(
 					ProcessMediaModerationJob::newSpec( $file->getTitle(), $file->getTimestamp(), false )
 				);
+				print( '.' );
 				break;
 			} catch ( Exception $e ) {
+				print( PHP_EOL . '#_EXCEPTION' . $e->getMessage() . '  ' . __FILE__ . ', ' . __LINE__ . PHP_EOL );
 				continue;
 			}
 		}
@@ -104,8 +107,13 @@ class ModerateExistingFilesHelper {
 	 * @param bool $old
 	 */
 	private function processBatch( string &$start, IResultWrapper $rows, bool $old ) {
+		$file = null;
 		foreach ( $rows as $row ) {
-			$file = $this->repository->newFileFromRow( $row );
+			try {
+				$file = $this->repository->newFileFromRow( $row );
+			} catch ( MWException $e ) {
+				print( PHP_EOL . '#_EXCEPTION' . $e->getMessage() . '  ' . __FILE__ . ', ' . __LINE__ . PHP_EOL );
+			}
 			$this->processFile( $file );
 			$start = $old ? $row->oi_name : $row->img_timestamp;
 		}
