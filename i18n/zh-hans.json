@@ -1,0 +1,8 @@
+{
+	"@metadata": {
+		"authors": [
+			"StarrySky"
+		]
+	},
+	"mediamoderation-desc": "用于检测与已知子剥削图像哈希数据集匹配的服务。"
+}
