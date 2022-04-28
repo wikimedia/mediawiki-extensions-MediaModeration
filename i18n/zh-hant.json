@@ -1,8 +1,9 @@
 {
 	"@metadata": {
 		"authors": [
-			"Kly"
+			"Kly",
+			"StarrySky"
 		]
 	},
-	"mediamoderation-desc": "與已知的兒童剝削圖片雜湊資料集進行符合檢測的服務。"
+	"mediamoderation-desc": "與已知的子剝削圖片雜湊資料集進行符合檢測的服務。"
 }
