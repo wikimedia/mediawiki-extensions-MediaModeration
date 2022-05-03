@@ -184,11 +184,18 @@ class RequestModerationCheck {
 			$this->logWarning( $fileName, 'Missing keys in response.', $moderationInfoRequest->getContent() );
 			return new CheckResultValue( false, false );
 		}
+
+		$this->logger->debug( 'Received response from PhotoDNA. Variable $responseBody["Status"]["Code"] value is ' .
+			$responseBody['Status']['Code'], [ 'file' => $fileName ] );
+
 		if ( $responseBody['Status']['Code'] != 3000 ) {
 			$this->logWarning( $fileName,
 				'Error response from PhotoDNA service: ', $moderationInfoRequest->getContent() );
 			return new CheckResultValue( false, false );
 		}
+
+		$this->logger->debug( 'Response from PhotoDNA $responseBody["Status"]["Code"] should be 3000, the value is ' .
+				$responseBody['Status']['Code'], [ 'file' => $fileName ] );
 
 		if ( $responseBody['IsMatch'] ) {
 			$this->logger->debug( 'Hash match found for file {file}: {content}.',
