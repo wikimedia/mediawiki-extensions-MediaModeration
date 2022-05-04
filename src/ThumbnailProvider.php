@@ -72,10 +72,13 @@ class ThumbnailProvider {
 	 * @return string
 	 */
 	public function getThumbnailUrl( File $file ): string {
-		if ( !$this->sendThumbnails || !$file->canRender() ) {
-			if ( !$file->canRender() ) {
+		$fileCanRender = $file->canRender();
+		$warningMessage = 'File can\'t be rendered into thumbnail. Full file will be sent to photoDNA.';
+
+		if ( !$this->sendThumbnails || !$fileCanRender ) {
+			if ( !$fileCanRender ) {
 				$this->logger->warning(
-					'File can\'t be rendered into thumbnail. Full file will be sent to photoDNA.',
+					$warningMessage,
 					[
 						'file' => $file->getName()
 					]
