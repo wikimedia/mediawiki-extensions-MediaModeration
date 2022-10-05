@@ -27,6 +27,8 @@ use LocalRepo;
 use MediaWiki\Http\HttpRequestFactory;
 use MediaWiki\Mail\IEmailer;
 use MWHttpRequest;
+use PHPUnit\Framework\MockObject\MockBuilder;
+use PHPUnit\Framework\MockObject\Rule\InvokedCount;
 use Psr\Log\LoggerInterface;
 use ThumbnailImage;
 use Title;
@@ -34,19 +36,11 @@ use TitleFactory;
 use UploadBase;
 use Wikimedia\Message\ITextFormatter;
 
+/**
+ * @method MockBuilder getMockBuilder( string $class )
+ * @method InvokedCount once()
+ */
 trait MocksHelperTrait {
-
-	/**
-	 * Accessor to TestCase::getMockBuilder
-	 * @param string $class
-	 */
-	abstract public function getMockBuilder( string $class );
-
-	/**
-	 * Accessor to TestCase::once
-	 */
-	abstract public function once();
-
 	/**
 	 * Creates mock object for LocalRepo
 	 * @return LocalRepo
