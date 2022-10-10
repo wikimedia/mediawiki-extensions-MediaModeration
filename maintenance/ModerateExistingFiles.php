@@ -16,7 +16,6 @@
  * http://www.gnu.org/copyleft/gpl.html
  *
  * @file
- * @ingroup Maintenance
  */
 namespace MediaWiki\Extension\MediaModeration;
 
@@ -24,32 +23,19 @@ use Exception;
 use LocalFile;
 use Maintenance;
 use MediaWiki\MediaWikiServices;
-use MWException;
 use OldLocalFile;
 
-// Security: Disable all stream wrappers and reenable individually as needed
-foreach ( stream_get_wrappers() as $wrapper ) {
-	stream_wrapper_unregister( $wrapper );
+$IP = getenv( 'MW_INSTALL_PATH' );
+if ( $IP === false ) {
+	$IP = __DIR__ . '/../../..';
 }
+require_once "$IP/maintenance/Maintenance.php";
 
-stream_wrapper_restore( 'file' );
-$basePath = getenv( 'MW_INSTALL_PATH' );
-if ( $basePath ) {
-	if ( !is_dir( $basePath )
-		|| strpos( $basePath, '..' ) !== false
-		|| strpos( $basePath, '~' ) !== false
-	) {
-		throw new MWException( "Bad MediaWiki install path: $basePath" );
-	}
-} else {
-	$basePath = __DIR__ . '/../../..';
-}
-
-require_once $basePath . '/maintenance/Maintenance.php';
-require_once 'includes/ModerateExistingFilesHelper.php';
+// @todo FIXME: Remove this in favour of autoloader via extension.json
+require_once __DIR__ . '/includes/ModerateExistingFilesHelper.php';
 
 /**
- * Maintenance script that processes existing file(s) against PhotoDNA.
+ * Process existing file(s) against PhotoDNA.
  *
  * @ingroup Maintenance
  */
@@ -117,9 +103,6 @@ class ModerateExistingFiles extends Maintenance {
 	 */
 	private const MESSAGE_SCRIPT_FAILED = 'Script failed';
 
-	/**
-	 * ModerateExistingFiles constructor.
-	 */
 	public function __construct() {
 		parent::__construct();
 
@@ -135,7 +118,7 @@ class ModerateExistingFiles extends Maintenance {
 	}
 
 	/**
-	 * @return void bool|void|null
+	 * @return void
 	 */
 	public function execute() {
 		$start = $this->getOption( self::OPTION_START, '' );
