@@ -2,8 +2,9 @@
 	"@metadata": {
 		"authors": [
 			"Kly",
-			"StarrySky"
+			"StarrySky",
+			"捍粵者"
 		]
 	},
-	"mediamoderation-desc": "與已知的子剝削圖片雜湊資料集進行符合檢測的服務。"
+	"mediamoderation-desc": "此服務用於與已知虐兒圖的雜湊資料集比對"
 }
