@@ -116,6 +116,7 @@ class ModerateExistingFilesHelper {
 			$this->processFile( $file );
 			$start = $old ? $row->oi_name : $row->img_timestamp;
 		}
+		print( PHP_EOL );
 	}
 
 	/**
