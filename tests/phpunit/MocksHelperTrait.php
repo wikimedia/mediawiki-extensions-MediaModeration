@@ -26,13 +26,13 @@ use LocalFile;
 use LocalRepo;
 use MediaWiki\Http\HttpRequestFactory;
 use MediaWiki\Mail\IEmailer;
+use MediaWiki\Title\TitleFactory;
 use MWHttpRequest;
 use PHPUnit\Framework\MockObject\MockBuilder;
 use PHPUnit\Framework\MockObject\Rule\InvokedCount;
 use Psr\Log\LoggerInterface;
 use ThumbnailImage;
 use Title;
-use TitleFactory;
 use UploadBase;
 use Wikimedia\Message\ITextFormatter;
 
