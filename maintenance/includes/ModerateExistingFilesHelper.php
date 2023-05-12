@@ -20,10 +20,10 @@
 namespace MediaWiki\Extension\MediaModeration;
 
 use Exception;
+use JobQueueGroup;
 use LocalFile;
 use LocalRepo;
 use MediaWiki\Extension\MediaModeration\Job\ProcessMediaModerationJob;
-use MediaWiki\MediaWikiServices;
 use MWException;
 use Wikimedia\Rdbms\IDatabase;
 use Wikimedia\Rdbms\IResultWrapper;
@@ -71,24 +71,40 @@ class ModerateExistingFilesHelper {
 	 */
 	private $fileQuery = [];
 
+	private JobQueueGroup $jobQueueGroup;
+	private MediaModerationHandler $mediaModerationHandler;
+
 	/**
 	 * ModerateExistingFilesHelper constructor.
 	 * @param LocalRepo $repository
+	 * @param JobQueueGroup $jobQueueGroup
+	 * @param MediaModerationHandler $mediaModerationHandler
 	 * @param array $fileQuery
 	 */
-	public function __construct( LocalRepo $repository, array $fileQuery = [] ) {
+	public function __construct(
+		LocalRepo $repository,
+		JobQueueGroup $jobQueueGroup,
+		MediaModerationHandler $mediaModerationHandler,
+		array $fileQuery = []
+	) {
 		$this->repository = $repository;
 		$this->fileQuery = $fileQuery;
+		$this->jobQueueGroup = $jobQueueGroup;
+		$this->mediaModerationHandler = $mediaModerationHandler;
 	}
 
 	/**
 	 * @param LocalFile $file
+	 * @param bool $useJobQueue
+	 * @return bool
 	 */
-	private function processFile( LocalFile $file ) {
-		$jobQueueGroup = MediaWikiServices::getInstance()->getJobQueueGroup();
+	private function processFile( LocalFile $file, $useJobQueue = true ): bool {
+		if ( !$useJobQueue ) {
+			return $this->mediaModerationHandler->handleMedia( $file->getTitle(), $file->getTimestamp() );
+		}
 		for ( $i = 0; $i < 3; $i++ ) {
 			try {
-				$jobQueueGroup->push(
+				$this->jobQueueGroup->push(
 					ProcessMediaModerationJob::newSpec( $file->getTitle(), $file->getTimestamp(), false )
 				);
 				print( '.' );
@@ -98,6 +114,7 @@ class ModerateExistingFilesHelper {
 				continue;
 			}
 		}
+		return true;
 	}
 
 	/**
@@ -159,7 +176,8 @@ class ModerateExistingFilesHelper {
 		$result = $this->selectFile( $fileName, $db, $old );
 
 		if ( $result->numRows() ) {
-			$this->processBatch( $fileName, $result, $old );
+			$file = $this->repository->newFileFromRow( $result->current() );
+			$this->processFile( $file, false );
 
 			return true;
 		}
