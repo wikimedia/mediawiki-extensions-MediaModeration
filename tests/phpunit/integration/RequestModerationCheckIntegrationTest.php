@@ -32,10 +32,7 @@ use MediaWikiIntegrationTestCase;
 class RequestModerationCheckIntegrationTest extends MediaWikiIntegrationTestCase {
 	use MocksHelperTrait;
 
-	/**
-	 * @dataProvider requestModerationRealFileProvider
-	 */
-	public function requestModerationRealFileProvider() {
+	public static function requestModerationRealFileProvider() {
 		return [
 			'Microsoft test file' => [
 				'https://pdnasampleimages.blob.core.windows.net/matchedimages/img_130.jpg',

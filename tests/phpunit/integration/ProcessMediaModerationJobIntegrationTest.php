@@ -33,7 +33,7 @@ class ProcessMediaModerationJobIntegrationTest extends MediaWikiIntegrationTestC
 	/**
 	 * @return \bool[][]
 	 */
-	public function runPassArgumentsProvider() {
+	public static function runPassArgumentsProvider() {
 		return [ [ true ], [ false ] ];
 	}
 

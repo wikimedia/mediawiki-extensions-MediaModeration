@@ -91,7 +91,7 @@ class RequestModerationCheckTest extends MediaWikiUnitTestCase {
 	/**
 	 * @return array
 	 */
-	public function requestModerationWrongContentProvider() {
+	public static function requestModerationWrongContentProvider() {
 		return [
 			'Invalid JSON should fail' => [ '{asf' ],
 			'No Content field should fail' => [ json_encode( [] ) ],
@@ -136,7 +136,7 @@ class RequestModerationCheckTest extends MediaWikiUnitTestCase {
 	/**
 	 * @return array[]
 	 */
-	public function requestModerationCorrectContentProvider() {
+	public static function requestModerationCorrectContentProvider() {
 		return [
 			'Correct status and code with no hash match should succeed' => [
 				[
