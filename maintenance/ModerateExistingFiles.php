@@ -132,8 +132,11 @@ class ModerateExistingFiles extends Maintenance {
 		$completed = false;
 		$error = null;
 
+		$mwServices = MediaWikiServices::getInstance();
 		$moderationHelper = new ModerateExistingFilesHelper(
-			MediaWikiServices::getInstance()->getRepoGroup()->getLocalRepo(),
+			$mwServices->getRepoGroup()->getLocalRepo(),
+			$mwServices->getJobQueueGroup(),
+			$mwServices->getService( 'MediaModerationHandler' ),
 			$old ? OldLocalFile::getQueryInfo() : LocalFile::getQueryInfo()
 		);
 		$this->output( self::MESSAGE_SCRIPT_STARTED . PHP_EOL );
