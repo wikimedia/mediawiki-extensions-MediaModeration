@@ -24,7 +24,6 @@ use JobQueueGroup;
 use LocalFile;
 use LocalRepo;
 use MediaWiki\Extension\MediaModeration\Job\ProcessMediaModerationJob;
-use MWException;
 use Wikimedia\Rdbms\IDatabase;
 use Wikimedia\Rdbms\IResultWrapper;
 
@@ -123,13 +122,8 @@ class ModerateExistingFilesHelper {
 	 * @param bool $old
 	 */
 	private function processBatch( string &$start, IResultWrapper $rows, bool $old ) {
-		$file = null;
 		foreach ( $rows as $row ) {
-			try {
-				$file = $this->repository->newFileFromRow( $row );
-			} catch ( MWException $e ) {
-				print( PHP_EOL . '#_EXCEPTION' . $e->getMessage() . '  ' . __FILE__ . ', ' . __LINE__ . PHP_EOL );
-			}
+			$file = $this->repository->newFileFromRow( $row );
 			$this->processFile( $file );
 			$start = $old ? $row->oi_name : $row->img_timestamp;
 		}
