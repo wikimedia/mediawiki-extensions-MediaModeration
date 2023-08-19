@@ -21,8 +21,8 @@
 namespace MediaWiki\Extension\MediaModeration;
 
 use MediaWiki\Config\ServiceOptions;
+use MediaWiki\Title\Title;
 use MediaWikiUnitTestCase;
-use Title;
 
 /**
  * @coversDefaultClass MediaWiki\Extension\MediaModeration\MediaModerationService

@@ -25,7 +25,7 @@ use IJobSpecification;
 use Job;
 use JobSpecification;
 use MediaWiki\MediaWikiServices;
-use Title;
+use MediaWiki\Title\Title;
 
 class ProcessMediaModerationJob extends Job implements GenericParameterJob {
 
