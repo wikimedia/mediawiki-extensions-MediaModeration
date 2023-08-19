@@ -21,8 +21,8 @@
 namespace MediaWiki\Extension\MediaModeration;
 
 use LocalRepo;
+use MediaWiki\Title\Title;
 use Psr\Log\LoggerInterface;
-use Title;
 
 class MediaModerationHandler {
 
