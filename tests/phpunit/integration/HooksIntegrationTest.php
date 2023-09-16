@@ -45,6 +45,6 @@ class HooksIntegrationTest extends MediaWikiIntegrationTestCase {
 			->with( $this->equalTo( $uploadBase ) );
 
 		$this->setService( 'MediaModerationService', $mediaModerationService );
-		Hooks::onUploadComplete( $uploadBase );
+		( new Hooks )->onUploadComplete( $uploadBase );
 	}
 }

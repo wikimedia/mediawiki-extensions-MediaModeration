@@ -18,7 +18,12 @@
 		"MediaWiki\\Extension\\MediaModeration\\MocksHelperTrait": "tests/phpunit/MocksHelperTrait.php"
 	},
 	"Hooks": {
-		"UploadComplete": "MediaWiki\\Extension\\MediaModeration\\Hooks::onUploadComplete"
+		"UploadComplete": "main"
+	},
+	"HookHandlers": {
+		"main": {
+			"class": "MediaWiki\\Extension\\MediaModeration\\Hooks"
+		}
 	},
 	"JobClasses": {
 		"processMediaModeration": "MediaWiki\\Extension\\MediaModeration\\Job\\ProcessMediaModerationJob",

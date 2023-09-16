@@ -20,16 +20,17 @@
 
 namespace MediaWiki\Extension\MediaModeration;
 
+use MediaWiki\Hook\UploadCompleteHook;
 use MediaWiki\MediaWikiServices;
 use UploadBase;
 
-class Hooks {
+class Hooks implements UploadCompleteHook {
 
 	/**
 	 * @param UploadBase $uploadBase
 	 * @see https://www.mediawiki.org/wiki/Manual:Hooks/UploadComplete
 	 */
-	public static function onUploadComplete( UploadBase $uploadBase ) {
+	public function onUploadComplete( $uploadBase ) {
 		$service = MediaWikiServices::getInstance()->getService( 'MediaModerationService' );
 		$service->processUploadedMedia( $uploadBase );
 	}
