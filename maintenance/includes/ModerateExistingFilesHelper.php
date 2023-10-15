@@ -97,7 +97,7 @@ class ModerateExistingFilesHelper {
 	 * @param bool $useJobQueue
 	 * @return bool
 	 */
-	private function processFile( LocalFile $file, $useJobQueue = true ): bool {
+	private function processFile( LocalFile $file, $useJobQueue = false ): bool {
 		if ( !$useJobQueue ) {
 			return $this->mediaModerationHandler->handleMedia( $file->getTitle(), $file->getTimestamp() );
 		}
@@ -171,7 +171,7 @@ class ModerateExistingFilesHelper {
 
 		if ( $result->numRows() ) {
 			$file = $this->repository->newFileFromRow( $result->current() );
-			$this->processFile( $file, false );
+			$this->processFile( $file );
 
 			return true;
 		}
