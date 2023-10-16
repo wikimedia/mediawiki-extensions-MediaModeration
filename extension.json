@@ -22,7 +22,10 @@
 	},
 	"HookHandlers": {
 		"main": {
-			"class": "MediaWiki\\Extension\\MediaModeration\\Hooks"
+			"class": "MediaWiki\\Extension\\MediaModeration\\Hooks",
+			"services": [
+				"MediaModerationService"
+			]
 		}
 	},
 	"JobClasses": {

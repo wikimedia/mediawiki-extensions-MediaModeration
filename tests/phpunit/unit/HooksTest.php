@@ -18,35 +18,28 @@
  * @file
  */
 
-namespace MediaWiki\Extension\MediaModeration\Tests\Integration;
+namespace MediaWiki\Extension\MediaModeration\Tests\Unit;
 
 use MediaWiki\Extension\MediaModeration\Hooks;
 use MediaWiki\Extension\MediaModeration\MediaModerationService;
-use MediaWikiIntegrationTestCase;
+use MediaWikiUnitTestCase;
 use UploadBase;
 
 /**
- * @covers MediaWiki\Extension\MediaModeration\RequestModerationCheck
+ * @covers MediaWiki\Extension\MediaModeration\Hooks
  * @group MediaModeration
  */
-class HooksTest extends MediaWikiIntegrationTestCase {
+class HooksTest extends MediaWikiUnitTestCase {
 
-	/**
-	 * @throws \Exception
-	 */
 	public function testOnUploadComplete() {
 		$uploadBase = $this->createMock( UploadBase::class );
-		$mediaModerationService = $this->getMockBuilder( MediaModerationService::class )
-			->disableOriginalConstructor()
-			->onlyMethods( [ 'processUploadedMedia' ] )
-			->getMock();
+		$mockMediaModerationService = $this->createMock( MediaModerationService::class );
 
-		$mediaModerationService
+		$mockMediaModerationService
 			->expects( $this->once() )
 			->method( 'processUploadedMedia' )
 			->with( $this->equalTo( $uploadBase ) );
 
-		$this->setService( 'MediaModerationService', $mediaModerationService );
-		( new Hooks )->onUploadComplete( $uploadBase );
+		( new Hooks( $mockMediaModerationService ) )->onUploadComplete( $uploadBase );
 	}
 }
