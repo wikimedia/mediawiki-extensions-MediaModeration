@@ -18,9 +18,11 @@
  * @file
  */
 
-namespace MediaWiki\Extension\MediaModeration;
+namespace MediaWiki\Extension\MediaModeration\Tests\Integration;
 
 use MediaWiki\Config\ServiceOptions;
+use MediaWiki\Extension\MediaModeration\RequestModerationCheck;
+use MediaWiki\Extension\MediaModeration\Tests\MocksHelperTrait;
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\MediaWikiServices;
 use MediaWikiIntegrationTestCase;
@@ -29,7 +31,7 @@ use MediaWikiIntegrationTestCase;
  * @covers MediaWiki\Extension\MediaModeration\RequestModerationCheck
  * @group MediaModeration
  */
-class RequestModerationCheckIntegrationTest extends MediaWikiIntegrationTestCase {
+class RequestModerationCheckTest extends MediaWikiIntegrationTestCase {
 	use MocksHelperTrait;
 
 	public static function requestModerationRealFileProvider() {

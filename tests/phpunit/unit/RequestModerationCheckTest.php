@@ -18,9 +18,11 @@
  * @file
  */
 
-namespace MediaWiki\Extension\MediaModeration;
+namespace MediaWiki\Extension\MediaModeration\Tests\Unit;
 
 use MediaWiki\Config\ServiceOptions;
+use MediaWiki\Extension\MediaModeration\RequestModerationCheck;
+use MediaWiki\Extension\MediaModeration\Tests\MocksHelperTrait;
 use MediaWikiUnitTestCase;
 use Status;
 

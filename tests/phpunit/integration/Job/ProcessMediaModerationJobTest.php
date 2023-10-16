@@ -18,16 +18,17 @@
  * @file
  */
 
-namespace MediaWiki\Extension\MediaModeration;
+namespace MediaWiki\Extension\MediaModeration\Tests\Integration\Job;
 
 use MediaWiki\Extension\MediaModeration\Job\ProcessMediaModerationJob;
+use MediaWiki\Extension\MediaModeration\Tests\MocksHelperTrait;
 use MediaWikiIntegrationTestCase;
 
 /**
  * @covers MediaWiki\Extension\MediaModeration\Job\ProcessMediaModerationJob
  * @group MediaModeration
  */
-class ProcessMediaModerationJobIntegrationTest extends MediaWikiIntegrationTestCase {
+class ProcessMediaModerationJobTest extends MediaWikiIntegrationTestCase {
 	use MocksHelperTrait;
 
 	/**

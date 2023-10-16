@@ -18,10 +18,11 @@
  * @file
  */
 
-namespace MediaWiki\Extension\MediaModeration;
+namespace MediaWiki\Extension\MediaModeration\Tests\Unit;
 
 use MediaWiki\Config\ServiceOptions;
-use MediaWiki\Title\Title;
+use MediaWiki\Extension\MediaModeration\MediaModerationService;
+use MediaWiki\Extension\MediaModeration\Tests\MocksHelperTrait;
 use MediaWikiUnitTestCase;
 
 /**
@@ -35,7 +36,7 @@ class MediaModerationServiceTest extends MediaWikiUnitTestCase {
 		$file = $this->getMockLocalFile();
 		$uploadBase = $this->getMockUploadBase();
 
-		$title = $this->getMockTitle( Title::class );
+		$title = $this->getMockTitle();
 
 		$file->expects( $this->any() )
 			->method( 'getTitle' )

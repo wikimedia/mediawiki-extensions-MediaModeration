@@ -18,18 +18,23 @@
  * @file
  */
 
-namespace MediaWiki\Extension\MediaModeration;
+namespace MediaWiki\Extension\MediaModeration\Tests;
 
 use JobQueueGroup;
 use Liuggio\StatsdClient\Factory\StatsdDataFactoryInterface;
 use LocalFile;
 use LocalRepo;
+use MediaWiki\Extension\MediaModeration\MediaModerationHandler;
+use MediaWiki\Extension\MediaModeration\ProcessModerationCheckResult;
+use MediaWiki\Extension\MediaModeration\RequestModerationCheck;
+use MediaWiki\Extension\MediaModeration\ThumbnailProvider;
 use MediaWiki\Http\HttpRequestFactory;
 use MediaWiki\Mail\IEmailer;
 use MediaWiki\Title\Title;
 use MediaWiki\Title\TitleFactory;
 use MWHttpRequest;
 use PHPUnit\Framework\MockObject\MockBuilder;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Rule\InvokedCount;
 use Psr\Log\LoggerInterface;
 use ThumbnailImage;
@@ -38,6 +43,7 @@ use Wikimedia\Message\ITextFormatter;
 
 /**
  * @method MockBuilder getMockBuilder( string $class )
+ * @method MockObject getMockForAbstractClass( string $class )
  * @method InvokedCount once()
  */
 trait MocksHelperTrait {

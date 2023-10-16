@@ -18,9 +18,10 @@
  * @file
  */
 
-namespace MediaWiki\Extension\MediaModeration;
+namespace MediaWiki\Extension\MediaModeration\Tests\Unit\Job;
 
 use MediaWiki\Extension\MediaModeration\Job\ProcessMediaModerationJob;
+use MediaWiki\Extension\MediaModeration\Tests\MocksHelperTrait;
 use MediaWikiUnitTestCase;
 
 /**

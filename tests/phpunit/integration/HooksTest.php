@@ -18,8 +18,10 @@
  * @file
  */
 
-namespace MediaWiki\Extension\MediaModeration;
+namespace MediaWiki\Extension\MediaModeration\Tests\Integration;
 
+use MediaWiki\Extension\MediaModeration\Hooks;
+use MediaWiki\Extension\MediaModeration\MediaModerationService;
 use MediaWikiIntegrationTestCase;
 use UploadBase;
 
@@ -27,7 +29,7 @@ use UploadBase;
  * @covers MediaWiki\Extension\MediaModeration\RequestModerationCheck
  * @group MediaModeration
  */
-class HooksIntegrationTest extends MediaWikiIntegrationTestCase {
+class HooksTest extends MediaWikiIntegrationTestCase {
 
 	/**
 	 * @throws \Exception

@@ -18,8 +18,9 @@
  * @file
  */
 
-namespace MediaWiki\Extension\MediaModeration;
+namespace MediaWiki\Extension\MediaModeration\Tests\Unit;
 
+use MediaWiki\Extension\MediaModeration\CheckResultValue;
 use MediaWikiUnitTestCase;
 
 /**

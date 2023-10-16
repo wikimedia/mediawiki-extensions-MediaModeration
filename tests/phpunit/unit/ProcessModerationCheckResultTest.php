@@ -18,10 +18,13 @@
  * @file
  */
 
-namespace MediaWiki\Extension\MediaModeration;
+namespace MediaWiki\Extension\MediaModeration\Tests\Unit;
 
 use MailAddress;
 use MediaWiki\Config\ServiceOptions;
+use MediaWiki\Extension\MediaModeration\CheckResultValue;
+use MediaWiki\Extension\MediaModeration\ProcessModerationCheckResult;
+use MediaWiki\Extension\MediaModeration\Tests\MocksHelperTrait;
 use MediaWikiUnitTestCase;
 use StatusValue;
 

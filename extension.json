@@ -15,7 +15,7 @@
 		"MediaWiki\\Extension\\MediaModeration\\": "src/"
 	},
 	"TestAutoloadClasses": {
-		"MediaWiki\\Extension\\MediaModeration\\MocksHelperTrait": "tests/phpunit/MocksHelperTrait.php"
+		"MediaWiki\\Extension\\MediaModeration\\Tests\\MocksHelperTrait": "tests/phpunit/MocksHelperTrait.php"
 	},
 	"Hooks": {
 		"UploadComplete": "main"
