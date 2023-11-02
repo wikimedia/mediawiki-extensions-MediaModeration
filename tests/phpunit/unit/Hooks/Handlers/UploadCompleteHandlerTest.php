@@ -20,16 +20,16 @@
 
 namespace MediaWiki\Extension\MediaModeration\Tests\Unit;
 
-use MediaWiki\Extension\MediaModeration\Hooks;
+use MediaWiki\Extension\MediaModeration\Hooks\Handlers\UploadCompleteHandler;
 use MediaWiki\Extension\MediaModeration\MediaModerationService;
 use MediaWikiUnitTestCase;
 use UploadBase;
 
 /**
- * @covers MediaWiki\Extension\MediaModeration\Hooks
+ * @covers MediaWiki\Extension\MediaModeration\Hooks\Handlers\UploadCompleteHandler
  * @group MediaModeration
  */
-class HooksTest extends MediaWikiUnitTestCase {
+class UploadCompleteHandlerTest extends MediaWikiUnitTestCase {
 
 	public function testOnUploadComplete() {
 		$uploadBase = $this->createMock( UploadBase::class );
@@ -40,6 +40,6 @@ class HooksTest extends MediaWikiUnitTestCase {
 			->method( 'processUploadedMedia' )
 			->with( $this->equalTo( $uploadBase ) );
 
-		( new Hooks( $mockMediaModerationService ) )->onUploadComplete( $uploadBase );
+		( new UploadCompleteHandler( $mockMediaModerationService ) )->onUploadComplete( $uploadBase );
 	}
 }

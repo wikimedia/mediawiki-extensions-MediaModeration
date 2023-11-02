@@ -18,14 +18,18 @@
 		"MediaWiki\\Extension\\MediaModeration\\Tests\\MocksHelperTrait": "tests/phpunit/MocksHelperTrait.php"
 	},
 	"Hooks": {
-		"UploadComplete": "main"
+		"UploadComplete": "UploadCompleteHandler",
+		"LoadExtensionSchemaUpdates": "SchemaChangesHandler"
 	},
 	"HookHandlers": {
-		"main": {
-			"class": "MediaWiki\\Extension\\MediaModeration\\Hooks",
+		"UploadCompleteHandler": {
+			"class": "MediaWiki\\Extension\\MediaModeration\\Hooks\\Handlers\\UploadCompleteHandler",
 			"services": [
 				"MediaModerationService"
 			]
+		},
+		"SchemaChangesHandler": {
+			"class": "MediaWiki\\Extension\\MediaModeration\\Hooks\\Handlers\\SchemaChangesHandler"
 		}
 	},
 	"JobClasses": {
@@ -80,5 +84,8 @@
 			"description": "HTTP proxy to use when calling PhotoDNA service."
 		}
 	},
+	"DatabaseVirtualDomains": [
+		"virtual-mediamoderation"
+	],
 	"manifest_version": 2
 }

@@ -18,12 +18,13 @@
  * @file
  */
 
-namespace MediaWiki\Extension\MediaModeration;
+namespace MediaWiki\Extension\MediaModeration\Hooks\Handlers;
 
+use MediaWiki\Extension\MediaModeration\MediaModerationService;
 use MediaWiki\Hook\UploadCompleteHook;
 use UploadBase;
 
-class Hooks implements UploadCompleteHook {
+class UploadCompleteHandler implements UploadCompleteHook {
 
 	private MediaModerationService $mediaModerationService;
 
