@@ -1,0 +1,40 @@
+[
+	{
+		"name": "mediamoderation_scan",
+		"columns": [
+			{
+				"name": "mms_sha1",
+				"comment": "SHA-1 content hash of the image in base-36. The image may be in any of the image, oldimage, or filearchive tables.",
+				"type": "binary",
+				"options": { "notnull": true, "length": 32 }
+			},
+			{
+				"name": "mms_last_checked",
+				"comment": "Date in integer form of YYYYMMDD of the last check for the image(s) with this SHA-1 against PhotoDNA.",
+				"type": "integer",
+				"options": { "notnull": false, "default": null, "unsigned": true }
+			},
+			{
+				"name": "mms_is_match",
+				"comment": "Whether the image(s) with this SHA-1 are a match against PhotoDNA.",
+				"type": "mwtinyint",
+				"options": { "notnull": false, "length": 1, "unsigned": true, "default": null }
+			}
+		],
+		"indexes": [
+			{
+				"name": "mms_is_match_last_checked",
+				"comment": "Used to allow querying for the oldest and/or newest images depending on their check status.",
+				"columns": [ "mms_is_match", "mms_last_checked" ],
+				"unique": false
+			},
+			{
+				"name": "mms_last_checked",
+				"comment": "Used to allow querying for how many images have never been checked (mms_last_checked is null when the image has never been checked), and also all images last checked on specific month and year regardless of check status.",
+				"columns": [ "mms_last_checked" ],
+				"unique": false
+			}
+		],
+		"pk": [ "mms_sha1" ]
+	}
+]
