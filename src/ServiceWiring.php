@@ -22,6 +22,7 @@ namespace MediaWiki\Extension\MediaModeration;
 
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
+use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseManager;
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\MediaWikiServices;
 
@@ -36,6 +37,14 @@ return [
 	): MediaModerationDatabaseLookup {
 		return new MediaModerationDatabaseLookup(
 			$services->getDBLoadBalancerFactory()
+		);
+	},
+	'MediaModerationDatabaseManager' => static function (
+		MediaWikiServices $services
+	): MediaModerationDatabaseManager {
+		return new MediaModerationDatabaseManager(
+			$services->getDBLoadBalancerFactory()->getPrimaryDatabase( 'virtual-mediamoderation' ),
+			$services->getService( 'MediaModerationDatabaseLookup' )
 		);
 	},
 	'MediaModerationService' =>
