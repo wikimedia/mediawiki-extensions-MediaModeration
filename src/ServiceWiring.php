@@ -21,6 +21,7 @@
 namespace MediaWiki\Extension\MediaModeration;
 
 use MediaWiki\Config\ServiceOptions;
+use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\MediaWikiServices;
 
@@ -30,6 +31,13 @@ use MediaWiki\MediaWikiServices;
 // @codeCoverageIgnoreStart
 
 return [
+	'MediaModerationDatabaseLookup' => static function (
+		MediaWikiServices $services
+	): MediaModerationDatabaseLookup {
+		return new MediaModerationDatabaseLookup(
+			$services->getDBLoadBalancerFactory()
+		);
+	},
 	'MediaModerationService' =>
 		static function ( MediaWikiServices $services ): MediaModerationService {
 			return new MediaModerationService(
