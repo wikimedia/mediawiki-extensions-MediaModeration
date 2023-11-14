@@ -20,26 +20,72 @@
 
 namespace MediaWiki\Extension\MediaModeration\Tests\Unit;
 
+use DeferredUpdates;
+use File;
 use MediaWiki\Extension\MediaModeration\Hooks\Handlers\UploadCompleteHandler;
-use MediaWiki\Extension\MediaModeration\MediaModerationService;
+use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileProcessor;
+use MediaWiki\Tests\Unit\MockServiceDependenciesTrait;
 use MediaWikiUnitTestCase;
+use Psr\Log\LoggerInterface;
 use UploadBase;
+use Wikimedia\TestingAccessWrapper;
 
 /**
  * @covers MediaWiki\Extension\MediaModeration\Hooks\Handlers\UploadCompleteHandler
  * @group MediaModeration
  */
 class UploadCompleteHandlerTest extends MediaWikiUnitTestCase {
+	use MockServiceDependenciesTrait;
 
 	public function testOnUploadComplete() {
+		$mockFile = $this->createMock( File::class );
+		// Mock that the UploadBase::getLocalFile returns a mock file.
 		$uploadBase = $this->createMock( UploadBase::class );
-		$mockMediaModerationService = $this->createMock( MediaModerationService::class );
+		$uploadBase->method( 'getLocalFile' )
+			->willReturn( $mockFile );
+		// Expect that the LoggerInterface::warning method is never called.
+		$mockLogger = $this->createMock( LoggerInterface::class );
+		$mockLogger->expects( $this->never() )
+			->method( 'warning' );
+		// Expect that the MediaModerationFileProcessor::insertFile method is called once
+		// with the mock file provided as the only argument.
+		$mockMediaModerationFileProcessor = $this->createMock( MediaModerationFileProcessor::class );
+		$mockMediaModerationFileProcessor->expects( $this->once() )
+			->method( 'insertFile' )
+			->with( $mockFile );
+		// Get the object under test.
+		$objectUnderTest = new UploadCompleteHandler( $mockMediaModerationFileProcessor );
+		// As the logger is created in the constructor, re-assign it to the mock
+		// logger for the test.
+		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
+		$objectUnderTest->logger = $mockLogger;
+		// Call the method under test.
+		$objectUnderTest->onUploadComplete( $uploadBase );
+		// Cause the deferred updates to run, so that the deferred update for the
+		// call to MediaModerationFileProcessor::insertFile is run before the test ends.
+		DeferredUpdates::doUpdates();
+	}
 
-		$mockMediaModerationService
-			->expects( $this->once() )
-			->method( 'processUploadedMedia' )
-			->with( $this->equalTo( $uploadBase ) );
+	public function testOnUploadCompleteForNullFile() {
+		// Mock that UploadBase::getLocalFile will return null.
+		$mockUploadBase = $this->createMock( UploadBase::class );
+		$mockUploadBase->method( 'getLocalFile' )
+			->willReturn( null );
+		// Expect that the LoggerInterface::warning is called as the file is null.
+		$mockLogger = $this->createMock( LoggerInterface::class );
+		$mockLogger->expects( $this->once() )
+			->method( 'warning' );
+		$objectUnderTest = $this->newServiceInstance( UploadCompleteHandler::class, [] );
 
-		( new UploadCompleteHandler( $mockMediaModerationService ) )->onUploadComplete( $uploadBase );
+		// As the logger is created in the constructor, re-assign it to the mock
+		// logger for the test.
+		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
+		$objectUnderTest->logger = $mockLogger;
+		// Call the method under test.
+		$objectUnderTest->onUploadComplete( $mockUploadBase );
+		// Cause the deferred updates to run, so that if the method under test is
+		// not doing as expected the call to MediaModerationFileProcessor::insertFile
+		// will be made before the test ends and then the test would fail.
+		DeferredUpdates::doUpdates();
 	}
 }

@@ -6,7 +6,7 @@
 Extension page:
 [[Extension:MediaModeration]](https://www.mediawiki.org/wiki/Extension:MediaModeration)
 
-##### WikiTech Technical Page 
+##### WikiTech Technical Page
 WikiTech page:
 [[WikiTech:MediaModeration]](https://wikitech.wikimedia.org/wiki/MediaModeration)
 
@@ -128,9 +128,6 @@ After it is installed, the extension must be configured in mediawiki/LocalSettin
 
 > **$wgMediaModerationHttpProxy** - HTTP proxy to use when calling PhotoDNA service. Default is null, which means no proxy is used. Set to the URL of the proxy to use a proxy.
 > - Default Value = null
-
-> **$wgMediaModerationCheckOnUpload**  - 	Indicates whether files should be checked on upload. If false, checking will only be done by the ModerateExistingFiles.php maintenance script.
-> - Default Value = false
 
 #### Next
 - Find an image on your local site

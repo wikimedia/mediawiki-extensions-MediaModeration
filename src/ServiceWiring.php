@@ -23,6 +23,7 @@ namespace MediaWiki\Extension\MediaModeration;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseManager;
+use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileProcessor;
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\MediaWikiServices;
 
@@ -47,17 +48,14 @@ return [
 			$services->getService( 'MediaModerationDatabaseLookup' )
 		);
 	},
-	'MediaModerationService' =>
-		static function ( MediaWikiServices $services ): MediaModerationService {
-			return new MediaModerationService(
-				new ServiceOptions(
-					MediaModerationService::CONSTRUCTOR_OPTIONS,
-					$services->getConfigFactory()->makeConfig( 'MediaModeration' )
-				),
-				$services->getJobQueueGroup(),
-				LoggerFactory::getInstance( 'mediamoderation' )
-			);
-		},
+	'MediaModerationFileProcessor' => static function (
+		MediaWikiServices $services
+	): MediaModerationFileProcessor {
+		return new MediaModerationFileProcessor(
+			$services->getService( 'MediaModerationDatabaseManager' ),
+			LoggerFactory::getInstance( 'mediamoderation' )
+		);
+	},
 	'MediaModerationHandler' =>
 		static function ( MediaWikiServices $services ): MediaModerationHandler {
 			return new MediaModerationHandler(

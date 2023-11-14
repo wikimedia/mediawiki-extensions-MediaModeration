@@ -20,23 +20,35 @@
 
 namespace MediaWiki\Extension\MediaModeration\Hooks\Handlers;
 
-use MediaWiki\Extension\MediaModeration\MediaModerationService;
+use DeferredUpdates;
+use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileProcessor;
 use MediaWiki\Hook\UploadCompleteHook;
-use UploadBase;
+use MediaWiki\Logger\LoggerFactory;
+use Psr\Log\LoggerInterface;
 
 class UploadCompleteHandler implements UploadCompleteHook {
 
-	private MediaModerationService $mediaModerationService;
+	private MediaModerationFileProcessor $mediaModerationFileProcessor;
+	private LoggerInterface $logger;
 
-	public function __construct( MediaModerationService $mediaModerationService ) {
-		$this->mediaModerationService = $mediaModerationService;
+	public function __construct(
+		MediaModerationFileProcessor $mediaModerationFileProcessor
+	) {
+		$this->mediaModerationFileProcessor = $mediaModerationFileProcessor;
+		$this->logger = LoggerFactory::getInstance( 'mediamoderation' );
 	}
 
-	/**
-	 * @param UploadBase $uploadBase
-	 * @see https://www.mediawiki.org/wiki/Manual:Hooks/UploadComplete
-	 */
+	/** @inheritDoc */
 	public function onUploadComplete( $uploadBase ) {
-		$this->mediaModerationService->processUploadedMedia( $uploadBase );
+		$file = $uploadBase->getLocalFile();
+		if ( $file === null ) {
+			// This should not happen, but if the $file is null then log this as a warning.
+			$this->logger->warning( 'UploadBase::getLocalFile is null on run of UploadComplete hook.' );
+		} else {
+			// If the $file is not null, then call MediaModerationFileProcessor::insertFile on POSTSEND.
+			DeferredUpdates::addCallableUpdate( function () use ( $file ) {
+				$this->mediaModerationFileProcessor->insertFile( $file );
+			} );
+		}
 	}
 }

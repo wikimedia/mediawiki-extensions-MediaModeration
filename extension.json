@@ -25,7 +25,7 @@
 		"UploadCompleteHandler": {
 			"class": "MediaWiki\\Extension\\MediaModeration\\Hooks\\Handlers\\UploadCompleteHandler",
 			"services": [
-				"MediaModerationService"
+				"MediaModerationFileProcessor"
 			]
 		},
 		"SchemaChangesHandler": {
@@ -48,10 +48,6 @@
 		"MediaModeration": "GlobalVarConfig::newInstance"
 	},
 	"config": {
-		"MediaModerationCheckOnUpload": {
-			"value": false,
-			"description": "Should files be checked on upload."
-		},
 		"MediaModerationPhotoDNAUrl": {
 			"value": "https://api.microsoftmoderator.com/photodna/v1.0/Match",
 			"description": "URL to PhotoDNA service endpoint."
