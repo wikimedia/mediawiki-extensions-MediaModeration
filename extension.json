@@ -11,6 +11,9 @@
 	"requires": {
 		"MediaWiki": ">= 1.41"
 	},
+	"AutoloadClasses": {
+		"MediaWiki\\Extension\\MediaModeration\\Maintenance\\ImportExistingFilesToScanTable": "maintenance/importExistingFilesToScanTable.php"
+	},
 	"AutoloadNamespaces": {
 		"MediaWiki\\Extension\\MediaModeration\\": "src/"
 	},
