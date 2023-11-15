@@ -2,6 +2,7 @@
 
 namespace MediaWiki\Extension\MediaModeration\Services;
 
+use ArchivedFile;
 use File;
 use IDBAccessObject;
 use Wikimedia\Rdbms\IConnectionProvider;
@@ -17,11 +18,11 @@ class MediaModerationDatabaseLookup implements IDBAccessObject {
 	/**
 	 * Returns whether the given $file exists in the mediamoderation_scan table.
 	 *
-	 * @param File $file
+	 * @param File|ArchivedFile $file
 	 * @param int $flags IDBAccessObject flags. Does not support READ_LOCKING or READ_EXCLUSIVE
 	 * @return bool
 	 */
-	public function fileExistsInScanTable( File $file, int $flags = self::READ_NORMAL ): bool {
+	public function fileExistsInScanTable( $file, int $flags = self::READ_NORMAL ): bool {
 		if ( $flags & self::READ_LATEST ) {
 			$db = $this->connectionProvider->getPrimaryDatabase( 'virtual-mediamoderation' );
 		} else {

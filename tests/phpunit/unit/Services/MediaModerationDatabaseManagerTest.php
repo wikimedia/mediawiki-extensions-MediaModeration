@@ -2,6 +2,7 @@
 
 namespace MediaWiki\Extension\MediaModeration\Services;
 
+use ArchivedFile;
 use File;
 use MediaWiki\Tests\Unit\MockServiceDependenciesTrait;
 use MediaWikiUnitTestCase;
@@ -17,7 +18,8 @@ use Wikimedia\Timestamp\ConvertibleTimestamp;
 class MediaModerationDatabaseManagerTest extends MediaWikiUnitTestCase {
 	use MockServiceDependenciesTrait;
 
-	public function testInsertFileIntoScanTableDoesNothingOnExistingFile() {
+	/** @dataProvider provideFileClasses */
+	public function testInsertFileIntoScanTableDoesNothingOnExistingFile( $fileClass ) {
 		$mockMediaModerationDatabaseLookup = $this->createMock( MediaModerationDatabaseLookup::class );
 		$mockMediaModerationDatabaseLookup->expects( $this->once() )
 			->method( 'fileExistsInScanTable' )
@@ -30,10 +32,20 @@ class MediaModerationDatabaseManagerTest extends MediaWikiUnitTestCase {
 			'mediaModerationDatabaseLookup' => $mockMediaModerationDatabaseLookup,
 			'dbw' => $mockDb,
 		] );
-		$objectUnderTest->insertFileToScanTable( $this->createMock( File::class ) );
+		/** @var File|ArchivedFile $mockFile */
+		$mockFile = $this->createMock( $fileClass );
+		$objectUnderTest->insertFileToScanTable( $mockFile );
 	}
 
-	public function testInsertFileIntoScanTableInsertsAFile() {
+	public static function provideFileClasses() {
+		return [
+			'Passing an ArchivedFile object to the method under test' => [ ArchivedFile::class ],
+			'Passing an File object to the method under test' => [ File::class ],
+		];
+	}
+
+	/** @dataProvider provideFileClasses */
+	public function testInsertFileIntoScanTableInsertsAFile( $fileClass ) {
 		$mockDb = $this->createMock( IDatabase::class );
 		// Mock the InsertQueryBuilder to expect that the ::execute method is called.
 		$insertQueryBuilderMock = $this->getMockBuilder( InsertQueryBuilder::class )
@@ -55,7 +67,8 @@ class MediaModerationDatabaseManagerTest extends MediaWikiUnitTestCase {
 			'dbw' => $mockDb,
 		] );
 		// Create a mock file.
-		$mockFile = $this->createMock( File::class );
+		/** @var File|ArchivedFile $mockFile */
+		$mockFile = $this->createMock( $fileClass );
 		$mockFile->method( 'getSha1' )->willReturn( 'abcdef1234' );
 		// Call the method under test.
 		$objectUnderTest->insertFileToScanTable( $mockFile );
@@ -79,7 +92,7 @@ class MediaModerationDatabaseManagerTest extends MediaWikiUnitTestCase {
 	}
 
 	/** @dataProvider provideIsMatch */
-	public function testUpdateMatchStatus( $isMatch ) {
+	public function testUpdateMatchStatus( $isMatch, $fileClass ) {
 		$mockDb = $this->createMock( IDatabase::class );
 		// Create a mock UpdateQueryBuilder and expect that the ::execute method is called.
 		$mockUpdateQueryBuilder = $this->getMockBuilder( UpdateQueryBuilder::class )
@@ -91,7 +104,8 @@ class MediaModerationDatabaseManagerTest extends MediaWikiUnitTestCase {
 		$mockDb->expects( $this->once() )->method( 'newUpdateQueryBuilder' )
 			->willReturn( $mockUpdateQueryBuilder );
 		// Create a mock file with a pre-defined SHA-1
-		$mockFile = $this->createMock( File::class );
+		/** @var File|ArchivedFile $mockFile */
+		$mockFile = $this->createMock( $fileClass );
 		$mockFile->method( 'getSha1' )->willReturn( 'abcdef12345' );
 		// Create the object under test.
 		$objectUnderTest = $this->getMockBuilder( MediaModerationDatabaseManager::class )
@@ -134,8 +148,10 @@ class MediaModerationDatabaseManagerTest extends MediaWikiUnitTestCase {
 
 	public static function provideIsMatch() {
 		return [
-			'Is not a match' => [ false ],
-			'Is a match' => [ true ],
+			'Is not a match when passed a File object' => [ false, File::class ],
+			'Is a match when passed a File object' => [ true, File::class ],
+			'Is not a match when passed a ArchivedFile object' => [ false, ArchivedFile::class ],
+			'Is a match when passed a ArchivedFile object' => [ true, ArchivedFile::class ],
 		];
 	}
 }

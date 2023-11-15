@@ -2,6 +2,7 @@
 
 namespace MediaWiki\Extension\MediaModeration\Services;
 
+use ArchivedFile;
 use File;
 use IDBAccessObject;
 use Wikimedia\Rdbms\IDatabase;
@@ -25,10 +26,10 @@ class MediaModerationDatabaseManager implements IDBAccessObject {
 	 * mediamoderation_scan table if the reference to the file does
 	 * not already exist.
 	 *
-	 * @param File $file The file to be added to the mediamoderation_scan table.
+	 * @param File|ArchivedFile $file The file to be added to the mediamoderation_scan table.
 	 * @return void
 	 */
-	public function insertFileToScanTable( File $file ) {
+	public function insertFileToScanTable( $file ) {
 		if ( !$this->mediaModerationDatabaseLookup->fileExistsInScanTable(
 			$file, MediaModerationDatabaseLookup::READ_LATEST
 		) ) {
@@ -42,10 +43,10 @@ class MediaModerationDatabaseManager implements IDBAccessObject {
 	 * table, so will cause a DBError if the File is already in
 	 * the table.
 	 *
-	 * @param File $file
+	 * @param File|ArchivedFile $file
 	 * @return void
 	 */
-	private function insertToScanTableInternal( File $file ) {
+	private function insertToScanTableInternal( $file ) {
 		// Insert a row to the mediamoderation_scan table with the SHA-1 of the file.
 		$this->dbw->newInsertQueryBuilder()
 			->insert( 'mediamoderation_scan' )
@@ -64,11 +65,11 @@ class MediaModerationDatabaseManager implements IDBAccessObject {
 	 * If the SHA-1 of the $file does not exist in the scan table, a row
 	 * will be created for it before the update occurs.
 	 *
-	 * @param File $file The file that was scanned by PhotoDNA
+	 * @param File|ArchivedFile $file The file that was scanned by PhotoDNA
 	 * @param bool $isMatch Whether the file is a match
 	 * @return void
 	 */
-	public function updateMatchStatus( File $file, bool $isMatch ) {
+	public function updateMatchStatus( $file, bool $isMatch ) {
 		// Check if the SHA-1 exists in the scan table. If not, then add it to the
 		// mediamoderation_scan table first before attempting to update the match status.
 		$this->insertFileToScanTable( $file );

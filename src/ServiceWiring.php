@@ -53,6 +53,7 @@ return [
 	): MediaModerationFileProcessor {
 		return new MediaModerationFileProcessor(
 			$services->getService( 'MediaModerationDatabaseManager' ),
+			$services->getMediaHandlerFactory(),
 			LoggerFactory::getInstance( 'mediamoderation' )
 		);
 	},

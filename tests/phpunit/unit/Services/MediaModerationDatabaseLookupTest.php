@@ -2,6 +2,7 @@
 
 namespace MediaWiki\Extension\MediaModeration\Tests\Unit\Services;
 
+use ArchivedFile;
 use File;
 use IDBAccessObject;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
@@ -16,7 +17,7 @@ use Wikimedia\Rdbms\SelectQueryBuilder;
  */
 class MediaModerationDatabaseLookupTest extends MediaWikiUnitTestCase {
 	/** @dataProvider provideFileExistsInScanTable */
-	public function testFileExistsInScanTable( $flags, $methodName ) {
+	public function testFileExistsInScanTable( $flags, $methodName, $fileObjectClass ) {
 		$mockDb = $this->createMock( IDatabase::class );
 		$selectQueryBuilderMock = $this->getMockBuilder( SelectQueryBuilder::class )
 			->setConstructorArgs( [ $mockDb ] )
@@ -38,7 +39,8 @@ class MediaModerationDatabaseLookupTest extends MediaWikiUnitTestCase {
 			$connectionProviderMock
 		);
 		// Create a mock File object
-		$mockFile = $this->createMock( File::class );
+		/** @var File|ArchivedFile $mockFile */
+		$mockFile = $this->createMock( $fileObjectClass );
 		$mockFile->expects( $this->once() )
 			->method( 'getSha1' )
 			->willReturn( '123456abcdef' );
@@ -67,8 +69,18 @@ class MediaModerationDatabaseLookupTest extends MediaWikiUnitTestCase {
 
 	public static function provideFileExistsInScanTable() {
 		return [
-			'Reads from replica with flags as READ_NORMAL' => [ IDBAccessObject::READ_NORMAL, 'getReplicaDatabase' ],
-			'Reads from primary with flags as READ_LATEST' => [ IDBAccessObject::READ_LATEST, 'getPrimaryDatabase' ],
+			'Reads from replica with flags as READ_NORMAL' => [
+				IDBAccessObject::READ_NORMAL, 'getReplicaDatabase', File::class
+			],
+			'Reads from primary with flags as READ_LATEST' => [
+				IDBAccessObject::READ_LATEST, 'getPrimaryDatabase', File::class
+			],
+			'Accepts an ArchivedFile object when reading from replica' => [
+				IDBAccessObject::READ_NORMAL, 'getReplicaDatabase', ArchivedFile::class
+			],
+			'Accepts an ArchivedFile object when reading from primary' => [
+				IDBAccessObject::READ_LATEST, 'getPrimaryDatabase', ArchivedFile::class
+			],
 		];
 	}
 }
