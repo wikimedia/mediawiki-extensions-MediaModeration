@@ -1,0 +1,8 @@
+{
+	"@metadata": {
+		"authors": [
+			"McDutchie"
+		]
+	},
+	"mediamoderation-desc": "Service voor het detecteren van overeenkomsten met hash-datasets van bekende afbeeldingen van kindermisbruik."
+}
