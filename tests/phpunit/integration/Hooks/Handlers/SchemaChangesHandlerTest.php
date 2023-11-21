@@ -21,22 +21,86 @@
 namespace MediaWiki\Extension\MediaModeration\Tests\Integration\Hooks\Handlers;
 
 use DatabaseUpdater;
+use MediaWiki\Config\ConfigException;
 use MediaWiki\Extension\MediaModeration\Hooks\Handlers\SchemaChangesHandler;
 use MediaWikiIntegrationTestCase;
+use Wikimedia\Rdbms\IDatabase;
 
 /**
  * @covers MediaWiki\Extension\MediaModeration\Hooks\Handlers\SchemaChangesHandler
  * @group MediaModeration
  */
 class SchemaChangesHandlerTest extends MediaWikiIntegrationTestCase {
-	public function testNoUpdatesOnExternalDB() {
-		$this->setMwGlobals( 'wgVirtualDomainsMapping', [ 'virtual-mediamoderation' => [] ] );
+	public function testThrowsExceptionOnInvalidConfig() {
+		$this->expectException( ConfigException::class );
+		$this->testNoUpdates( 'test', false );
+	}
+
+	/** @dataProvider provideMappingConfigCausingNoDBUpdates */
+	public function testNoUpdates( $configValue, $shouldPerformOutput = true ) {
+		$this->setMwGlobals( 'wgVirtualDomainsMapping', $configValue );
 		$objectUnderTest = new SchemaChangesHandler();
 		$mockUpdater = $this->createMock( DatabaseUpdater::class );
 		// ::getDB method is called to get the type of the DB. This should
 		// only be done if the database table is not on an external store.
 		$mockUpdater->expects( $this->never() )
 			->method( 'getDB' );
+		// It should call ::output to indicate no updates were performed.
+		$mockUpdater->expects( $shouldPerformOutput ? $this->once() : $this->never() )
+			->method( 'output' );
 		$objectUnderTest->onLoadExtensionSchemaUpdates( $mockUpdater );
+	}
+
+	public static function provideMappingConfigCausingNoDBUpdates() {
+		return [
+			'Empty array as the key of "virtual-mediamoderation" in the virtual domains config' => [
+				[ 'virtual-mediamoderation' => [] ]
+			],
+			'Cluster defined for the "virtual-mediamoderation" key in the virtual domains config' => [
+				[ 'virtual-mediamoderation' => [ 'cluster' => 'test' ] ]
+			],
+			'Cluster and DB defined for "virtual-mediamoderation" key in the virtual domains config' => [
+				[ 'virtual-mediamoderation' => [ 'cluster' => 'test', 'db' => false ] ]
+			],
+			'DB that is not false defined for "virtual-mediamoderation" key in the virtual domains config' => [
+				[ 'virtual-mediamoderation' => [ 'db' => 'centralauth' ] ]
+			],
+		];
+	}
+
+	/** @dataProvider provideMappingConfigCausingDBUpdates */
+	public function testUpdates( $configValue ) {
+		$this->setMwGlobals( 'wgVirtualDomainsMapping', $configValue );
+		$objectUnderTest = new SchemaChangesHandler();
+		$mockUpdater = $this->createMock( DatabaseUpdater::class );
+		// ::getDB method is called to get the type of the DB. This should
+		// only be done if the database table is not on an external store.
+		$mockDb = $this->createMock( IDatabase::class );
+		$mockDb->method( 'getType' )
+			->willReturn( 'mysql' );
+		$mockUpdater->expects( $this->once() )
+			->method( 'getDB' )
+			->willReturn( $mockDb );
+		// It should call ::output to indicate no updates were performed.
+		$mockUpdater->expects( $this->never() )
+			->method( 'output' );
+		// A call to ::addExtensionTable should be made
+		$mockUpdater->expects( $this->once() )
+			->method( 'addExtensionTable' );
+		$objectUnderTest->onLoadExtensionSchemaUpdates( $mockUpdater );
+	}
+
+	public static function provideMappingConfigCausingDBUpdates() {
+		return [
+			'Empty array as the virtual domains config' => [
+				[]
+			],
+			'Something else defined in the virtual domains config' => [
+				[ 'virtual-test' => [] ]
+			],
+			'DB that is false defined for "virtual-mediamoderation" key in the virtual domains config' => [
+				[ 'virtual-mediamoderation' => [ 'db' => false ] ]
+			],
+		];
 	}
 }
