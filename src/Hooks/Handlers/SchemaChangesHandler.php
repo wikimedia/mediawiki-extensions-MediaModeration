@@ -3,6 +3,7 @@
 namespace MediaWiki\Extension\MediaModeration\Hooks\Handlers;
 
 use MediaWiki\Config\ConfigException;
+use MediaWiki\Extension\MediaModeration\Maintenance\ImportExistingFilesToScanTable;
 use MediaWiki\Installer\Hook\LoadExtensionSchemaUpdatesHook;
 
 class SchemaChangesHandler implements LoadExtensionSchemaUpdatesHook {
@@ -53,6 +54,7 @@ class SchemaChangesHandler implements LoadExtensionSchemaUpdatesHook {
 		$maintenanceDb = $updater->getDB();
 		$dbType = $maintenanceDb->getType();
 		$updater->addExtensionTable( 'mediamoderation_scan', "$base/$dbType/tables-generated.sql" );
+		$updater->addPostDatabaseUpdateMaintenance( ImportExistingFilesToScanTable::class );
 		// @codeCoverageIgnoreEnd This is tested by installing or updating MediaWiki
 	}
 }
