@@ -38,6 +38,8 @@ class UploadCompleteHandlerTest extends MediaWikiIntegrationTestCase {
 		$mockFile = $this->createMock( File::class );
 		$mockFile->method( 'getMimeType' )
 			->willReturn( 'image/gif' );
+		$mockFile->method( 'getMediaType' )
+			->willReturn( MEDIATYPE_BITMAP );
 		$mockFile->method( 'getSha1' )
 			->willReturn( 'syrtqda72zc7dpjqeukz3d686doficu' );
 		$mockUploadBase = $this->createMock( UploadBase::class );
