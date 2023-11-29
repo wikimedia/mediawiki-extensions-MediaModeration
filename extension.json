@@ -28,7 +28,8 @@
 		"UploadCompleteHandler": {
 			"class": "MediaWiki\\Extension\\MediaModeration\\Hooks\\Handlers\\UploadCompleteHandler",
 			"services": [
-				"MediaModerationFileProcessor"
+				"MediaModerationFileProcessor",
+				"MainConfig"
 			]
 		},
 		"SchemaChangesHandler": {
@@ -54,6 +55,10 @@
 		"MediaModerationDeveloperMode": {
 			"value": true,
 			"description": "If the extension is in developer mode. Make sure this is false in production."
+		},
+		"MediaModerationAddToScanTableOnUpload": {
+			"value": true,
+			"description": "If MediaModeration will add to the mediamoderation_scan table on upload. Useful to set to false when bulk adding files in local environment."
 		},
 		"MediaModerationPhotoDNAUrl": {
 			"value": "https://api.microsoftmoderator.com/photodna/v1.0/Match",

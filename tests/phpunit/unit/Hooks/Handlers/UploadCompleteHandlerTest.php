@@ -22,6 +22,7 @@ namespace MediaWiki\Extension\MediaModeration\Tests\Unit;
 
 use DeferredUpdates;
 use File;
+use MediaWiki\Config\HashConfig;
 use MediaWiki\Extension\MediaModeration\Hooks\Handlers\UploadCompleteHandler;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileProcessor;
 use MediaWiki\Tests\Unit\MockServiceDependenciesTrait;
@@ -54,7 +55,9 @@ class UploadCompleteHandlerTest extends MediaWikiUnitTestCase {
 			->method( 'insertFile' )
 			->with( $mockFile );
 		// Get the object under test.
-		$objectUnderTest = new UploadCompleteHandler( $mockMediaModerationFileProcessor );
+		$objectUnderTest = new UploadCompleteHandler(
+			$mockMediaModerationFileProcessor, new HashConfig( [ 'MediaModerationAddToScanTableOnUpload' => true ] )
+		);
 		// As the logger is created in the constructor, re-assign it to the mock
 		// logger for the test.
 		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );

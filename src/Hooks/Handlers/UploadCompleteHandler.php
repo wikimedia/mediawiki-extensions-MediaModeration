@@ -21,6 +21,7 @@
 namespace MediaWiki\Extension\MediaModeration\Hooks\Handlers;
 
 use DeferredUpdates;
+use MediaWiki\Config\Config;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileProcessor;
 use MediaWiki\Hook\UploadCompleteHook;
 use MediaWiki\Logger\LoggerFactory;
@@ -30,12 +31,19 @@ class UploadCompleteHandler implements UploadCompleteHook {
 
 	private MediaModerationFileProcessor $mediaModerationFileProcessor;
 	private LoggerInterface $logger;
+	private Config $config;
 
+	/**
+	 * @param MediaModerationFileProcessor $mediaModerationFileProcessor
+	 * @param Config $config
+	 */
 	public function __construct(
-		MediaModerationFileProcessor $mediaModerationFileProcessor
+		MediaModerationFileProcessor $mediaModerationFileProcessor,
+		Config $config
 	) {
 		$this->mediaModerationFileProcessor = $mediaModerationFileProcessor;
 		$this->logger = LoggerFactory::getInstance( 'mediamoderation' );
+		$this->config = $config;
 	}
 
 	/** @inheritDoc */
@@ -44,7 +52,7 @@ class UploadCompleteHandler implements UploadCompleteHook {
 		if ( $file === null ) {
 			// This should not happen, but if the $file is null then log this as a warning.
 			$this->logger->warning( 'UploadBase::getLocalFile is null on run of UploadComplete hook.' );
-		} else {
+		} elseif ( $this->config->get( 'MediaModerationAddToScanTableOnUpload' ) ) {
 			// If the $file is not null, then call MediaModerationFileProcessor::insertFile on POSTSEND.
 			DeferredUpdates::addCallableUpdate( function () use ( $file ) {
 				$this->mediaModerationFileProcessor->insertFile( $file );
