@@ -118,6 +118,12 @@ class ImportExistingFilesToScanTable extends LoggedUpdateMaintenance {
 			} while ( $filesLeft );
 		}
 		$returnValue = $this->generateDBUpdatesReturnValue();
+		if ( $this->hasOption( 'force' ) ) {
+			// If the script was run with the force option, then don't
+			// print out about how the script has been or has not been
+			// marked as completed.
+			return $returnValue;
+		}
 		if ( $returnValue ) {
 			$this->output( "Script marked as completed (added to updatelog).\n" );
 		} else {
