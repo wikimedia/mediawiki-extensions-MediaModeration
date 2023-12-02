@@ -3,13 +3,14 @@
 namespace MediaWiki\Extension\MediaModeration\Tests\Unit\Maintenance;
 
 use File;
-use InvalidArgumentException;
-use LocalFile;
 use LocalRepo;
 use MediaWiki\Extension\MediaModeration\Maintenance\ImportExistingFilesToScanTable;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
+use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileFactory;
+use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileLookup;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileProcessor;
 use MediaWiki\FileRepo\File\FileSelectQueryBuilder;
+use MediaWiki\Tests\Unit\MockServiceDependenciesTrait;
 use MediaWikiUnitTestCase;
 use Wikimedia\Rdbms\Expression;
 use Wikimedia\Rdbms\FakeResultWrapper;
@@ -23,42 +24,8 @@ use Wikimedia\TestingAccessWrapper;
  * @group MediaModeration
  */
 class ImportExistingFilesToScanTableTest extends MediaWikiUnitTestCase {
-	public function testGetFileObjectForRowThrowsExceptionForUnknownTable() {
-		// Tests that a unrecognised $table throws an InvalidArgumentException.
-		$this->expectException( InvalidArgumentException::class );
-		$objectUnderTest = new ImportExistingFilesToScanTable();
-		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
-		$objectUnderTest->getFileObjectForRow( [], 'testing-table-does-not-exist' );
-	}
 
-	/** @dataProvider provideGetFileObjectForRow */
-	public function testGetFileObjectForRow( $row, $table ) {
-		// Create a mock LocalFile that is returned by a mock LocalRepo through
-		// ::newFileFromRow, expecting that the $row is unmodified by the
-		// method under test (::getFileObjectForRow).
-		$mockLocalFile = $this->createMock( LocalFile::class );
-		$mockLocalRepo = $this->createMock( LocalRepo::class );
-		$mockLocalRepo->expects( $this->once() )
-			->method( 'newFileFromRow' )
-			->with( (object)$row )
-			->willReturn( $mockLocalFile );
-		// Get the object under test.
-		$objectUnderTest = new ImportExistingFilesToScanTable();
-		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
-		$objectUnderTest->localRepo = $mockLocalRepo;
-		$this->assertSame(
-			$mockLocalFile,
-			$objectUnderTest->getFileObjectForRow( (object)$row, $table ),
-			'ImportExistingFilesToScanTable::getFileObjectForRow did not return the correct LocalFile object.'
-		);
-	}
-
-	public static function provideGetFileObjectForRow() {
-		return [
-			'Row from the image table' => [ [ 'img_sha1' => 'abc' ], 'image' ],
-			'Row from the oldimage table' => [ [ 'oi_sha1' => 'abc' ], 'oldimage' ],
-		];
-	}
+	use MockServiceDependenciesTrait;
 
 	public function testGetUpdateKey() {
 		// Verifies that the update key does not change without deliberate meaning, as it could
@@ -70,14 +37,6 @@ class ImportExistingFilesToScanTableTest extends MediaWikiUnitTestCase {
 			$objectUnderTest->getUpdateKey(),
 			'::getUpdateKey did not return the expected key.'
 		);
-	}
-
-	public function testGetFileSelectQueryBuilderWithInvalidTable() {
-		// Tests that a unrecognised $table throws an InvalidArgumentException.
-		$this->expectException( InvalidArgumentException::class );
-		$objectUnderTest = new ImportExistingFilesToScanTable();
-		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
-		$objectUnderTest->getFileSelectQueryBuilder( 'testing-table', '', false );
 	}
 
 	/** @dataProvider provideGetFileSelectQueryBuilder */
@@ -108,8 +67,17 @@ class ImportExistingFilesToScanTableTest extends MediaWikiUnitTestCase {
 			->method( 'expr' )
 			->with( $expectedTimestampField, '>=', $previousBatchFinalTimestamp )
 			->willReturn( $mockExpressionObject );
+		// Create a mock LocalRepo that returns a mock DB from ::getReplicaDb
+		$mockLocalRepo = $this->createMock( LocalRepo::class );
+		$mockLocalRepo->method( 'getReplicaDB' )
+			->willReturn( $this->createMock( IReadableDatabase::class ) );
 		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
 		$objectUnderTest->dbr = $mockDbr;
+		$objectUnderTest->mediaModerationFileLookup = $this->newServiceInstance(
+			MediaModerationFileLookup::class, [
+				'localRepo' => $mockLocalRepo,
+			]
+		);
 		// Call the method under test.
 		/** @var FileSelectQueryBuilder $fileSelectQueryBuilder */
 		$fileSelectQueryBuilder = $objectUnderTest->getFileSelectQueryBuilder(
@@ -277,7 +245,7 @@ class ImportExistingFilesToScanTableTest extends MediaWikiUnitTestCase {
 	) {
 		// Get the object under test
 		$objectUnderTest = $this->getMockBuilder( ImportExistingFilesToScanTable::class )
-			->onlyMethods( [ 'getFileObjectForRow', 'getRowsForBatch' ] )
+			->onlyMethods( [ 'getRowsForBatch' ] )
 			->getMock();
 		// Mock ::getRowsForBatch to return the mock query result.
 		$objectUnderTest->method( 'getRowsForBatch' )
@@ -290,8 +258,8 @@ class ImportExistingFilesToScanTableTest extends MediaWikiUnitTestCase {
 		$fileExistsInScanTableReturnConsecutive = [];
 		$insertFileWithConsecutive = [];
 		foreach ( $queryResult as $row ) {
-			// Mock ::getFileObjectForRow to expect the correct order of rows and also return a mock File object
-			// for the associated call.
+			// Mock $mockMediaModerationFileFactory::getFileObjectForRow to expect the correct order of rows and
+			// also return a mock File object for the associated call.
 			$getFileObjectForRowWithConsecutive[] = [ $row, 'image' ];
 			$rowAsArray = (array)$row;
 			$mockFile = $this->createMock( File::class );
@@ -315,7 +283,8 @@ class ImportExistingFilesToScanTableTest extends MediaWikiUnitTestCase {
 			}
 		}
 		// Apply the expectations and mocks for consecutive calls to the methods in the foreach loop.
-		$objectUnderTest->expects( $this->exactly( count( $getFileObjectForRowWithConsecutive ) ) )
+		$mockMediaModerationFileFactory = $this->createMock( MediaModerationFileFactory::class );
+		$mockMediaModerationFileFactory->expects( $this->exactly( count( $getFileObjectForRowWithConsecutive ) ) )
 			->method( 'getFileObjectForRow' )
 			->withConsecutive( ...$getFileObjectForRowWithConsecutive )
 			->willReturnOnConsecutiveCalls( ...$getFileObjectForRowReturnConsecutive );
@@ -332,6 +301,7 @@ class ImportExistingFilesToScanTableTest extends MediaWikiUnitTestCase {
 		$objectUnderTest->mBatchSize = $batchSize;
 		$objectUnderTest->mediaModerationDatabaseLookup = $mockMediaModerationDatabaseLookup;
 		$objectUnderTest->mediaModerationFileProcessor = $mockMediaModerationFileProcessor;
+		$objectUnderTest->mediaModerationFileFactory = $mockMediaModerationFileFactory;
 		$this->assertArrayEquals(
 			$expectedReturnArray,
 			$objectUnderTest->performBatch( 'image', $previousBatchFinalTimestamp, false ),
@@ -344,7 +314,7 @@ class ImportExistingFilesToScanTableTest extends MediaWikiUnitTestCase {
 	public static function providePerformBatch() {
 		// The fake result rows are special as they contain information about
 		// the File object that would be created by the mock implementation of
-		// ::getFileObjectForRow.
+		// $mockMediaModerationFileFactory::getFileObjectForRow.
 		return [
 			'No rows returned by the query' => [
 				'',
@@ -410,7 +380,7 @@ class ImportExistingFilesToScanTableTest extends MediaWikiUnitTestCase {
 		}
 		// Get the object under test.
 		$objectUnderTest = $this->getMockBuilder( ImportExistingFilesToScanTable::class )
-			->onlyMethods( [ 'getFileSelectQueryBuilder', 'getFileObjectForRow' ] )
+			->onlyMethods( [ 'getFileSelectQueryBuilder' ] )
 			->getMock();
 		// Mock the ::getFileSelectQueryBuilder result to return a mock FileSelectQueryBuilder that
 		// returns the results wrapper provided by the data provider.
@@ -431,18 +401,20 @@ class ImportExistingFilesToScanTableTest extends MediaWikiUnitTestCase {
 		$objectUnderTest->method( 'getFileSelectQueryBuilder' )
 			->with( 'image', $previousBatchFinalTimestamp, false )
 			->willReturn( $mockFileSelectQueryBuilder );
+		$mockMediaModerationFileFactory = $this->createMock( MediaModerationFileFactory::class );
 		if ( $lastResultRow !== null ) {
-			// Mock the ::getFileObjectForRow method to return the File object for the last row,
-			// if the query result had at least one row.
+			// Mock the MediaModerationFileFactory::getFileObjectForRow method to return the File object
+			// for the last row, if the query result had at least one row.
 			$mockFileObject = $this->createMock( File::class );
 			$mockFileObject->method( 'getTimestamp' )
 				->willReturn( $expectedLastFileTimestamp );
-			$objectUnderTest->method( 'getFileObjectForRow' )
+			$mockMediaModerationFileFactory->method( 'getFileObjectForRow' )
 				->with( $lastResultRow, 'image' )
 				->willReturn( $mockFileObject );
 		}
 		// Call the method under test
 		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
+		$objectUnderTest->mediaModerationFileFactory = $mockMediaModerationFileFactory;
 		$this->assertArrayEquals(
 			[ $queryResult, $expectedLastFileTimestamp, 150 ],
 			$objectUnderTest->getRowsForBatch( 'image', $previousBatchFinalTimestamp ),
@@ -456,7 +428,7 @@ class ImportExistingFilesToScanTableTest extends MediaWikiUnitTestCase {
 	public static function provideGetRowsForBatch() {
 		// The fake result rows are special as they contain information about
 		// the File object that would be created by the mock implementation of
-		// ::getFileObjectForRow.
+		// MediaModerationFileFactory::getFileObjectForRow.
 		return [
 			'No rows returned by the query' => [
 				'20230506070808',
@@ -495,7 +467,7 @@ class ImportExistingFilesToScanTableTest extends MediaWikiUnitTestCase {
 		$secondQueryResult->rewind();
 		// Get the object under test.
 		$objectUnderTest = $this->getMockBuilder( ImportExistingFilesToScanTable::class )
-			->onlyMethods( [ 'getFileSelectQueryBuilder', 'getFileObjectForRow' ] )
+			->onlyMethods( [ 'getFileSelectQueryBuilder' ] )
 			->getMock();
 		// Mock the ::getFileSelectQueryBuilder result to return a mock FileSelectQueryBuilder that
 		// returns the first and then the second result wrapper.
@@ -519,15 +491,16 @@ class ImportExistingFilesToScanTableTest extends MediaWikiUnitTestCase {
 				[ 'image', $previousBatchFinalTimestamp, true ],
 			)
 			->willReturn( $mockFileSelectQueryBuilder );
-		// Mock the ::getFileObjectForRow method to return the File objects for the last row in
-		// the first and second queries.
+		// Mock the MediaModerationFileFactory::getFileObjectForRow method to return the
+		// File objects for the last row in the first and second queries.
+		$mockMediaModerationFileFactory = $this->createMock( MediaModerationFileFactory::class );
 		$mockFileObject = $this->createMock( File::class );
 		$mockFileObject->method( 'getTimestamp' )
 			->willReturn( $previousBatchFinalTimestamp );
 		$mockFileObjectForSecondQuery = $this->createMock( File::class );
 		$mockFileObjectForSecondQuery->method( 'getTimestamp' )
 			->willReturn( $expectedLastFileTimestamp );
-		$objectUnderTest->method( 'getFileObjectForRow' )
+		$mockMediaModerationFileFactory->method( 'getFileObjectForRow' )
 			->withConsecutive(
 				[ $lastResultRow, 'image' ],
 				[ $lastResultRowForSecondQuery, 'image' ]
@@ -535,6 +508,7 @@ class ImportExistingFilesToScanTableTest extends MediaWikiUnitTestCase {
 			->willReturn( $mockFileObject, $mockFileObjectForSecondQuery );
 		// Call the method under test
 		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
+		$objectUnderTest->mediaModerationFileFactory = $mockMediaModerationFileFactory;
 		$this->assertArrayEquals(
 			[ $secondQueryResult, $expectedLastFileTimestamp, $secondQueryResult->count() ],
 			$objectUnderTest->getRowsForBatch( 'image', $previousBatchFinalTimestamp ),
@@ -548,7 +522,7 @@ class ImportExistingFilesToScanTableTest extends MediaWikiUnitTestCase {
 	public static function provideGetRowsForBatchWhenRowsAllHaveTheSameTimestamp() {
 		// The fake result rows are special as they contain information about
 		// the File object that would be created by the mock implementation of
-		// ::getFileObjectForRow.
+		// MediaModerationFileFactory::getFileObjectForRow.
 		return [
 			'One row returned by the query with the same previous batch timestamp' => [
 				'20230506070809',
@@ -573,36 +547,6 @@ class ImportExistingFilesToScanTableTest extends MediaWikiUnitTestCase {
 				] ),
 				'20230405060702',
 			],
-		];
-	}
-
-	public function testGetTimestampFieldForTableThrowsExceptionOnInvalidTable() {
-		$this->expectException( InvalidArgumentException::class );
-		// Get the object under test.
-		$objectUnderTest = new ImportExistingFilesToScanTable();
-		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
-		// Call the method under test
-		$objectUnderTest->getTimestampFieldForTable( 'testing-invalid-table' );
-	}
-
-	/** @dataProvider provideGetTimestampField */
-	public function testGetTimestampField( $table, $expectedTimestampField ) {
-		// Get the object under test.
-		$objectUnderTest = new ImportExistingFilesToScanTable();
-		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
-		// Call the method under test
-		$this->assertSame(
-			$expectedTimestampField,
-			$objectUnderTest->getTimestampFieldForTable( $table ),
-			'::getTimestampFieldForTable did not return the expected timestamp field.'
-		);
-	}
-
-	public static function provideGetTimestampField() {
-		return [
-			'image table' => [ 'image', 'img_timestamp' ],
-			'oldimage table' => [ 'oldimage', 'oi_timestamp' ],
-			'filearchive table' => [ 'filearchive', 'fa_timestamp' ],
 		];
 	}
 
@@ -637,6 +581,9 @@ class ImportExistingFilesToScanTableTest extends MediaWikiUnitTestCase {
 			->willReturn( $batchSize );
 		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
 		$objectUnderTest->dbr = $mockDbr;
+		$objectUnderTest->mediaModerationFileLookup = $this->newServiceInstance(
+			MediaModerationFileLookup::class, []
+		);
 		// Call the method under test
 		$this->assertSame(
 			$expectedReturnValue,

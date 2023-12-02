@@ -2,12 +2,10 @@
 
 namespace MediaWiki\Extension\MediaModeration\Maintenance;
 
-use ArchivedFile;
-use InvalidArgumentException;
-use LocalFile;
-use LocalRepo;
 use LoggedUpdateMaintenance;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
+use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileFactory;
+use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileLookup;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileProcessor;
 use MediaWiki\FileRepo\File\FileSelectQueryBuilder;
 use Wikimedia\Rdbms\IReadableDatabase;
@@ -31,7 +29,8 @@ class ImportExistingFilesToScanTable extends LoggedUpdateMaintenance {
 	private IReadableDatabase $dbr;
 	private MediaModerationFileProcessor $mediaModerationFileProcessor;
 	private MediaModerationDatabaseLookup $mediaModerationDatabaseLookup;
-	private LocalRepo $localRepo;
+	private MediaModerationFileFactory $mediaModerationFileFactory;
+	private MediaModerationFileLookup $mediaModerationFileLookup;
 
 	public function __construct() {
 		parent::__construct();
@@ -74,11 +73,13 @@ class ImportExistingFilesToScanTable extends LoggedUpdateMaintenance {
 
 	/** @inheritDoc */
 	protected function doDBUpdates() {
-		$loadBalancerFactory = $this->getServiceContainer()->getDBLoadBalancerFactory();
+		$services = $this->getServiceContainer();
+		$loadBalancerFactory = $services->getDBLoadBalancerFactory();
 		$this->dbr = $loadBalancerFactory->getReplicaDatabase( 'virtual-mediamoderation' );
-		$this->localRepo = $this->getServiceContainer()->getRepoGroup()->getLocalRepo();
-		$this->mediaModerationFileProcessor = $this->getServiceContainer()->get( 'MediaModerationFileProcessor' );
-		$this->mediaModerationDatabaseLookup = $this->getServiceContainer()->get( 'MediaModerationDatabaseLookup' );
+		$this->mediaModerationFileFactory = $services->get( 'MediaModerationFileFactory' );
+		$this->mediaModerationFileProcessor = $services->get( 'MediaModerationFileProcessor' );
+		$this->mediaModerationDatabaseLookup = $services->get( 'MediaModerationDatabaseLookup' );
+		$this->mediaModerationFileLookup = $services->get( 'MediaModerationFileLookup' );
 
 		// Get the list of tables to import images from.
 		$tablesToProcess = $this->getTablesToProcess();
@@ -200,7 +201,7 @@ class ImportExistingFilesToScanTable extends LoggedUpdateMaintenance {
 			->from( $table );
 		if ( $startTimestamp ) {
 			$queryBuilder->where( $this->dbr->expr(
-				$this->getTimestampFieldForTable( $table ),
+				$this->mediaModerationFileLookup->getTimestampFieldForTable( $table ),
 				'>=',
 				$startTimestamp
 			) );
@@ -262,25 +263,6 @@ class ImportExistingFilesToScanTable extends LoggedUpdateMaintenance {
 	}
 
 	/**
-	 * Gets the timestamp field for the given $table.
-	 *
-	 * @param string $table One of 'image', 'oldimage', or 'fileimage'
-	 * @return string The timestamp field name
-	 * @throws InvalidArgumentException If $table is not one of the three valid options.
-	 */
-	protected function getTimestampFieldForTable( string $table ): string {
-		if ( $table === 'image' ) {
-			return 'img_timestamp';
-		} elseif ( $table === 'oldimage' ) {
-			return 'oi_timestamp';
-		} elseif ( $table === 'filearchive' ) {
-			return 'fa_timestamp';
-		} else {
-			throw new InvalidArgumentException( "Unrecognised image table '$table'." );
-		}
-	}
-
-	/**
 	 * Gets the appropriate FileSelectQueryBuilder for the $table and
 	 * applies the WHERE conditions, ORDER BY and LIMIT.
 	 *
@@ -295,17 +277,9 @@ class ImportExistingFilesToScanTable extends LoggedUpdateMaintenance {
 	protected function getFileSelectQueryBuilder(
 		string $table, string $previousBatchFinalTimestamp, bool $shouldRaiseBatchSize
 	): FileSelectQueryBuilder {
-		// Get the appropriate FileSelectQueryBuilder using the ::newFor* methods.
-		if ( $table === 'image' ) {
-			$fileSelectQueryBuilder = FileSelectQueryBuilder::newForFile( $this->dbr );
-		} elseif ( $table === 'oldimage' ) {
-			$fileSelectQueryBuilder = FileSelectQueryBuilder::newForOldFile( $this->dbr );
-		} elseif ( $table === 'filearchive' ) {
-			$fileSelectQueryBuilder = FileSelectQueryBuilder::newForArchivedFile( $this->dbr );
-		} else {
-			throw new InvalidArgumentException( "Unrecognised image table '$table'." );
-		}
-		$timestampField = $this->getTimestampFieldForTable( $table );
+		// Get the appropriate FileSelectQueryBuilder using MediaModerationDatabaseLookup::getFileSelectQueryBuilder
+		$fileSelectQueryBuilder = $this->mediaModerationFileLookup->getFileSelectQueryBuilder( $table );
+		$timestampField = $this->mediaModerationFileLookup->getTimestampFieldForTable( $table );
 		$batchSize = $this->getBatchSize() ?? 200;
 		if ( $shouldRaiseBatchSize ) {
 			// If the previous batch started and ended on the same timestamp,
@@ -328,24 +302,6 @@ class ImportExistingFilesToScanTable extends LoggedUpdateMaintenance {
 			->orderBy( $timestampField, SelectQueryBuilder::SORT_ASC )
 			->limit( $batchSize );
 		return $fileSelectQueryBuilder;
-	}
-
-	/**
-	 * Get the LocalFile or ArchiveFile object for the $row.
-	 * The exact object type depends on the $table.
-	 *
-	 * @param \stdClass $row
-	 * @param string $table
-	 * @return ArchivedFile|LocalFile
-	 */
-	protected function getFileObjectForRow( $row, $table ) {
-		if ( $table === 'image' || $table === 'oldimage' ) {
-			return $this->localRepo->newFileFromRow( $row );
-		} elseif ( $table === 'filearchive' ) {
-			return ArchivedFile::newFromRow( $row );
-		} else {
-			throw new InvalidArgumentException( "Unrecognised image table '$table'." );
-		}
 	}
 
 	/**
@@ -372,7 +328,7 @@ class ImportExistingFilesToScanTable extends LoggedUpdateMaintenance {
 		// files over and over again with that timestamp.
 		if ( $rows->numRows() ) {
 			$rows->seek( $rows->numRows() - 1 );
-			$lastFileObject = $this->getFileObjectForRow( $rows->fetchObject(), $table );
+			$lastFileObject = $this->mediaModerationFileFactory->getFileObjectForRow( $rows->fetchObject(), $table );
 			if ( $previousBatchFinalTimestamp === $lastFileObject->getTimestamp() ) {
 				// Temporarily raise the batch size for the next batch as the
 				// last timestamp in this batch is the same as the last timestamp
@@ -384,7 +340,9 @@ class ImportExistingFilesToScanTable extends LoggedUpdateMaintenance {
 					->caller( __METHOD__ )
 					->fetchResultSet();
 				$rows->seek( $rows->numRows() - 1 );
-				$lastFileObject = $this->getFileObjectForRow( $rows->fetchObject(), $table );
+				$lastFileObject = $this->mediaModerationFileFactory->getFileObjectForRow(
+					$rows->fetchObject(), $table
+				);
 			}
 			// Store the timestamp for the last file, and return it to the caller later in this method.
 			$lastFileTimestamp = $lastFileObject->getTimestamp();
@@ -409,7 +367,7 @@ class ImportExistingFilesToScanTable extends LoggedUpdateMaintenance {
 		);
 		foreach ( $rows as $row ) {
 			// Get the File or ArchivedFile object for this $row.
-			$fileObject = $this->getFileObjectForRow( $row, $table );
+			$fileObject = $this->mediaModerationFileFactory->getFileObjectForRow( $row, $table );
 			// Exclude any file that has a SHA-1 value that is false or empty.
 			// This can happen in some filearchive rows where the image no
 			// longer exists.
