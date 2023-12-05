@@ -58,13 +58,15 @@ class MediaModerationFileProcessorTest extends MediaWikiUnitTestCase {
 	}
 
 	/** @dataProvider provideCanScanFile */
-	public function testCanScanFile( $mimeType, $canRenderResult, $expectedReturnValue ) {
+	public function testCanScanFile( $mimeType, $mediaType, $canRenderResult, $expectedReturnValue ) {
 		// Create a mock file
 		$mockFile = $this->createMock( File::class );
 		$mockFile->method( 'canRender' )
 			->willReturn( $canRenderResult );
 		$mockFile->method( 'getMimeType' )
 			->willReturn( $mimeType );
+		$mockFile->method( 'getMediaType' )
+			->willReturn( $mediaType );
 		$mockFile->method( 'getSha1' )
 			->willReturn( 'abc1234' );
 		$mockLogger = $this->createMock( LoggerInterface::class );
@@ -96,9 +98,18 @@ class MediaModerationFileProcessorTest extends MediaWikiUnitTestCase {
 
 	public static function provideCanScanFile() {
 		return [
-			'Mime type not supported and but can render' => [ 'image/svg', true, true ],
-			'Mime type supported' => [ 'image/gif', false, true ],
-			'Mime type not supported and cannot render' => [ 'text/plain', false, false ],
+			'Media type unsupported but can render' => [
+				'audio/midi', MEDIATYPE_AUDIO, true, false,
+			],
+			'Media type supported, mime type not supported and but can render' => [
+				'image/svg', MEDIATYPE_DRAWING, true, true,
+			],
+			'Original mime type supported by PhotoDNA but cannot render' => [
+				'image/gif', MEDIATYPE_BITMAP, false, true
+			],
+			'Media type supported, mime type not supported and cannot render' => [
+				'text/plain', MEDIATYPE_DRAWING, false, false
+			],
 		];
 	}
 
@@ -107,6 +118,8 @@ class MediaModerationFileProcessorTest extends MediaWikiUnitTestCase {
 		$mockFile = $this->createMock( ArchivedFile::class );
 		$mockFile->method( 'getMimeType' )
 			->willReturn( 'image/jpeg' );
+		$mockFile->method( 'getMediaType' )
+			->willReturn( MEDIATYPE_BITMAP );
 		// Get the object under test.
 		$objectUnderTest = $this->newServiceInstance( MediaModerationFileProcessor::class, [] );
 		$this->assertSame(
@@ -124,6 +137,8 @@ class MediaModerationFileProcessorTest extends MediaWikiUnitTestCase {
 		$mockFile = $this->createMock( ArchivedFile::class );
 		$mockFile->method( 'getMimeType' )
 			->willReturn( 'image/svg' );
+		$mockFile->method( 'getMediaType' )
+			->willReturn( MEDIATYPE_DRAWING );
 		$mockFile->method( 'exists' )
 			->willReturn( $fileExists );
 		// Create a mock MediaHandlerFactory that no defined handler for the 'image/svg'
@@ -181,6 +196,8 @@ class MediaModerationFileProcessorTest extends MediaWikiUnitTestCase {
 		$mockFile = $this->createMock( ArchivedFile::class );
 		$mockFile->method( 'getMimeType' )
 			->willReturn( 'image/svg' );
+		$mockFile->method( 'getMediaType' )
+			->willReturn( MEDIATYPE_DRAWING );
 		// Create a mock MediaHandlerFactory that no defined handler for the 'image/svg'
 		$mediaHandlerFactory = $this->createMock( MediaHandlerFactory::class );
 		$mediaHandlerFactory->method( 'getHandler' )
