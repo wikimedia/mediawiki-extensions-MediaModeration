@@ -51,6 +51,10 @@
 		"MediaModeration": "GlobalVarConfig::newInstance"
 	},
 	"config": {
+		"MediaModerationDeveloperMode": {
+			"value": true,
+			"description": "If the extension is in developer mode. Make sure this is false in production."
+		},
 		"MediaModerationPhotoDNAUrl": {
 			"value": "https://api.microsoftmoderator.com/photodna/v1.0/Match",
 			"description": "URL to PhotoDNA service endpoint."
