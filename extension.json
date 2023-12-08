@@ -61,6 +61,10 @@
 			"value": true,
 			"description": "If MediaModeration will add to the mediamoderation_scan table on upload. Useful to set to false when bulk adding files in local environment."
 		},
+		"MediaModerationPhotoDNAMockServiceFiles": {
+			"value": { "FilesToIsMatchMap": [], "FilesToStatusCodeMap": [] },
+			"description": "For CI and development setups. Two arrays of files names, FilesToIsMatchMap should contain a list of file names that the mock service says are a match to PhotoDNA's database; FilesToStatusCodeMap should contain a list of files mapped to PhotoDNA status codes. Files not in these maps will return STATUS_OK and IsMatch=false."
+		},
 		"MediaModerationPhotoDNAUrl": {
 			"value": "https://api.microsoftmoderator.com/photodna/v1.0/Match",
 			"description": "URL to PhotoDNA service endpoint."
@@ -68,6 +72,10 @@
 		"MediaModerationSendThumbnails": {
 			"value": true,
 			"description": "Whether photo should be thumbnailed before sending it to PhotoDNA."
+		},
+		"MediaModerationThumbnailWidth": {
+			"value": 320,
+			"description": "Width, in pixels, that MediaModeration will use when transforming files to a thumbnail to send to PhotoDNA. Default is 320, which should already exist as a pre-rendered thumbnail per $wgUploadThumbnailRenderMap in production."
 		},
 		"MediaModerationThumbnailSize": {
 			"value": {

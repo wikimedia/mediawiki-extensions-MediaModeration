@@ -22,11 +22,14 @@ namespace MediaWiki\Extension\MediaModeration;
 
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Extension\MediaModeration\PeriodicMetrics\MediaModerationMetricsFactory;
+use MediaWiki\Extension\MediaModeration\PhotoDNA\IMediaModerationPhotoDNAServiceProvider;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseManager;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileFactory;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileLookup;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileProcessor;
+use MediaWiki\Extension\MediaModeration\Services\MediaModerationMockPhotoDNAServiceProvider;
+use MediaWiki\Extension\MediaModeration\Services\MediaModerationPhotoDNAServiceProvider;
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\MediaWikiServices;
 
@@ -80,6 +83,43 @@ return [
 	): MediaModerationMetricsFactory {
 		return new MediaModerationMetricsFactory(
 			$services->getDBLoadBalancerFactory()->getReplicaDatabase( 'virtual-mediamoderation' ),
+		);
+	},
+	'MediaModerationPhotoDNAServiceProvider' => static function (
+		MediaWikiServices $services
+	): IMediaModerationPhotoDNAServiceProvider {
+		$config = $services->getConfigFactory()->makeConfig( 'MediaModeration' );
+		// If we are in developer mode, and the subscription key or the URL are not
+		// configured, then use the mock API.
+		if ( $config->get( 'MediaModerationDeveloperMode' ) &&
+			(
+				!$config->get( 'MediaModerationPhotoDNASubscriptionKey' ) ||
+				!$config->get( 'MediaModerationPhotoDNAUrl' )
+			)
+		) {
+			return $services->get( '_MediaModerationMockPhotoDNAServiceProvider' );
+		}
+		return $services->get( '_MediaModerationPhotoDNAServiceProviderProduction' );
+	},
+	'_MediaModerationMockPhotoDNAServiceProvider' => static function (
+		MediaWikiServices $services
+	): MediaModerationMockPhotoDNAServiceProvider {
+		$mockFiles = $services->getMainConfig()->get( 'MediaModerationPhotoDNAMockServiceFiles' );
+		return new MediaModerationMockPhotoDNAServiceProvider(
+			$mockFiles['FilesToIsMatchMap'] ?? [],
+			$mockFiles['FilesToStatusCodeMap'] ?? []
+		);
+	},
+	'_MediaModerationPhotoDNAServiceProviderProduction' => static function (
+		MediaWikiServices $services
+	): MediaModerationPhotoDNAServiceProvider {
+		return new MediaModerationPhotoDNAServiceProvider(
+			new ServiceOptions(
+				MediaModerationPhotoDNAServiceProvider::CONSTRUCTOR_OPTIONS,
+				$services->getMainConfig(),
+			),
+			$services->getHttpRequestFactory(),
+			$services->getRepoGroup()->getLocalRepo()->getBackend()
 		);
 	},
 	'MediaModerationHandler' =>
