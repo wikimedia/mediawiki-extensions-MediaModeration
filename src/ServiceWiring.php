@@ -23,6 +23,8 @@ namespace MediaWiki\Extension\MediaModeration;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseManager;
+use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileFactory;
+use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileLookup;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileProcessor;
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\MediaWikiServices;
@@ -55,6 +57,21 @@ return [
 			$services->getService( 'MediaModerationDatabaseManager' ),
 			$services->getMediaHandlerFactory(),
 			LoggerFactory::getInstance( 'mediamoderation' )
+		);
+	},
+	'MediaModerationFileFactory' => static function (
+		MediaWikiServices $services
+	): MediaModerationFileFactory {
+		return new MediaModerationFileFactory(
+			$services->getRepoGroup()->getLocalRepo()
+		);
+	},
+	'MediaModerationFileLookup' => static function (
+		MediaWikiServices $services
+	): MediaModerationFileLookup {
+		return new MediaModerationFileLookup(
+			$services->getRepoGroup()->getLocalRepo(),
+			$services->get( 'MediaModerationFileFactory' )
 		);
 	},
 	'MediaModerationHandler' =>
