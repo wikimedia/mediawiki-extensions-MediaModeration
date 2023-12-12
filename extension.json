@@ -12,7 +12,8 @@
 		"MediaWiki": ">= 1.41"
 	},
 	"AutoloadClasses": {
-		"MediaWiki\\Extension\\MediaModeration\\Maintenance\\ImportExistingFilesToScanTable": "maintenance/importExistingFilesToScanTable.php"
+		"MediaWiki\\Extension\\MediaModeration\\Maintenance\\ImportExistingFilesToScanTable": "maintenance/importExistingFilesToScanTable.php",
+		"MediaWiki\\Extension\\MediaModeration\\Maintenance\\UpdateMetrics": "maintenance/updateMetrics.php"
 	},
 	"AutoloadNamespaces": {
 		"MediaWiki\\Extension\\MediaModeration\\": "src/"

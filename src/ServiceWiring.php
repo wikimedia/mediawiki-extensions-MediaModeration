@@ -21,6 +21,7 @@
 namespace MediaWiki\Extension\MediaModeration;
 
 use MediaWiki\Config\ServiceOptions;
+use MediaWiki\Extension\MediaModeration\PeriodicMetrics\MediaModerationMetricsFactory;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseManager;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileFactory;
@@ -72,6 +73,13 @@ return [
 		return new MediaModerationFileLookup(
 			$services->getRepoGroup()->getLocalRepo(),
 			$services->get( 'MediaModerationFileFactory' )
+		);
+	},
+	'MediaModerationMetricsFactory' => static function (
+		MediaWikiServices $services
+	): MediaModerationMetricsFactory {
+		return new MediaModerationMetricsFactory(
+			$services->getDBLoadBalancerFactory()->getReplicaDatabase( 'virtual-mediamoderation' ),
 		);
 	},
 	'MediaModerationHandler' =>
