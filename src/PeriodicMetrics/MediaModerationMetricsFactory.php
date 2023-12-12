@@ -17,6 +17,7 @@ class MediaModerationMetricsFactory {
 	/** @var string[] */
 	public const METRICS = [
 		TotalTableCountMetric::class,
+		ScannedImagesMetric::class,
 		UnscannedImagesMetric::class,
 		UnscannedImagesWithLastCheckedDefinedMetric::class,
 	];
@@ -40,6 +41,8 @@ class MediaModerationMetricsFactory {
 		switch ( $className ) {
 			case UnscannedImagesMetric::class:
 				return new UnscannedImagesMetric( $this->dbr );
+			case ScannedImagesMetric::class:
+				return new ScannedImagesMetric( $this->dbr );
 			case TotalTableCountMetric::class:
 				return new TotalTableCountMetric( $this->dbr );
 			case UnscannedImagesWithLastCheckedDefinedMetric::class:

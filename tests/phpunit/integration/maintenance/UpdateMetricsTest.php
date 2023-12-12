@@ -5,7 +5,6 @@ namespace MediaWiki\Extension\MediaModeration\Tests\Integration\Maintenance;
 use Liuggio\StatsdClient\Factory\StatsdDataFactoryInterface;
 use MediaWiki\Extension\MediaModeration\Maintenance\UpdateMetrics;
 use MediaWiki\Tests\Maintenance\MaintenanceBaseTestCase;
-use Wikimedia\TestingAccessWrapper;
 
 /**
  * Test class for the updateMetrics.php maintenance script.
@@ -15,6 +14,7 @@ use Wikimedia\TestingAccessWrapper;
  *
  * @covers \MediaWiki\Extension\MediaModeration\PeriodicMetrics\MediaModerationMetricsFactory
  * @covers \MediaWiki\Extension\MediaModeration\PeriodicMetrics\TotalTableCountMetric
+ * @covers \MediaWiki\Extension\MediaModeration\PeriodicMetrics\ScannedImagesMetric
  * @covers \MediaWiki\Extension\MediaModeration\PeriodicMetrics\UnscannedImagesMetric
  * @covers \MediaWiki\Extension\MediaModeration\PeriodicMetrics\UnscannedImagesWithLastCheckedDefinedMetric
  *
@@ -30,22 +30,34 @@ class UpdateMetricsTest extends MaintenanceBaseTestCase {
 	public function testExecute( $expectedGaugeReturnMap ) {
 		// Mock the StatsdDataFactoryInterface so we can verify that the correct values are being stored.
 		$mockStatsDataFactory = $this->createMock( StatsdDataFactoryInterface::class );
-		$mockStatsDataFactory->method( 'gauge' )
+		$mockStatsDataFactory->expects( $this->exactly( count( $expectedGaugeReturnMap ) ) )
+			->method( 'gauge' )
 			->willReturnMap( $expectedGaugeReturnMap );
-		/** @var TestingAccessWrapper $maintenance */
-		$maintenance = $this->maintenance;
-		$maintenance->statsDataFactory = $mockStatsDataFactory;
-		$this->maintenance = $maintenance;
+		// Re-define the PerDbNameStatsdDataFactory service to return our mock statsd interface
+		$this->overrideMwServices(
+			null,
+			[
+				'PerDbNameStatsdDataFactory' => static function () use ( $mockStatsDataFactory ) {
+					return $mockStatsDataFactory;
+				}
+			]
+		);
+		$this->maintenance->setOption( 'verbose', 1 );
 		$this->maintenance->execute();
+		$expectedOutput = '';
+		foreach ( $expectedGaugeReturnMap as $metric ) {
+			$expectedOutput .= $metric[0] . ' is ' . $metric[1] . '.' . PHP_EOL;
+		}
+		$this->expectOutputString( $expectedOutput );
 	}
 
 	public static function provideExecute() {
 		return [
 			'Expected execute behaviour based on test data' => [ [
-				[ 'MediaModeration.ScanTable.TotalCount', 7 ],
-				[ 'MediaModeration.ScanTable.Unscanned', 4 ],
-				[ 'MediaModeration.ScanTable.UnscannedWithLastCheckedDefined', 1 ],
-				[ 'MediaModeration.ScanTable.Scanned', 3 ],
+				[ 'MediaModeration.ScanTable.TotalCount', 8, null ],
+				[ 'MediaModeration.ScanTable.Scanned', 3, null ],
+				[ 'MediaModeration.ScanTable.Unscanned', 5, null ],
+				[ 'MediaModeration.ScanTable.UnscannedWithLastCheckedDefined', 1, null ],
 			] ],
 		];
 	}
