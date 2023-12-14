@@ -3,6 +3,7 @@
 namespace MediaWiki\Extension\MediaModeration\Tests\Integration\Hooks\Handlers;
 
 use File;
+use MediaWiki\Config\HashConfig;
 use MediaWiki\Extension\MediaModeration\Hooks\Handlers\UploadCompleteHandler;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
 use MediaWikiIntegrationTestCase;
@@ -32,7 +33,8 @@ class UploadCompleteHandlerTest extends MediaWikiIntegrationTestCase {
 	 */
 	public function testFileAddedToScanTableLoop() {
 		$objectUnderTest = new UploadCompleteHandler(
-			$this->getServiceContainer()->get( 'MediaModerationFileProcessor' )
+			$this->getServiceContainer()->get( 'MediaModerationFileProcessor' ),
+			new HashConfig( [ 'MediaModerationAddToScanTableOnUpload' => true ] )
 		);
 		// Mock a file to define a SHA-1
 		$mockFile = $this->createMock( File::class );
