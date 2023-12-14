@@ -6,6 +6,7 @@ use ArchivedFile;
 use File;
 use FileBackend;
 use FormatJson;
+use Liuggio\StatsdClient\Factory\StatsdDataFactoryInterface;
 use MediaTransformError;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Extension\MediaModeration\Exception\RuntimeException;
@@ -36,6 +37,7 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 
 	private HttpRequestFactory $httpRequestFactory;
 	private FileBackend $fileBackend;
+	private StatsdDataFactoryInterface $perDbNameStatsdDataFactory;
 	private string $photoDNAUrl;
 	private ?string $httpProxy;
 	private string $photoDNASubscriptionKey;
@@ -49,7 +51,8 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 	public function __construct(
 		ServiceOptions $options,
 		HttpRequestFactory $httpRequestFactory,
-		FileBackend $fileBackend
+		FileBackend $fileBackend,
+		StatsdDataFactoryInterface $perDbNameStatsdDataFactory
 	) {
 		$options->assertRequiredOptions( self::CONSTRUCTOR_OPTIONS );
 		$this->httpRequestFactory = $httpRequestFactory;
@@ -58,6 +61,7 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 		$this->photoDNASubscriptionKey = $options->get( 'MediaModerationPhotoDNASubscriptionKey' );
 		$this->httpProxy = $options->get( 'MediaModerationHttpProxy' );
 		$this->thumbnailWidth = $options->get( 'MediaModerationThumbnailWidth' );
+		$this->perDbNameStatsdDataFactory = $perDbNameStatsdDataFactory;
 	}
 
 	/** @inheritDoc */
@@ -71,7 +75,17 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 				)
 			);
 		}
+		$start = microtime( true );
 		$status = $request->execute();
+		$delay = microtime( true ) - $start;
+		$this->perDbNameStatsdDataFactory->timing(
+			'MediaModeration.PhotoDNAServiceProviderRequestTime',
+			1000 * $delay
+		);
+		$statsdKey = $status->isOK() ? 'OK' : 'Error';
+		$this->perDbNameStatsdDataFactory->increment(
+			'MediaModeration.PhotoDNAServiceProvider.Execute.' . $statsdKey
+		);
 		if ( !$status->isOK() ) {
 			// Something went badly wrong.
 			$errorMessage = FormatJson::decode( $request->getContent(), true );
@@ -89,9 +103,11 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 		}
 		$rawResponse = $request->getContent();
 		$responseJson = FormatJson::parse( $rawResponse, FormatJson::FORCE_ASSOC )->getValue();
-		return $this->createStatusFromResponse(
-			Response::newFromArray( $responseJson, $rawResponse )
+		$response = Response::newFromArray( $responseJson, $rawResponse );
+		$this->perDbNameStatsdDataFactory->increment(
+			'MediaModeration.PhotoDNAServiceProvider.Execute.StatusCode' . $response->getStatusCode()
 		);
+		return $this->createStatusFromResponse( $response );
 	}
 
 	/**
@@ -122,7 +138,13 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 	 * @return ThumbnailImage
 	 */
 	private function getThumbnailForFile( $file ): ThumbnailImage {
+		$start = microtime( true );
 		$thumbnail = $file->transform( [ 'width' => $this->thumbnailWidth ], File::RENDER_NOW );
+		$delay = microtime( true ) - $start;
+		$this->perDbNameStatsdDataFactory->timing(
+			'MediaModeration.PhotoDNAServiceProviderThumbnailTransform',
+			1000 * $delay
+		);
 		$genericErrorMessage = 'Could not transform file ' . $file->getName();
 		if ( !$thumbnail ) {
 			throw new RuntimeException( $genericErrorMessage );

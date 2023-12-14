@@ -119,7 +119,8 @@ return [
 				$services->getMainConfig(),
 			),
 			$services->getHttpRequestFactory(),
-			$services->getRepoGroup()->getLocalRepo()->getBackend()
+			$services->getRepoGroup()->getLocalRepo()->getBackend(),
+			$services->getPerDbNameStatsdDataFactory()
 		);
 	},
 	'MediaModerationHandler' =>
