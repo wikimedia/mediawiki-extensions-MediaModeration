@@ -8,6 +8,7 @@ use MediaWikiUnitTestCase;
 
 /**
  * @covers \MediaWiki\Extension\MediaModeration\PhotoDNA\MediaModerationPhotoDNAResponseHandler
+ * @group MediaModeration
  */
 class MediaModerationPhotoDNAResponseHandlerTest extends MediaWikiUnitTestCase {
 	use MediaModerationPhotoDNAResponseHandler;
@@ -67,6 +68,12 @@ class MediaModerationPhotoDNAResponseHandlerTest extends MediaWikiUnitTestCase {
 				new Response( Response::STATUS_IMAGE_PIXEL_SIZE_NOT_IN_RANGE ),
 				false,
 				'3208: Image size in pixels is not within allowed range'
+			],
+			'bad status, 3209' => [
+				false,
+				new Response( Response::STATUS_REQUEST_SIZE_EXCEEDED ),
+				false,
+				'3209: Request Size Exceeded'
 			],
 			'bad status, unknown code' => [
 				false,

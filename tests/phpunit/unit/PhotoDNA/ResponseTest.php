@@ -7,6 +7,7 @@ use MediaWikiUnitTestCase;
 
 /**
  * @covers \MediaWiki\Extension\MediaModeration\PhotoDNA\Response
+ * @group MediaModeration
  */
 class ResponseTest extends MediaWikiUnitTestCase {
 
@@ -14,9 +15,10 @@ class ResponseTest extends MediaWikiUnitTestCase {
 	 * @dataProvider provideNewFromArray
 	 */
 	public function testNewFromArray( int $expectedCode, bool $expectedIsMatch, array $json ) {
-		$response = Response::newFromArray( $json );
+		$response = Response::newFromArray( $json, 'test' );
 		$this->assertEquals( $expectedCode, $response->getStatusCode() );
 		$this->assertEquals( $expectedIsMatch, $response->isMatch() );
+		$this->assertEquals( 'test', $response->getRawResponse() );
 	}
 
 	public static function provideNewFromArray(): array {

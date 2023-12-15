@@ -10,6 +10,7 @@ use StatusValue;
 
 /**
  * Mock implementation of PhotoDNA endpoint, for local development environments and CI.
+ * @codeCoverageIgnore This is for CI and local development, so does not need code coverage.
  */
 class MediaModerationMockPhotoDNAServiceProvider implements IMediaModerationPhotoDNAServiceProvider {
 
