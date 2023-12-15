@@ -152,3 +152,6 @@ NOTE: this runs off the images on your local wiki database
  --batch-count=2
  --start=20230417190152
 ~~~
+
+## Image credits
+* The image found at tests/phpunit/fixtures/489px-Lagoon_Nebula.jpg is a thumbnail of the file at https://commons.wikimedia.org/wiki/File:Lagoon_Nebula.jpg and is licensed under CC-BY-4.0. The image was created by the European Southern Observatory (ESO).

@@ -17,6 +17,7 @@ use UploadStash;
 /**
  * @covers \MediaWiki\Extension\MediaModeration\Services\MediaModerationPhotoDNAServiceProvider
  * @group Database
+ * @group MediaModeration
  */
 class MediaModerationPhotoDNAServiceProviderTest extends MediaWikiIntegrationTestCase {
 
