@@ -40,8 +40,8 @@ class DebugPhotoDNA extends Maintenance {
 				$services->get( 'MediaModerationPhotoDNAServiceProvider' );
 		if ( !$useMock && !( $photoDNAServiceProvider instanceof MediaModerationPhotoDNAServiceProvider ) ) {
 			$this->fatalError(
-				'Unable to get production service provider.
-				 Check that $wgMediaModerationPhotoDNAUrl and $wgMediaModerationPhotoDNASubscriptionKey are set.'
+				'Unable to get production service provider. ' .
+				 'Check that $wgMediaModerationPhotoDNAUrl and $wgMediaModerationPhotoDNASubscriptionKey are set.'
 			);
 		}
 		$file = $services->getRepoGroup()->getLocalRepo()->findFile(
