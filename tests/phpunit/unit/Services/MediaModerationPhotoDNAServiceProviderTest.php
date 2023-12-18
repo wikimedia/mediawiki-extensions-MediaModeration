@@ -109,4 +109,64 @@ class MediaModerationPhotoDNAServiceProviderTest extends MediaWikiUnitTestCase {
 			'::transform returns ThumbnailImage with ::hasFile as false' => [ ThumbnailImage::class ],
 		];
 	}
+
+	/** @dataProvider provideGetThumbnailMimeType */
+	public function testGetThumbnailMimeType( $fromExtensionResult, $guessFromContentsResult, $expectedReturnValue ) {
+		// Create a mock ThumbnailImage that has a mocked file extension and path
+		$mockThumbnailImage = $this->createMock( ThumbnailImage::class );
+		$mockThumbnailImage->method( 'getExtension' )
+			->willReturn( 'mock-extension' );
+		$mockThumbnailImage->method( 'getLocalCopyPath' )
+			->willReturn( 'mock-path' );
+		$mockThumbnailImage->method( 'getFile' )
+			->willReturn( $this->createMock( File::class ) );
+		// Create a mock MimeAnalyzer that has the ::getMimeTypeFromExtensionOrNull and ::guessMimeType methods
+		// mocked to return the values in $fromExtensionResult and $guessFromContentsResult respectively.
+		$mockMimeAnalyzer = $this->createMock( \MimeAnalyzer::class );
+		$mockMimeAnalyzer->method( 'getMimeTypeFromExtensionOrNull' )
+			->with( 'mock-extension' )
+			->willReturn( $fromExtensionResult );
+		$mockMimeAnalyzer->method( 'guessMimeType' )
+			->with( 'mock-path' )
+			->willReturn( $guessFromContentsResult );
+		// Get the object under test
+		$objectUnderTest = $this->newServiceInstance(
+			MediaModerationPhotoDNAServiceProvider::class,
+			[
+				'options' => new ServiceOptions(
+					MediaModerationPhotoDNAServiceProvider::CONSTRUCTOR_OPTIONS,
+					new HashConfig( self::CONSTRUCTOR_OPTIONS_DEFAULTS )
+				),
+				'mimeAnalyzer' => $mockMimeAnalyzer
+			]
+		);
+		// Call the method under test
+		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
+		$this->assertSame(
+			$expectedReturnValue,
+			$objectUnderTest->getThumbnailMimeType( $mockThumbnailImage ),
+			'Return value of ::getThumbnailMimeType was not as expected.'
+		);
+	}
+
+	public static function provideGetThumbnailMimeType() {
+		return [
+			'Thumbnail type is got from thumbnail extension' => [ 'image/jpeg', '', 'image/jpeg' ],
+			'Thumbnail type is got from guessing using the file contents' => [ null, 'image/png', 'image/png' ],
+		];
+	}
+
+	/** @dataProvider provideGetThumbnailMimeTypeOnException */
+	public function testGetThumbnailMimeTypeOnException( $fromExtensionResult, $guessFromContentsResult ) {
+		$this->expectException( RuntimeException::class );
+		$this->testGetThumbnailMimeType( $fromExtensionResult, $guessFromContentsResult, 'unused' );
+	}
+
+	public static function provideGetThumbnailMimeTypeOnException() {
+		return [
+			'No mime type from either methods' => [ null, '' ],
+			'Unsupported mime type from extension method' => [ 'image/svg', '' ],
+			'Unsupported mime type from guess method' => [ null, 'image/svg' ],
+		];
+	}
 }

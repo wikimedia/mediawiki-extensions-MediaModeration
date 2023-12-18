@@ -15,6 +15,7 @@ use MediaWiki\Extension\MediaModeration\PhotoDNA\MediaModerationPhotoDNAResponse
 use MediaWiki\Extension\MediaModeration\PhotoDNA\Response;
 use MediaWiki\Http\HttpRequestFactory;
 use MediaWiki\Language\RawMessage;
+use MimeAnalyzer;
 use MWHttpRequest;
 use StatusValue;
 use ThumbnailImage;
@@ -38,6 +39,7 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 	private HttpRequestFactory $httpRequestFactory;
 	private FileBackend $fileBackend;
 	private StatsdDataFactoryInterface $perDbNameStatsdDataFactory;
+	private MimeAnalyzer $mimeAnalyzer;
 	private string $photoDNAUrl;
 	private ?string $httpProxy;
 	private string $photoDNASubscriptionKey;
@@ -47,12 +49,15 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 	 * @param ServiceOptions $options
 	 * @param HttpRequestFactory $httpRequestFactory
 	 * @param FileBackend $fileBackend
+	 * @param StatsdDataFactoryInterface $perDbNameStatsdDataFactory
+	 * @param MimeAnalyzer $mimeAnalyzer
 	 */
 	public function __construct(
 		ServiceOptions $options,
 		HttpRequestFactory $httpRequestFactory,
 		FileBackend $fileBackend,
-		StatsdDataFactoryInterface $perDbNameStatsdDataFactory
+		StatsdDataFactoryInterface $perDbNameStatsdDataFactory,
+		MimeAnalyzer $mimeAnalyzer
 	) {
 		$options->assertRequiredOptions( self::CONSTRUCTOR_OPTIONS );
 		$this->httpRequestFactory = $httpRequestFactory;
@@ -62,6 +67,7 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 		$this->httpProxy = $options->get( 'MediaModerationHttpProxy' );
 		$this->thumbnailWidth = $options->get( 'MediaModerationThumbnailWidth' );
 		$this->perDbNameStatsdDataFactory = $perDbNameStatsdDataFactory;
+		$this->mimeAnalyzer = $mimeAnalyzer;
 	}
 
 	/** @inheritDoc */
@@ -117,9 +123,10 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 	 */
 	private function getRequest( $file ): MWHttpRequest {
 		$thumbnail = $this->getThumbnailForFile( $file );
+		$thumbnailContents = $this->getThumbnailContents( $thumbnail );
 		$options = [
 			'method' => 'POST',
-			'postData' => $this->getThumbnailContents( $thumbnail )
+			'postData' => $thumbnailContents
 		];
 		if ( $this->httpProxy ) {
 			$options['proxy'] = $this->httpProxy;
@@ -128,9 +135,39 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 			$this->photoDNAUrl,
 			$options
 		);
-		$request->setHeader( 'Content-Type', $thumbnail->getFile()->getMimeType() );
+		$request->setHeader( 'Content-Type', $this->getThumbnailMimeType( $thumbnail ) );
 		$request->setHeader( 'Ocp-Apim-Subscription-Key', $this->photoDNASubscriptionKey );
 		return $request;
+	}
+
+	/**
+	 * Gets the mime type (or best guess for it) of the given $thumbnail.
+	 *
+	 * @param ThumbnailImage $thumbnail
+	 * @return string
+	 * @throws RuntimeException If the mime type could not be worked out or is not supported
+	 *   by PhotoDNA.
+	 */
+	private function getThumbnailMimeType( ThumbnailImage $thumbnail ): string {
+		// Attempt to work out what the mime type of the file is based on the extension, and if that
+		// fails then try based on the contents of the thumbnail.
+		$thumbnailMimeType = $this->mimeAnalyzer->getMimeTypeFromExtensionOrNull( $thumbnail->getExtension() );
+		if ( $thumbnailMimeType === null ) {
+			$thumbnailMimeType = $this->mimeAnalyzer->guessMimeType( $thumbnail->getLocalCopyPath() );
+		}
+		if ( !$thumbnailMimeType ) {
+			// We cannot send a request to PhotoDNA without knowing what the mime type is.
+			throw new RuntimeException(
+				'Could not get mime type of thumbnail for ' . $thumbnail->getFile()->getName()
+			);
+		}
+		if ( !in_array( $thumbnailMimeType, MediaModerationFileProcessor::ALLOWED_MIME_TYPES, true ) ) {
+			// We cannot send a request to PhotoDNA with a thumbnail type that is unsupported by the API.
+			throw new RuntimeException(
+				'Mime type of thumbnail for ' . $thumbnail->getFile()->getName() . ' is not supported by PhotoDNA.'
+			);
+		}
+		return $thumbnailMimeType;
 	}
 
 	/**

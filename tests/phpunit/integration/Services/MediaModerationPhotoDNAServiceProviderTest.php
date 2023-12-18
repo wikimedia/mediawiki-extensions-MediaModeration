@@ -32,6 +32,9 @@ class MediaModerationPhotoDNAServiceProviderTest extends MediaWikiIntegrationTes
 			->willReturn( StatusValue::newGood() );
 		$mwHttpRequest->method( 'getContent' )
 			->willReturn( FormatJson::encode( [ 'Status' => [ 'Code' => 3000 ], 'IsMatch' => false ] ) );
+		$mwHttpRequest->expects( $this->atLeast( 1 ) )
+			->method( 'setHeader' )
+			->willReturnMap( [ [ 'Content-Type', 'image/jpeg', null ] ] );
 		$this->installMockHttp( $mwHttpRequest );
 
 		/** @var IMediaModerationPhotoDNAServiceProvider $serviceProvider */
