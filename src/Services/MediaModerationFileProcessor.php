@@ -9,7 +9,8 @@ use MediaHandlerFactory;
 use Psr\Log\LoggerInterface;
 
 class MediaModerationFileProcessor {
-	private const ALLOWED_MIME_TYPES = [
+	/** @var string[] An array of mime types that are supported by PhotoDNA. */
+	public const ALLOWED_MIME_TYPES = [
 		'image/gif',
 		'image/jpeg',
 		'image/png',

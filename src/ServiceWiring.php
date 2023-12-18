@@ -120,7 +120,8 @@ return [
 			),
 			$services->getHttpRequestFactory(),
 			$services->getRepoGroup()->getLocalRepo()->getBackend(),
-			$services->getPerDbNameStatsdDataFactory()
+			$services->getPerDbNameStatsdDataFactory(),
+			$services->getMimeAnalyzer()
 		);
 	},
 	'MediaModerationHandler' =>
