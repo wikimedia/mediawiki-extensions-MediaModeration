@@ -72,6 +72,9 @@ class MediaModerationDatabaseManagerTest extends MediaWikiUnitTestCase {
 		$mockFile->method( 'getSha1' )->willReturn( 'abcdef1234' );
 		// Call the method under test.
 		$objectUnderTest->insertFileToScanTable( $mockFile );
+		$actualQueryInfo = $insertQueryBuilderMock->getQueryInfo();
+		// Remove the 'caller' key from the actual query info
+		unset( $actualQueryInfo['caller'] );
 		// Expect that the mock InsertQueryBuilder has the expected ::getQueryInfo result.
 		$this->assertArrayEquals(
 			[
@@ -81,10 +84,8 @@ class MediaModerationDatabaseManagerTest extends MediaWikiUnitTestCase {
 				'set' => [],
 				'uniqueIndexFields' => [],
 				'options' => [],
-				'caller' => 'MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseManager' .
-					'::insertToScanTableInternal',
 			],
-			$insertQueryBuilderMock->getQueryInfo(),
+			$actualQueryInfo,
 			true,
 			true,
 			'The insert query performed was not as expected.'
@@ -92,7 +93,7 @@ class MediaModerationDatabaseManagerTest extends MediaWikiUnitTestCase {
 	}
 
 	/** @dataProvider provideIsMatch */
-	public function testUpdateMatchStatus( $isMatch, $fileClass ) {
+	public function testUpdateMatchStatus( $isMatch, $expectedIsMatchValue, $fileClass ) {
 		$mockDb = $this->createMock( IDatabase::class );
 		// Create a mock UpdateQueryBuilder and expect that the ::execute method is called.
 		$mockUpdateQueryBuilder = $this->getMockBuilder( UpdateQueryBuilder::class )
@@ -124,20 +125,21 @@ class MediaModerationDatabaseManagerTest extends MediaWikiUnitTestCase {
 		ConvertibleTimestamp::setFakeTime( '20230405060708' );
 		// Call the method under test
 		$objectUnderTest->updateMatchStatus( $mockFile, $isMatch );
+		$actualQueryInfo = $mockUpdateQueryBuilder->getQueryInfo();
+		// Remove the 'caller' key from the actual query info
+		unset( $actualQueryInfo['caller'] );
 		// Assert that the correct query was made
 		$this->assertArrayEquals(
 			[
 				'table' => 'mediamoderation_scan',
 				'set' => [
-					'mms_is_match' => $isMatch ? 1 : 0,
+					'mms_is_match' => $expectedIsMatchValue,
 					'mms_last_checked' => '20230405',
 				],
 				'conds' => [ 'mms_sha1' => $mockFile->getSha1() ],
 				'options' => [],
-				'caller' => 'MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseManager' .
-					'::updateMatchStatus',
 			],
-			$mockUpdateQueryBuilder->getQueryInfo(),
+			$actualQueryInfo,
 			true,
 			true,
 			'The update query that was performed was not as expected.'
@@ -148,10 +150,12 @@ class MediaModerationDatabaseManagerTest extends MediaWikiUnitTestCase {
 
 	public static function provideIsMatch() {
 		return [
-			'Is not a match when passed a File object' => [ false, File::class ],
-			'Is a match when passed a File object' => [ true, File::class ],
-			'Is not a match when passed a ArchivedFile object' => [ false, ArchivedFile::class ],
-			'Is a match when passed a ArchivedFile object' => [ true, ArchivedFile::class ],
+			'Is not a match when passed a File object' => [ false, '0', File::class ],
+			'Is a match when passed a File object' => [ true, '1', File::class ],
+			'Match status as null when passed a File object' => [ null, null, File::class ],
+			'Is not a match when passed an ArchivedFile object' => [ false, '0', ArchivedFile::class ],
+			'Is a match when passed an ArchivedFile object' => [ true, '1', ArchivedFile::class ],
+			'Match status as null when passed an ArchivedFile object' => [ null, null, ArchivedFile::class ],
 		];
 	}
 }

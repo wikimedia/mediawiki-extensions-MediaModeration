@@ -23,7 +23,7 @@ class MediaModerationDatabaseLookupTest extends MediaWikiUnitTestCase {
 	use MockServiceDependenciesTrait;
 
 	/** @dataProvider provideFileExistsInScanTable */
-	public function testFileExistsInScanTable( $flags, $methodName, $fileObjectClass ) {
+	public function testFileExistsInScanTable( $flags, $expectedProviderMethodName, $fileObjectClass ) {
 		$mockDb = $this->createMock( IDatabase::class );
 		$selectQueryBuilderMock = $this->getMockBuilder( SelectQueryBuilder::class )
 			->setConstructorArgs( [ $mockDb ] )
@@ -32,18 +32,17 @@ class MediaModerationDatabaseLookupTest extends MediaWikiUnitTestCase {
 		// Expect that fetchField is called. The expected fields, table etc. will
 		// be checked after the call to the method.
 		$selectQueryBuilderMock->expects( $this->once() )
-			->method( 'fetchField' );
+			->method( 'fetchField' )
+			->willReturn( true );
 		$mockDb->expects( $this->once() )->method( 'newSelectQueryBuilder' )
 			->willReturn( $selectQueryBuilderMock );
 		$connectionProviderMock = $this->createMock( IConnectionProvider::class );
 		// Expect that the getPrimaryDatabase or getReplicaDatabase method
-		// is called as expected by $methodName
+		// is called as expected by $expectedProviderMethodName
 		$connectionProviderMock->expects( $this->once() )
-			->method( $methodName )
+			->method( $expectedProviderMethodName )
 			->willReturn( $mockDb );
-		$objectUnderTest = new MediaModerationDatabaseLookup(
-			$connectionProviderMock
-		);
+		$objectUnderTest = new MediaModerationDatabaseLookup( $connectionProviderMock );
 		// Create a mock File object
 		/** @var File|ArchivedFile $mockFile */
 		$mockFile = $this->createMock( $fileObjectClass );
@@ -51,7 +50,10 @@ class MediaModerationDatabaseLookupTest extends MediaWikiUnitTestCase {
 			->method( 'getSha1' )
 			->willReturn( '123456abcdef' );
 		// Call the method under test
-		$objectUnderTest->fileExistsInScanTable( $mockFile, $flags );
+		$this->assertTrue( $objectUnderTest->fileExistsInScanTable( $mockFile, $flags ) );
+		$actualQueryInfo = $selectQueryBuilderMock->getQueryInfo();
+		// Remove the 'caller' key from the actual query info
+		unset( $actualQueryInfo['caller'] );
 		// Expect that the ::getQueryInfo of the SelectQueryBuilder returns
 		// the expected data, which also tests that the correct builder methods
 		// are called.
@@ -61,11 +63,9 @@ class MediaModerationDatabaseLookupTest extends MediaWikiUnitTestCase {
 				'fields' => [ 'COUNT(*)' ],
 				'conds' => [ 'mms_sha1' => '123456abcdef' ],
 				'join_conds' => [],
-				'caller' => 'MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup' .
-					'::fileExistsInScanTable',
 				'options' => [],
 			],
-			$selectQueryBuilderMock->getQueryInfo(),
+			$actualQueryInfo,
 			true,
 			true,
 			'The result from ::getQueryInfo was not as expected, suggesting the query that was performed ' .
@@ -86,6 +86,71 @@ class MediaModerationDatabaseLookupTest extends MediaWikiUnitTestCase {
 			],
 			'Accepts an ArchivedFile object when reading from primary' => [
 				IDBAccessObject::READ_LATEST, 'getPrimaryDatabase', ArchivedFile::class
+			],
+		];
+	}
+
+	/** @dataProvider provideGetMatchStatusForSha1 */
+	public function testGetMatchStatusForSha1(
+		$flags, $expectedProviderMethodName, $mockedQueryResult, $expectedReturnValue
+	) {
+		$sha1 = 'abc1234';
+		$mockDb = $this->createMock( IDatabase::class );
+		$selectQueryBuilderMock = $this->getMockBuilder( SelectQueryBuilder::class )
+			->setConstructorArgs( [ $mockDb ] )
+			->onlyMethods( [ 'fetchField' ] )
+			->getMock();
+		// Expect that fetchField is called and make it return $mockedQueryResult
+		$selectQueryBuilderMock->expects( $this->once() )
+			->method( 'fetchField' )
+			->willReturn( $mockedQueryResult );
+		$mockDb->expects( $this->once() )->method( 'newSelectQueryBuilder' )
+			->willReturn( $selectQueryBuilderMock );
+		$connectionProviderMock = $this->createMock( IConnectionProvider::class );
+		// Expect that the getPrimaryDatabase or getReplicaDatabase method
+		// is called as expected by $expectedProviderMethodName
+		$connectionProviderMock->expects( $this->once() )
+			->method( $expectedProviderMethodName )
+			->willReturn( $mockDb );
+		$objectUnderTest = new MediaModerationDatabaseLookup( $connectionProviderMock );
+		// Call the method under test and verify the method returns the expected value.
+		$this->assertSame(
+			$expectedReturnValue,
+			$objectUnderTest->getMatchStatusForSha1( $sha1, $flags ),
+			'::getMatchStatusForSha1 did not return the expected value.'
+		);
+		$actualQueryInfo = $selectQueryBuilderMock->getQueryInfo();
+		// Remove the 'caller' key from the actual query info
+		unset( $actualQueryInfo['caller'] );
+		// Expect that the ::getQueryInfo of the SelectQueryBuilder returns
+		// the expected data, which also tests that the correct builder methods
+		// are called.
+		$this->assertArrayEquals(
+			[
+				'tables' => [ 'mediamoderation_scan' ],
+				'fields' => [ 'mms_is_match' ],
+				'conds' => [ 'mms_sha1' => $sha1 ],
+				'join_conds' => [],
+				'options' => [],
+			],
+			$actualQueryInfo,
+			true,
+			true,
+			'The result from ::getQueryInfo was not as expected, suggesting the query that was performed ' .
+			'was not as expected.'
+		);
+	}
+
+	public static function provideGetMatchStatusForSha1() {
+		return [
+			'Match status from DB is false when reading from replica' => [
+				IDBAccessObject::READ_NORMAL, 'getReplicaDatabase', '0', false,
+			],
+			'Match status from DB is true when reading from primary' => [
+				IDBAccessObject::READ_LATEST, 'getPrimaryDatabase', '1', true,
+			],
+			'Match status from DB is NULL when reading from replica' => [
+				IDBAccessObject::READ_NORMAL, 'getReplicaDatabase', null, null,
 			],
 		];
 	}
