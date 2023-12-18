@@ -42,6 +42,29 @@ class MediaModerationDatabaseLookup implements IDBAccessObject {
 	}
 
 	/**
+	 * Returns the match status for a given SHA-1. If the SHA-1 does not
+	 * exist in the mediamoderation_scan table, this method will return null.
+	 *
+	 * @param string $sha1
+	 * @param int $flags IDBAccessObject flags. Does not support READ_LOCKING or READ_EXCLUSIVE
+	 * @return bool|null The match status (null indicates the SHA-1 hasn't been scanned)
+	 */
+	public function getMatchStatusForSha1( string $sha1, int $flags = self::READ_NORMAL ): ?bool {
+		$db = $this->getDb( $flags );
+		$rawMatchStatus = $db->newSelectQueryBuilder()
+			->select( 'mms_is_match' )
+			->from( 'mediamoderation_scan' )
+			->where( [ 'mms_sha1' => $sha1 ] )
+			->caller( __METHOD__ )
+			->fetchField();
+		if ( is_string( $rawMatchStatus ) ) {
+			return boolval( $rawMatchStatus );
+		} else {
+			return null;
+		}
+	}
+
+	/**
 	 * Gets the IReadableDatabase object for the virtual-mediamoderation DB domain
 	 * for the given $flags.
 	 *

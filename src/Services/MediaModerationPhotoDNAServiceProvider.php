@@ -78,11 +78,7 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 			$this->perDbNameStatsdDataFactory->increment(
 				'MediaModeration.PhotoDNAServiceProvider.Execute.RuntimeException'
 			);
-			return StatusValue::newFatal(
-				new RawMessage(
-					'Unable to get file contents for file ' . $file->getName()
-				)
-			);
+			return StatusValue::newFatal( new RawMessage( $exception->getMessage() ) );
 		}
 		$start = microtime( true );
 		$status = $request->execute();
@@ -178,6 +174,11 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 	 * @return ThumbnailImage
 	 */
 	private function getThumbnailForFile( $file ): ThumbnailImage {
+		$genericErrorMessage = 'Could not transform file ' . $file->getName();
+		if ( $file instanceof ArchivedFile ) {
+			// ArchivedFile is not supported yet, so return that no thumbnail can be generated
+			throw new RuntimeException( $genericErrorMessage . ': ArchivedFile instances cannot be processed yet.' );
+		}
 		$start = microtime( true );
 		$thumbnail = $file->transform( [ 'width' => $this->thumbnailWidth ], File::RENDER_NOW );
 		$delay = microtime( true ) - $start;
@@ -185,7 +186,6 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 			'MediaModeration.PhotoDNAServiceProviderThumbnailTransform',
 			1000 * $delay
 		);
-		$genericErrorMessage = 'Could not transform file ' . $file->getName();
 		if ( !$thumbnail ) {
 			throw new RuntimeException( $genericErrorMessage );
 		}

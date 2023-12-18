@@ -2,6 +2,7 @@
 
 namespace MediaWiki\Extension\MediaModeration\Tests\Unit\Services;
 
+use ArchivedFile;
 use File;
 use FileBackend;
 use MediaTransformError;
@@ -57,6 +58,24 @@ class MediaModerationPhotoDNAServiceProviderTest extends MediaWikiUnitTestCase {
 			$checkStatus,
 			'::check should return a fatal status on a thrown RuntimeException.'
 		);
+	}
+
+	public function testGetThumbnailForFileForArchivedFileObject() {
+		// Expect a RuntimeException if an ArchivedFile class is provided, as this
+		// is currently not supported.
+		$this->expectException( RuntimeException::class );
+		// Get and call the method under test with an ArchivedFile instance.
+		$objectUnderTest = $this->newServiceInstance(
+			MediaModerationPhotoDNAServiceProvider::class,
+			[
+				'options' => new ServiceOptions(
+					MediaModerationPhotoDNAServiceProvider::CONSTRUCTOR_OPTIONS,
+					new HashConfig( self::CONSTRUCTOR_OPTIONS_DEFAULTS )
+				)
+			]
+		);
+		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
+		$objectUnderTest->getThumbnailForFile( $this->createMock( ArchivedFile::class ) );
 	}
 
 	/** @dataProvider provideGetThumbnailForFile */

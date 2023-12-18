@@ -14,7 +14,8 @@
 	"AutoloadClasses": {
 		"MediaWiki\\Extension\\MediaModeration\\Maintenance\\ImportExistingFilesToScanTable": "maintenance/importExistingFilesToScanTable.php",
 		"MediaWiki\\Extension\\MediaModeration\\Maintenance\\UpdateMetrics": "maintenance/updateMetrics.php",
-		"MediaWiki\\Extension\\MediaModeration\\Maintenance\\DebugPhotoDNA": "maintenance/debugPhotoDNA.php"
+		"MediaWiki\\Extension\\MediaModeration\\Maintenance\\DebugPhotoDNA": "maintenance/debugPhotoDNA.php",
+		"MediaWiki\\Extension\\MediaModeration\\Maintenance\\ScanFilesInScanTable": "maintenance/scanFilesInScanTable.php"
 	},
 	"AutoloadNamespaces": {
 		"MediaWiki\\Extension\\MediaModeration\\": "src/"
