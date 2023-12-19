@@ -75,7 +75,7 @@ class ImportExistingFilesToScanTable extends LoggedUpdateMaintenance {
 	protected function doDBUpdates() {
 		$services = $this->getServiceContainer();
 		$loadBalancerFactory = $services->getDBLoadBalancerFactory();
-		$this->dbr = $loadBalancerFactory->getReplicaDatabase( 'virtual-mediamoderation' );
+		$this->dbr = $loadBalancerFactory->getReplicaDatabase();
 		$this->mediaModerationFileFactory = $services->get( 'MediaModerationFileFactory' );
 		$this->mediaModerationFileProcessor = $services->get( 'MediaModerationFileProcessor' );
 		$this->mediaModerationDatabaseLookup = $services->get( 'MediaModerationDatabaseLookup' );
