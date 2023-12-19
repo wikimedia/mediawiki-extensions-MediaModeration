@@ -75,6 +75,9 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 		try {
 			$request = $this->getRequest( $file );
 		} catch ( RuntimeException $exception ) {
+			$this->perDbNameStatsdDataFactory->increment(
+				'MediaModeration.PhotoDNAServiceProvider.Execute.RuntimeException'
+			);
 			return StatusValue::newFatal(
 				new RawMessage(
 					'Unable to get file contents for file ' . $file->getName()
