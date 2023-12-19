@@ -207,9 +207,16 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 	}
 
 	private function getThumbnailContents( ThumbnailImage $thumbnail ): string {
+		if ( !$thumbnail->getStoragePath() ) {
+			throw new RuntimeException(
+				'Could not get storage path of thumbnail for ' . $thumbnail->getFile()->getName()
+			);
+		}
 		$fileContents = $this->fileBackend->getFileContents( [ 'src' => $thumbnail->getStoragePath() ] );
 		if ( !$fileContents ) {
-			throw new RuntimeException( 'Could not get file contents for ' . $thumbnail->getFile()->getName() );
+			throw new RuntimeException(
+				'Could not get thumbnail contents for ' . $thumbnail->getFile()->getName()
+			);
 		}
 		return $fileContents;
 	}

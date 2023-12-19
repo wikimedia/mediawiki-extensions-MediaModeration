@@ -188,4 +188,64 @@ class MediaModerationPhotoDNAServiceProviderTest extends MediaWikiUnitTestCase {
 			'Unsupported mime type from guess method' => [ null, 'image/svg' ],
 		];
 	}
+
+	/** @dataProvider provideGetThumbnailContents */
+	public function testGetThumbnailContents( $mockStoragePathValue, $mockFileContentsValue, $expectedReturnValue ) {
+		// Create a mock ThumbnailImage that returns $mockStoragePathValue for ::getStoragePath
+		$mockThumbnailImage = $this->createMock( ThumbnailImage::class );
+		$mockThumbnailImage->method( 'getStoragePath' )
+			->willReturn( $mockStoragePathValue );
+		$mockThumbnailImage->method( 'getFile' )
+			->willReturn( $this->createMock( File::class ) );
+		// Create a mock FileBackend that returns the value of $mockFileContentsValue for ::getFileContents
+		// if $mockStoragePathValue is truthy. Otherwise expect that ::getFileContents is never called.
+		$mockFileBackend = $this->createMock( FileBackend::class );
+		if ( !$mockStoragePathValue ) {
+			// ::getFileContents is final, so have to mock ::getFileContentsMulti instead (which works fine).
+			$mockFileBackend->expects( $this->never() )
+				->method( 'getFileContentsMulti' );
+		} else {
+			// ::getFileContents is final, so have to mock ::getFileContentsMulti instead (which works fine).
+			$mockFileBackend->expects( $this->once() )
+				->method( 'getFileContentsMulti' )
+				->willReturn( [ $mockStoragePathValue => $mockFileContentsValue ] );
+		}
+		// Get the object under test with the FileBackend as $mockFileBackend.
+		$objectUnderTest = $this->newServiceInstance(
+			MediaModerationPhotoDNAServiceProvider::class,
+			[
+				'options' => new ServiceOptions(
+					MediaModerationPhotoDNAServiceProvider::CONSTRUCTOR_OPTIONS,
+					new HashConfig( self::CONSTRUCTOR_OPTIONS_DEFAULTS )
+				),
+				'fileBackend' => $mockFileBackend
+			]
+		);
+		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
+		// Call the method under test and expect that the return value is $expectedReturnValue
+		$this->assertSame(
+			$expectedReturnValue,
+			$objectUnderTest->getThumbnailContents( $mockThumbnailImage ),
+			'Return value of ::getThumbnailContents was not as expected.'
+		);
+	}
+
+	public static function provideGetThumbnailContents() {
+		return [
+			'Valid storage path and file contents' => [ 'test/test.png', 'abcdef1234', 'abcdef1234' ],
+		];
+	}
+
+	/** @dataProvider provideGetThumbnailContentsOnException */
+	public function testGetThumbnailContentsOnException( $mockStoragePathValue, $mockFileContentsValue ) {
+		$this->expectException( RuntimeException::class );
+		$this->testGetThumbnailContents( $mockStoragePathValue, $mockFileContentsValue, 'unused' );
+	}
+
+	public static function provideGetThumbnailContentsOnException() {
+		return [
+			'Valid storage path, but invalid thumbnail contents' => [ 'test/test.png', false ],
+			'Invalid storage path' => [ false, false ],
+		];
+	}
 }
