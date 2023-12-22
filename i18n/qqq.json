@@ -5,6 +5,10 @@
 		]
 	},
 	"mediamoderation-desc": "{{desc|name=MediaModeration|url=https://www.mediawiki.org/wiki/Extension:MediaModeration}}",
+	"mediamoderation-email-body-intro": "{{notranslate}} The text that is at the start of the email sent when a SHA-1 matches PhotoDNA.\n\nParameters:\n* $1 - How many images are present in the email (used for GENDER support).\n* $2 - The name of the wiki the images were found.",
+	"mediamoderation-email-body-file-line": "{{notranslate}} Used as a bullet point item in the email to detail a match on a given file.\n\nParameters:\n* $1 - The name of the file on-wiki which may be wrapped in a link.\n* $2 - A localised list containing the upload timestamps for the files that matched. These upload timestamps may be individually wrapped in a link.",
+	"mediamoderation-email-body-file-revision-plaintext-url": "{{notranslate}} Used as a item in a list of upload timestamps for files which was a match according to PhotoDNA.\n\nParameters:\n* $1 - The upload timestamp in a human readable format\n* $2 - The URL to the file revision.",
+	"mediamoderation-email-body-files-missing-timestamp": "{{notranslate}} Text added to the bottom of the email sent when a SHA-1 matches to indicate what filenames had file versions that matched but also had no upload timestamp.",
 	"mediamoderation-email-body": "{{notranslate}} A template to be used for the email body when inappropriate content found. Parameters:\n * $1 - URI of a page containing the media",
-	"mediamoderation-email-subject": "{{notranslate}} A template to be used for the email subject when inappropriate content found."
+	"mediamoderation-email-subject": "{{notranslate}} The subject for the email sent when a SHA-1 matches PhotoDNA."
 }
