@@ -329,7 +329,7 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 	/** @dataProvider provideGetImageContents */
 	public function testGetImageContents(
 		$fileContentsStatusGood, $thumbnailStatusGood, $thumbnailContentsStatusGood, $thumbnailMimeTypeStatusGood,
-		$fileObjectClassName, $statsdBucketName, $expectStatusIsGood, $expectStatusIsOkay
+		$fileObjectClassName, $fileMimeType, $statsdBucketName, $expectStatusIsGood, $expectStatusIsOkay
 	) {
 		// Expect that the StatsdDataFactoryInterface::increment is called or not called
 		// depending on $shouldIncrementStatsd
@@ -374,20 +374,20 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 		/** @var File|ArchivedFile|MockObject $mockFile */
 		$mockFile = $this->createMock( $fileObjectClassName );
 		$mockFile->method( 'getMimeType' )
-			->willReturn( 'image/jpeg' );
+			->willReturn( $fileMimeType );
 		$actualStatus = $objectUnderTest->getImageContents( $mockFile );
 		// Assert that the returned status is the expected of good, okay or not okay.
 		if ( $expectStatusIsGood ) {
 			$this->assertStatusGood( $actualStatus );
 			$this->assertSame(
-				'image/jpeg',
+				$fileMimeType,
 				$actualStatus->getMimeType(),
 				'The status is good, but no mime type is specified for the image'
 			);
 		} elseif ( $expectStatusIsOkay ) {
 			$this->assertStatusOK( $actualStatus );
 			$this->assertSame(
-				'image/jpeg',
+				$fileMimeType,
 				$actualStatus->getMimeType(),
 				'The status is okay, but no mime type is specified for the image'
 			);
@@ -410,6 +410,8 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 				null,
 				// The name of the class used as the $file argument
 				ArchivedFile::class,
+				// The mime type for the source file
+				'image/jpeg',
 				// The expected bucket name provided to the StatsdDataFactoryInterface::increment call. Specify an
 				// empty string to expect no call.
 				'',
@@ -419,23 +421,27 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 				false,
 			],
 			'ArchivedFile where source file contents collection failed' => [
-				false, null, null, null, ArchivedFile::class,
+				false, null, null, null, ArchivedFile::class, 'image/jpeg',
+				'MediaModeration.PhotoDNAServiceProvider.Execute.RuntimeException', false, false,
+			],
+			'ArchivedFile where source file is not supported' => [
+				false, null, null, null, ArchivedFile::class, 'image/svg',
 				'MediaModeration.PhotoDNAServiceProvider.Execute.RuntimeException', false, false,
 			],
 			'File where no ThumbnailImage was generated but has file contents' => [
-				true, false, null, null, File::class,
+				true, false, null, null, File::class, 'image/jpeg',
 				'MediaModeration.PhotoDNAServiceProvider.Execute.SourceFileUsedForFileObject', false, true,
 			],
 			'File where no ThumbnailImage was generated and no file contents' => [
-				false, false, null, null, File::class,
+				false, false, null, null, File::class, 'image/jpeg',
 				'MediaModeration.PhotoDNAServiceProvider.Execute.RuntimeException', false, false,
 			],
 			'File where thumbnail contents failed but has file contents' => [
-				true, true, false, false, File::class,
+				true, true, false, false, File::class, 'image/jpeg',
 				'MediaModeration.PhotoDNAServiceProvider.Execute.SourceFileUsedForFileObject', false, true,
 			],
 			'File where thumbnail contents succeeds' => [
-				null, true, true, true, File::class, '', true, true,
+				null, true, true, true, File::class, 'image/jpeg', '', true, true,
 			],
 		];
 	}

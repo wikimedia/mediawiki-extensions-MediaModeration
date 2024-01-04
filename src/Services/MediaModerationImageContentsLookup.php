@@ -111,7 +111,14 @@ class MediaModerationImageContentsLookup {
 			$returnStatus->merge( $fileContentsStatus );
 		}
 		// If we get here, then we have failed to get any image contents and so should return a fatal status.
-		$returnStatus->setOK( false );
+		if ( $returnStatus->isOK() ) {
+			// The $returnStatus can be good and have no message if the image was deleted and the source image is
+			// not supported by PhotoDNA (such as a deleted SVG).
+			$returnStatus->fatal( new RawMessage(
+				'Failed to get image contents for $1',
+				[ $file->getName() ]
+			) );
+		}
 		// Increment the RuntimeException statsd counter, as we have reached a point where
 		// we could not generate a thumbnail where we should have been able to.
 		$this->perDbNameStatsdDataFactory->increment(
