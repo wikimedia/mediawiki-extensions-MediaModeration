@@ -33,6 +33,7 @@ use MediaWiki\Extension\MediaModeration\Services\MediaModerationMockPhotoDNAServ
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationPhotoDNAServiceProvider;
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\MediaWikiServices;
+use RequestContext;
 
 // PHP unit does not understand code coverage for this file
 // as the @covers annotation cannot cover a specific file
@@ -121,7 +122,8 @@ return [
 			),
 			$services->getHttpRequestFactory(),
 			$services->getPerDbNameStatsdDataFactory(),
-			$services->get( 'MediaModerationImageContentsLookup' )
+			$services->get( 'MediaModerationImageContentsLookup' ),
+			$services->getFormatterFactory()->getStatusFormatter( RequestContext::getMain() )
 		);
 	},
 	'MediaModerationImageContentsLookup' => static function (
