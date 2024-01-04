@@ -81,6 +81,27 @@ class MediaModerationPhotoDNAServiceProviderTest extends MediaWikiIntegrationTes
 		);
 	}
 
+	public function testCheckWithHttpErrorInvalidJson() {
+		$this->overrideConfigValue( 'MediaModerationPhotoDNASubscriptionKey', '' );
+		$mwHttpRequest = $this->createMock( MWHttpRequest::class );
+		$mwHttpRequest->method( 'execute' )
+			->willReturn( Status::wrap( StatusValue::newGood() ) );
+		$mwHttpRequest->method( 'getStatus' )
+			->willReturn( 200 );
+		$mwHttpRequest->method( 'getContent' )
+			->willReturn( 'invalidjson{<' );
+		$this->installMockHttp( $mwHttpRequest );
+
+		/** @var IMediaModerationPhotoDNAServiceProvider $serviceProvider */
+		$serviceProvider = $this->getServiceContainer()->get( '_MediaModerationPhotoDNAServiceProviderProduction' );
+		$testFile = $this->getTestFile();
+		$result = $serviceProvider->check( $testFile );
+		$this->assertStatusError(
+			'PhotoDNA returned an invalid JSON body for $1. Parse error: $2',
+			$result
+		);
+	}
+
 	private function getTestFile(): File {
 		if ( $this->file ) {
 			return $this->file;
