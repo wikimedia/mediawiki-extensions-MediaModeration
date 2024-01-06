@@ -23,8 +23,8 @@ namespace MediaWiki\Extension\MediaModeration\Tests\Unit;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Extension\MediaModeration\RequestModerationCheck;
 use MediaWiki\Extension\MediaModeration\Tests\MocksHelperTrait;
+use MediaWiki\Status\Status;
 use MediaWikiUnitTestCase;
-use Status;
 
 /**
  * @coversDefaultClass MediaWiki\Extension\MediaModeration\RequestModerationCheck

@@ -20,9 +20,9 @@
 
 namespace MediaWiki\Extension\MediaModeration\Tests\Unit;
 
-use DeferredUpdates;
 use File;
 use MediaWiki\Config\HashConfig;
+use MediaWiki\Deferred\DeferredUpdates;
 use MediaWiki\Extension\MediaModeration\Hooks\Handlers\UploadCompleteHandler;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileProcessor;
 use MediaWiki\Tests\Unit\MockServiceDependenciesTrait;

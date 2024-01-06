@@ -20,8 +20,8 @@
 
 namespace MediaWiki\Extension\MediaModeration\Hooks\Handlers;
 
-use DeferredUpdates;
 use MediaWiki\Config\Config;
+use MediaWiki\Deferred\DeferredUpdates;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileProcessor;
 use MediaWiki\Hook\UploadCompleteHook;
 use MediaWiki\Logger\LoggerFactory;
