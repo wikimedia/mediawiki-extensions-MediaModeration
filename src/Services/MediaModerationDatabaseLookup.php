@@ -71,7 +71,7 @@ class MediaModerationDatabaseLookup implements IDBAccessObject {
 	 * @param int $flags IDBAccessObject flags.
 	 * @return IReadableDatabase
 	 */
-	private function getDb( int $flags ): IReadableDatabase {
+	public function getDb( int $flags ): IReadableDatabase {
 		if ( $flags & self::READ_LATEST ) {
 			return $this->connectionProvider->getPrimaryDatabase( 'virtual-mediamoderation' );
 		} else {
@@ -100,25 +100,20 @@ class MediaModerationDatabaseLookup implements IDBAccessObject {
 	}
 
 	/**
-	 * Returns a SelectQueryBuilder that can be used to get or count rows from the mediamoderation_scan table.
+	 * Returns a SelectQueryBuilder that can be used to query SHA-1 values for a scan.
 	 *
 	 * The parameters to this method allow filtering for rows with a specific match status and/or rows that were
 	 * last checked before or at a particular date.
 	 *
-	 * @param ConvertibleTimestamp|int|string|null $lastChecked Filters for scan rows that have been last checked
-	 *   on or before this date. If null, only include files which have never been checked. If not null, treats this as
-	 *   a timestamp that can be parsed by ConvertibleTimestamp.
-	 * @param string $direction Either SelectQueryBuilder::SORT_ASC or ::SORT_DESC. Used to control
-	 *    whether to start at the rows with the newest or oldest last checked timestamp. No-op if $lastChecked
-	 *    is null.
-	 * @param string|null $matchStatus Filter for rows that have this match status. Any constants of this
-	 *    service in the format ::*_MATCH_STATUS can be passed in this parameter. The default is to not filter
-	 *    by match status (using ::ANY_MATCH_STATUS).
+	 * @param ConvertibleTimestamp|int|string|null $lastChecked See ::getSha1ValuesForScan
+	 * @param string $direction See ::getSha1ValuesForScan
+	 * @param array $excludedSha1Values See ::getSha1ValuesForScan
+	 * @param string|null $matchStatus See ::getSha1ValuesForScan
 	 * @return SelectQueryBuilder
 	 * @throws TimestampException If the $lastChecked timestamp could not be parsed as a valid timestamp.
 	 */
-	public function newSelectQueryBuilder(
-		$lastChecked, string $direction, ?string $matchStatus = self::ANY_MATCH_STATUS
+	protected function newSelectQueryBuilderForScan(
+		$lastChecked, string $direction, array $excludedSha1Values, ?string $matchStatus = self::ANY_MATCH_STATUS
 	): SelectQueryBuilder {
 		// Get a replica DB connection.
 		$dbr = $this->getDb( self::READ_NORMAL );
@@ -159,6 +154,12 @@ class MediaModerationDatabaseLookup implements IDBAccessObject {
 		if ( $matchStatus !== self::ANY_MATCH_STATUS ) {
 			$selectQueryBuilder->where( [ 'mms_is_match' => $matchStatus ] );
 		}
+		// Exclude the SHA-1 values specified by the caller, if any are provided.
+		if ( count( $excludedSha1Values ) ) {
+			$selectQueryBuilder->where( $dbr->expr(
+				'mms_sha1', '!=', $excludedSha1Values
+			) );
+		}
 		// Return the constructed SelectQueryBuilder after adding the order by field.
 		return $selectQueryBuilder
 			->orderBy( 'mms_last_checked', $direction );
@@ -175,6 +176,7 @@ class MediaModerationDatabaseLookup implements IDBAccessObject {
 	 * @param string $direction Either SelectQueryBuilder::SORT_ASC or ::SORT_DESC. Used to control
 	 *    whether to start at the rows with the newest or oldest last checked timestamp. No-op if $lastChecked
 	 *    is null.
+	 * @param array $excludedSha1Values SHA-1 values to exclude from the returned array.
 	 * @param string|null $matchStatus Filter for rows that have this match status. Any constants of this
 	 *     service in the format ::*_MATCH_STATUS can be passed in this parameter. The default is to not filter
 	 *     by match status (using ::ANY_MATCH_STATUS).
@@ -182,10 +184,11 @@ class MediaModerationDatabaseLookup implements IDBAccessObject {
 	 * @throws TimestampException If the $lastChecked timestamp could not be parsed as a valid timestamp.
 	 */
 	public function getSha1ValuesForScan(
-		int $limit, $lastChecked, string $direction, ?string $matchStatus = self::ANY_MATCH_STATUS
+		int $limit, $lastChecked, string $direction,
+		array $excludedSha1Values, ?string $matchStatus
 	): array {
 		// Return up to $limit SHA-1 values that match the given criteria.
-		return $this->newSelectQueryBuilder( $lastChecked, $direction, $matchStatus )
+		return $this->newSelectQueryBuilderForScan( $lastChecked, $direction, $excludedSha1Values, $matchStatus )
 			->select( 'mms_sha1' )
 			->limit( $limit )
 			->fetchFieldValues();

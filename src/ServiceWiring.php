@@ -28,6 +28,7 @@ use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseManager;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileFactory;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileLookup;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileProcessor;
+use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileScanner;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationImageContentsLookup;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationMockPhotoDNAServiceProvider;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationPhotoDNAServiceProvider;
@@ -138,6 +139,17 @@ return [
 			$services->getPerDbNameStatsdDataFactory(),
 			$services->getMimeAnalyzer(),
 			$services->getRepoGroup()->getLocalRepo()
+		);
+	},
+	'MediaModerationFileScanner' => static function (
+		MediaWikiServices $services
+	): MediaModerationFileScanner {
+		return new MediaModerationFileScanner(
+			$services->get( 'MediaModerationDatabaseLookup' ),
+			$services->get( 'MediaModerationDatabaseManager' ),
+			$services->get( 'MediaModerationFileLookup' ),
+			$services->get( 'MediaModerationFileProcessor' ),
+			$services->get( 'MediaModerationPhotoDNAServiceProvider' )
 		);
 	},
 	'MediaModerationHandler' =>

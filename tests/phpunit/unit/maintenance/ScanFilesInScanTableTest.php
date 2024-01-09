@@ -3,14 +3,19 @@
 namespace MediaWiki\Extension\MediaModeration\Tests\Unit\Maintenance;
 
 use Generator;
+use IJobSpecification;
+use JobQueueGroup;
 use MediaWiki\Extension\MediaModeration\Maintenance\ScanFilesInScanTable;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
+use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileScanner;
 use MediaWiki\Language\RawMessage;
 use MediaWiki\Status\StatusFormatter;
 use MediaWiki\Tests\Unit\MockServiceDependenciesTrait;
 use MediaWikiUnitTestCase;
-use ReflectionClass;
 use StatusValue;
+use Wikimedia\Rdbms\Expression;
+use Wikimedia\Rdbms\IConnectionProvider;
+use Wikimedia\Rdbms\IReadableDatabase;
 use Wikimedia\Rdbms\LBFactory;
 use Wikimedia\Rdbms\SelectQueryBuilder;
 use Wikimedia\TestingAccessWrapper;
@@ -25,7 +30,7 @@ class ScanFilesInScanTableTest extends MediaWikiUnitTestCase {
 
 	/** @dataProvider provideGenerateSha1ValuesForScan */
 	public function testGenerateSha1ValuesForScan(
-		$batchSize, $returnedBatchesOfSha1Values, $expectedSha1Values
+		$batchSize, $usesJobQueue, $returnedBatchesOfSha1Values, $expectedSha1Values
 	) {
 		// Define a fake 'last-checked' value for the test.
 		$lastChecked = '20230405';
@@ -35,24 +40,29 @@ class ScanFilesInScanTableTest extends MediaWikiUnitTestCase {
 		$mockMediaModerationDatabaseLookup->expects( $this->exactly( count( $returnedBatchesOfSha1Values ) ) )
 			->method( 'getSha1ValuesForScan' )
 			->with(
-				$batchSize,
-				$lastChecked,
-				SelectQueryBuilder::SORT_ASC,
-				MediaModerationDatabaseLookup::NULL_MATCH_STATUS
+				$batchSize, $lastChecked, SelectQueryBuilder::SORT_ASC,
+				[ 'sha-1-being-processed' ], MediaModerationDatabaseLookup::NULL_MATCH_STATUS,
 			)
 			->willReturnOnConsecutiveCalls( ...$returnedBatchesOfSha1Values );
 		// Get the object under test, with the MediaModerationDatabaseLookup and LoadBalancerFactory services mocked.
 		$objectUnderTest = $this->getMockBuilder( ScanFilesInScanTable::class )
-			->onlyMethods( [ 'initServices' ] )
+			->onlyMethods( [ 'waitForJobQueueSize' ] )
 			->getMock();
 		// Set 'sleep' option as 0 to prevent unit tests from running slowly.
 		$objectUnderTest->setOption( 'sleep', 0 );
+		// Expect that ::waitForJobQueueSize is called if $usesJobQueue is true
+		$objectUnderTest->expects( $this->exactly( $usesJobQueue ? count( $returnedBatchesOfSha1Values ) : 0 ) )
+			->method( 'waitForJobQueueSize' );
+		if ( $usesJobQueue ) {
+			$objectUnderTest->setOption( 'use-jobqueue', 1 );
+		}
 		// Actually assign the mock services for the test.
 		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
 		$objectUnderTest->mediaModerationDatabaseLookup = $mockMediaModerationDatabaseLookup;
 		$objectUnderTest->loadBalancerFactory = $this->createMock( LBFactory::class );
 		$objectUnderTest->setBatchSize( $batchSize );
 		$objectUnderTest->lastChecked = $lastChecked;
+		$objectUnderTest->sha1ValuesBeingProcessed = [ 'sha-1-being-processed' ];
 		// Call the method under test.
 		$actualGenerator = $objectUnderTest->generateSha1ValuesForScan();
 		// Assert that the object is a generator
@@ -72,8 +82,9 @@ class ScanFilesInScanTableTest extends MediaWikiUnitTestCase {
 			'One batch of SHA-1 values with batch size as 3' => [
 				// Batch size used by the maintenance script (null indicates the default of 200).
 				3,
-				// Array of batches of SHA-1 values that are the mock return values of
-				// ::getSha1ValuesForScan
+				// Whether the --use-jobqueue parameter is specified
+				false,
+				// Array of batches of SHA-1 values that are the mock return values of ::getSha1ValuesForScan
 				[
 					[ 'abc123', 'def456', 'cab321' ],
 					[],
@@ -83,17 +94,12 @@ class ScanFilesInScanTableTest extends MediaWikiUnitTestCase {
 			],
 			'Two batches of SHA-1 values with batch size as 4' => [
 				4,
-				[
-					[ 'abc123', 'def456', 'cab321', 'abcdef' ],
-					[ 'abc1234', 'def4565', 'cab3212' ],
-					[],
-				],
+				true,
+				[ [ 'abc123', 'def456', 'cab321', 'abcdef' ], [ 'abc1234', 'def4565', 'cab3212' ], [] ],
 				[ 'abc123', 'def456', 'cab321', 'abcdef', 'abc1234', 'def4565', 'cab3212' ],
 			],
 			'No batches of SHA-1 values with batch size as 4' => [
-				4,
-				[ [] ],
-				[],
+				4, false, [ [] ], [],
 			],
 		];
 	}
@@ -107,7 +113,7 @@ class ScanFilesInScanTableTest extends MediaWikiUnitTestCase {
 		$mediaModerationDatabaseLookup = $this->newServiceInstance( MediaModerationDatabaseLookup::class, [] );
 		// Get the object under test
 		$objectUnderTest = $this->getMockBuilder( ScanFilesInScanTable::class )
-			->onlyMethods( [ 'initServices', 'fatalError' ] )
+			->onlyMethods( [ 'fatalError' ] )
 			->getMock();
 		$objectUnderTest->expects( $this->never() )
 			->method( 'fatalError' );
@@ -138,7 +144,9 @@ class ScanFilesInScanTableTest extends MediaWikiUnitTestCase {
 	}
 
 	/** @dataProvider provideParseLastCheckedTimestampOnInvalidLastChecked */
-	public function testParseLastCheckedTimestampOnInvalidLastChecked( $lastCheckedOptionValue ) {
+	public function testParseLastCheckedTimestampOnInvalidLastChecked(
+		$lastCheckedOptionValue, $expectedErrorMessage
+	) {
 		// Fix the current time as the method under test calls ConvertibleTimestamp::time.
 		ConvertibleTimestamp::setFakeTime( '20230504030201' );
 		// The MediaModerationDatabaseLookup service is used only non-DB related methods when calling
@@ -146,14 +154,11 @@ class ScanFilesInScanTableTest extends MediaWikiUnitTestCase {
 		$mediaModerationDatabaseLookup = $this->newServiceInstance( MediaModerationDatabaseLookup::class, [] );
 		// Get the object under test
 		$objectUnderTest = $this->getMockBuilder( ScanFilesInScanTable::class )
-			->onlyMethods( [ 'initServices', 'fatalError' ] )
+			->onlyMethods( [ 'fatalError' ] )
 			->getMock();
 		$objectUnderTest->expects( $this->once() )
 			->method( 'fatalError' )
-			->with(
-				'The --last-checked argument passed to this script could not be parsed. This can take a ' .
-				'timestamp in string form, or a date in YYYYMMDD format.'
-			);
+			->with( $expectedErrorMessage );
 		// Assign the $lastCheckedOptionValue to the be the 'last-checked' option value.
 		$objectUnderTest->setOption( 'last-checked', $lastCheckedOptionValue );
 		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
@@ -164,15 +169,29 @@ class ScanFilesInScanTableTest extends MediaWikiUnitTestCase {
 
 	public static function provideParseLastCheckedTimestampOnInvalidLastChecked() {
 		return [
-			'Unrecognised text' => [ 'testing' ],
-			'Unrecognised integer' => [ '92034809235890348905839054324938590' ],
+			'Unrecognised text' => [
+				'testing',
+				'The --last-checked argument passed to this script could not be parsed. This can take a ' .
+				'timestamp in string form, or a date in YYYYMMDD format.',
+			],
+			'Unrecognised integer' => [
+				'92034809235890348905839054324938590',
+				'The --last-checked argument passed to this script could not be parsed. This can take a ' .
+				'timestamp in string form, or a date in YYYYMMDD format.',
+			],
+			'The current date in TS_MW form' => [
+				'20230504030201', 'The --last-checked argument cannot be the current date.'
+			],
+			'The current date in YYYYMMDD form' => [
+				'20230504', 'The --last-checked argument cannot be the current date.'
+			]
 		];
 	}
 
-	public function testMaybeOutputVerboseInformationWhenNotInVerboseMode() {
+	public function testMaybeOutputVerboseScanResultWhenNotInVerboseMode() {
 		// Get the object under test
 		$objectUnderTest = $this->getMockBuilder( ScanFilesInScanTable::class )
-			->onlyMethods( [ 'initServices', 'output', 'error' ] )
+			->onlyMethods( [ 'output', 'error' ] )
 			->getMock();
 		// Expect that ::output and ::error are never called
 		$objectUnderTest->expects( $this->never() )
@@ -181,165 +200,340 @@ class ScanFilesInScanTableTest extends MediaWikiUnitTestCase {
 			->method( 'error' );
 		// Call the method under test
 		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
-		$objectUnderTest->maybeOutputVerboseInformation( 'abc1234', true );
+		$objectUnderTest->maybeOutputVerboseScanResult( 'abc1234', StatusValue::newGood( true ) );
 	}
 
-	/** @dataProvider provideMaybeOutputVerboseInformation */
-	public function testMaybeOutputVerboseInformation(
-		$sha1, $matchStatus, $expectedOutputMethod, $expectedOutputString
+	/** @dataProvider provideMaybeOutputVerboseScanResultForStatusError */
+	public function testMaybeOutputVerboseScanResultForNotGoodStatus(
+		$sha1, $checkStatus, $expectedOutputStrings, $expectedErrorStrings
 	) {
 		// Get the object under test
 		$objectUnderTest = $this->getMockBuilder( ScanFilesInScanTable::class )
-			->onlyMethods( [ 'initServices', 'output', 'error' ] )
-			->getMock();
-		$objectUnderTest->setOption( 'verbose', 1 );
-		// Expect that ::output is called once
-		$objectUnderTest->expects( $this->once() )
-			->method( $expectedOutputMethod )
-			->with( $expectedOutputString );
-		// Call the method under test
-		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
-		$objectUnderTest->maybeOutputVerboseInformation( $sha1, $matchStatus );
-	}
-
-	public static function provideMaybeOutputVerboseInformation() {
-		return [
-			'Null match status' => [
-				'abc1234', null, 'error',
-				"SHA-1 abc1234: Scan failed.\n"
-			],
-			'Positive match status' => [
-				'abc123', true, 'output',
-				"SHA-1 abc123: Positive match.\n"
-			],
-			'Negative match status' => [
-				'abc12345', false, 'output',
-				"SHA-1 abc12345: No match.\n"
-			],
-		];
-	}
-
-	public function testMaybeOutputVerboseStatusErrorWhenNotInVerboseMode() {
-		// Get the object under test
-		$objectUnderTest = $this->getMockBuilder( ScanFilesInScanTable::class )
-			->onlyMethods( [ 'initServices', 'error' ] )
-			->getMock();
-		// Expect that ::error is never called
-		$objectUnderTest->expects( $this->never() )
-			->method( 'error' );
-		// Set up a variable named $hasOutputtedSha1 which has to be passed by reference to the method
-		// under test
-		$hasOutputtedSha1 = false;
-		// Call the method under test
-		// T287318 - TestingAccessWrapper::__call does not support pass-by-reference
-		$classReflection = new ReflectionClass( $objectUnderTest );
-		$methodReflection = $classReflection->getMethod( 'maybeOutputVerboseStatusError' );
-		$methodReflection->setAccessible( true );
-		$methodReflection->invokeArgs( $objectUnderTest, [
-			StatusValue::newFatal( new RawMessage( "test" ) ),
-			'abc123',
-			&$hasOutputtedSha1
-		] );
-		$this->assertFalse(
-			$hasOutputtedSha1,
-			'::maybeOutputVerboseStatusError should not have modified $hasOutputtedSha1 if not in verbose mode.'
-		);
-	}
-
-	/** @dataProvider provideMaybeOutputVerboseStatusError */
-	public function testMaybeOutputVerboseStatusError(
-		$checkResults, $sha1, $hasOutputtedSha1, $expectedOutputStrings, $expectedOutputtedSha1Value
-	) {
-		// Get the object under test
-		$objectUnderTest = $this->getMockBuilder( ScanFilesInScanTable::class )
-			->onlyMethods( [ 'initServices', 'error' ] )
+			->onlyMethods( [ 'error', 'output' ] )
 			->getMock();
 		$objectUnderTest->setOption( 'verbose', 1 );
 		// Expect that ::output is called once or twice depending on the value
 		// in $hasOutputtedSha1, and that the strings are as expected
-		$objectUnderTest->expects( $this->exactly( count( $expectedOutputStrings ) ) )
+		$objectUnderTest->expects( $this->exactly( count( $expectedErrorStrings ) ) )
 			->method( 'error' )
-			->willReturnCallback( function ( $actualErrorString ) use ( $expectedOutputStrings ) {
+			->willReturnCallback( function ( $actualErrorString ) use ( $expectedErrorStrings ) {
 				$this->assertContains(
 					$actualErrorString,
-					$expectedOutputStrings,
-					'::maybeOutputVerboseStatusError did not output an expected string.'
+					$expectedErrorStrings,
+					'::maybeOutputVerboseScanResult outputted an unexpected error string.'
 				);
 			} );
-		// Define a mock StatusFormatter that returns the value in the RawMessage
+		$objectUnderTest->expects( $this->exactly( count( $expectedOutputStrings ) ) )
+			->method( 'output' )
+			->willReturnCallback( function ( $actualOutputString ) use ( $expectedOutputStrings ) {
+				$this->assertContains(
+					$actualOutputString,
+					$expectedOutputStrings,
+					'::maybeOutputVerboseScanResult outputted an unexpected string.'
+				);
+			} );
+		// Define a mock StatusFormatter that returns a string in the same way that the actual
+		// implementation formats the RawMessages.
 		$mockStatusFormatter = $this->createMock( StatusFormatter::class );
 		$mockStatusFormatter->method( 'getWikiText' )
 			->willReturnCallback( static function ( StatusValue $status ) {
-				/** @var RawMessage $rawError */
-				$rawError = $status->getErrors()[0]['message'];
-				return $rawError->fetchMessage();
+				if ( count( $status->getErrors() ) === 1 ) {
+					/** @var RawMessage $rawMessage */
+					$rawMessage = $status->getErrors()[0]['message'];
+					return $rawMessage->fetchMessage();
+				}
+				$returnString = '';
+				foreach ( $status->getErrors() as $rawError ) {
+					/** @var RawMessage $rawMessage */
+					$rawMessage = $rawError['message'];
+					$returnString .= '* ' . $rawMessage->fetchMessage() . "\n";
+				}
+				return $returnString;
 			} );
-		// T287318 - TestingAccessWrapper::__call does not support pass-by-reference
-		$classReflection = new ReflectionClass( $objectUnderTest );
-		$methodReflection = $classReflection->getMethod( 'maybeOutputVerboseStatusError' );
-		$methodReflection->setAccessible( true );
 		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
 		$objectUnderTest->statusFormatter = $mockStatusFormatter;
-		// Call the method under test for each $checkResult in the $checkResults array.
-		foreach ( $checkResults as $checkResult ) {
-			$methodReflection->invokeArgs( $objectUnderTest->object, [ $checkResult, $sha1, &$hasOutputtedSha1 ] );
+		// Call the method under test
+		$objectUnderTest->maybeOutputVerboseScanResult( $sha1, $checkStatus );
+	}
+
+	public static function provideMaybeOutputVerboseScanResultForStatusError() {
+		return [
+			'Null match status with an error' => [
+				'abc1234', StatusValue::newFatal( new RawMessage( "test" ) ),
+				[], [ "SHA-1 abc1234\n", "* test\n", "SHA-1 abc1234: Scan failed.\n" ]
+			],
+			'Null match status with multiple errors' => [
+				'abc1234',
+				StatusValue::newFatal( new RawMessage( "test" ) )->fatal( new RawMessage( "test2" ) ),
+				[], [ "SHA-1 abc1234\n", "* test\n* test2\n", "SHA-1 abc1234: Scan failed.\n" ]
+			],
+			'Positive match status without warnings' => [
+				'abc123', StatusValue::newGood( true ), [ "SHA-1 abc123: Positive match.\n" ], [],
+			],
+			'Negative match status with warnings' => [
+				'abc12345',
+				StatusValue::newGood( false )->warning( new RawMessage( "test-warning" ) ),
+				[ "SHA-1 abc12345: No match.\n" ], [ "SHA-1 abc12345\n", "* test-warning\n" ],
+			],
+		];
+	}
+
+	/** @dataProvider provideExecute */
+	public function testExecute( array $sha1Values, $usesJobQueue ) {
+		// Get the object under test
+		$objectUnderTest = $this->getMockBuilder( ScanFilesInScanTable::class )
+			->onlyMethods( [
+				'initServices', 'parseLastCheckedTimestamp',
+				'generateSha1ValuesForScan', 'maybeOutputVerboseScanResult'
+			] )
+			->getMock();
+		// Define a mock for ::generateSha1ValuesForScan that returns the strings in $sha1Values
+		$objectUnderTest->expects( $this->once() )
+			->method( 'generateSha1ValuesForScan' )
+			->willReturnCallback( static function () use ( $sha1Values ) {
+				yield from $sha1Values;
+			} );
+		// Expect that ::initServices and ::parseLastCheckedTimestamp are called once
+		$objectUnderTest->expects( $this->once() )
+			->method( 'initServices' );
+		$objectUnderTest->expects( $this->once() )
+			->method( 'parseLastCheckedTimestamp' );
+		// Define a mock JobQueueGroup
+		$mockJobQueueGroup = $this->createMock( JobQueueGroup::class );
+		$mockMediaModerationFileScanner = $this->createMock( MediaModerationFileScanner::class );
+		if ( $usesJobQueue ) {
+			// If $usesJobQueue is true, then set the --use-jobqueue option
+			$objectUnderTest->setOption( 'use-jobqueue', 1 );
+			// If using jobs, then no calls should be made to MediaModerationFileScanner::scanSha1
+			$mockMediaModerationFileScanner->expects( $this->never() )
+				->method( 'scanSha1' );
+			$objectUnderTest->expects( $this->never() )
+				->method( 'maybeOutputVerboseScanResult' );
+			// If using the job queue, then expect calls to JobQueueGroup::push for each SHA-1
+			$mockJobQueueGroup->expects( $this->exactly( count( $sha1Values ) ) )
+				->method( 'push' )
+				->willReturnCallback( function ( IJobSpecification $jobSpec ) use ( &$sha1Values ) {
+					$this->assertSame(
+						'mediaModerationScanFileJob',
+						$jobSpec->getType(),
+						'The job specification pushed to the JobQueueGroup was not as expected.'
+					);
+					$this->assertSame(
+						$jobSpec->getParams()['sha1'],
+						array_shift( $sha1Values ),
+						'The job specification params pushed to the JobQueueGroup was not as expected.'
+					);
+				} );
+		} else {
+			// If not using jobs, then no jobs should be pushed.
+			$mockJobQueueGroup->expects( $this->never() )
+				->method( 'push' );
+			// Expect that MediaModerationFileScanner::scanSha1 is called along with ::maybeOutputVerboseScanResult
+			$exampleStatus = StatusValue::newFatal( new RawMessage( "test-test-test" ) );
+			$mockMediaModerationFileScanner->expects( $this->exactly( count( $sha1Values ) ) )
+				->method( 'scanSha1' )
+				->willReturnCallback( function ( $sha1 ) use ( $sha1Values, $exampleStatus ) {
+					$this->assertContains( $sha1, $sha1Values );
+					return $exampleStatus;
+				} );
+			$objectUnderTest->expects( $this->exactly( count( $sha1Values ) ) )
+				->method( 'maybeOutputVerboseScanResult' )
+				->willReturnCallback( function ( $_, $scanStatus ) use ( $exampleStatus ) {
+					$this->assertSame( $exampleStatus, $scanStatus );
+				} );
 		}
-		$this->assertSame(
-			$expectedOutputtedSha1Value,
-			$hasOutputtedSha1,
-			'::maybeOutputVerboseStatusError did not modify the $hasOutputtedSha1 argument in the expected way.'
+		// Assign the mock services to the object under test
+		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
+		$objectUnderTest->mediaModerationFileScanner = $mockMediaModerationFileScanner;
+		$objectUnderTest->jobQueueGroup = $mockJobQueueGroup;
+		// Call the method under test
+		$objectUnderTest->execute();
+	}
+
+	public static function provideExecute() {
+		return [
+			'No SHA-1 values when using job queue' => [ [], true ],
+			'No SHA-1 values' => [ [], false ],
+			'A few SHA-1 values when using job queue' => [ [ 'test', 'test1234', 'abc' ], true ],
+			'A few SHA-1 values' => [ [ 'test', 'test1234', 'abc' ], false ],
+		];
+	}
+
+	/** @dataProvider provideWaitForJobQueueSize */
+	public function testWaitForJobQueueSize(
+		$originalProcessingArray, $pollUntilArgument, $maxPollsArgument, $verboseArgumentEnabled, $batchParameter,
+		$pollResponses, $expectedProcessingArraysAfterCall, $expectedOutputStrings, $expectedErrorStrings
+	) {
+		// Get the object under test
+		$objectUnderTest = $this->getMockBuilder( ScanFilesInScanTable::class )
+			->onlyMethods( [ 'pollSha1ValuesForScanCompletion', 'output', 'error' ] )
+			->getMock();
+		// Mock ::pollSha1ValuesForScanCompletion to return the items in $pollResponses in order.
+		$objectUnderTest->expects( $this->exactly( count( $pollResponses ) ) )
+			->method( 'pollSha1ValuesForScanCompletion' )
+			->willReturnOnConsecutiveCalls( ...$pollResponses );
+		// Expect that ::output is called with the $expectedOutputStrings
+		$objectUnderTest->expects( $this->exactly( count( $expectedOutputStrings ) ) )
+			->method( 'output' )
+			->willReturnCallback( function ( $actualOutputString ) use ( $expectedOutputStrings ) {
+				$this->assertContains(
+					$actualOutputString,
+					$expectedOutputStrings,
+					'::output was called with an unexpected string by ::waitForJobQueueSize'
+				);
+			} );
+		// Expect that ::error is called with the $expectedErrorStrings
+		$objectUnderTest->expects( $this->exactly( count( $expectedErrorStrings ) ) )
+			->method( 'error' )
+			->willReturnCallback( function ( $actualOutputString ) use ( $expectedErrorStrings ) {
+				$this->assertContains(
+					$actualOutputString,
+					$expectedErrorStrings,
+					'::error was called with an unexpected string by ::waitForJobQueueSize'
+				);
+			} );
+		// Set the poll-sleep time to 0 for the test (otherwise the test will take several seconds)
+		$objectUnderTest->setOption( 'poll-sleep', 0 );
+		// Set the poll-until as $pollUntilArgument unless $pollUntilArgument is null. $pollUntilArgument as null
+		// indicates that the option was not set (and so to use the default).
+		if ( $pollUntilArgument !== null ) {
+			$objectUnderTest->setOption( 'poll-until', $pollUntilArgument );
+		}
+		if ( $maxPollsArgument !== null ) {
+			$objectUnderTest->setOption( 'max-polls', $maxPollsArgument );
+		}
+		if ( $verboseArgumentEnabled ) {
+			$objectUnderTest->setOption( 'verbose', 1 );
+		}
+		// Set --batch-size as the value is used in calculating the default of --poll-until
+		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
+		$objectUnderTest->mBatchSize = count( $batchParameter );
+		// Set the internal array to $originalProcessingArray
+		$objectUnderTest->sha1ValuesBeingProcessed = $originalProcessingArray;
+		// Call the method under test
+		$objectUnderTest->waitForJobQueueSize( $batchParameter );
+		// Assert that the internal array is as expected
+		$this->assertArrayEquals(
+			$expectedProcessingArraysAfterCall,
+			$objectUnderTest->sha1ValuesBeingProcessed,
+			'The SHA-1s still being processed array is not as expected.'
 		);
 	}
 
-	public static function provideMaybeOutputVerboseStatusError() {
+	public static function provideWaitForJobQueueSize() {
 		return [
-			'One call to the method under test' => [
-				// The StatusValue objects to pass to each call of the method under test
-				// The method under test is called the number of times equal to the number
-				// of items in this array.
-				[
-					StatusValue::newFatal( new RawMessage( "test" ) ),
-				],
-				// A SHA-1 value to be provided to the method under test
-				'abc123',
-				// The value of $hasOutputtedSha1 to be provided by reference to the method under test.
-				false,
-				// The expected strings passed to ::error by the method under test
-				[
-					"SHA-1 abc123\n",
-					"...test\n",
-				],
-				// The expected value of $hasOutputtedSha1 at the end of the test
-				true,
-			],
-			'Two calls to the method under test' => [
-				// The StatusValue objects to pass to each call of the method under test
-				// The method under test is called the number of times equal to the number
-				// of items in this array.
-				[
-					StatusValue::newFatal( new RawMessage( "test" ) ),
-					StatusValue::newFatal( new RawMessage( "test2" ) ),
-				],
-				// A SHA-1 value to be provided to the method under test
-				'abc12345',
-				// The value of $hasOutputtedSha1 to be provided by reference to the method under test.
-				false,
-				// The expected strings passed to ::error by the method under test
-				[
-					"SHA-1 abc12345\n",
-					"...test\n",
-					"...test2\n",
-				],
-				// The expected value of $hasOutputtedSha1 at the end of the test
-				true,
-			],
-			'No calls to the method under test' => [
+			'Originally empty internal array, 5 SHA-1s in batch, with default poll-until' => [
+				// The value of the sha1ValuesBeingProcessed property before calling the method under test
 				[],
-				'abc1234',
+				// The value of --poll-until. Null indicates the value is not set.
+				null,
+				// The value of --max-polls. Null indicates the value is not set.
+				null,
+				// Whether the --verbose argument has been specified,
 				false,
+				// The array provided to the method under test
+				[ 'test', 'testabc', 'testabc1', 'testabc12', 'testabc123' ],
+				// The return values from ::pollSha1ValuesForScanCompletion in order of call
+				[ [ 'test' ], [ 'testabc12', 'testabc123' ] ],
+				// The expected value of the sha1ValuesBeingProcessed property after calling the method under test
+				[ 'testabc', 'testabc1' ],
+				// An array of strings expected to be provided to ::output by the method under test
 				[],
-				false,
+				// An array of strings expected to be provided to ::error by the method under test
+				[],
+			],
+			'12 items in internal array before call, 1 SHA-1 in batch, poll-until as 5, verbose mode' => [
+				range( 'a', 'l' ), 5, null, true, [ 'testabc' ], [ range( 'a', 'g' ), [ 'testabc' ] ],
+				range( 'h', 'l' ),
+				[
+					"Added 1 SHA-1 value(s) for scanning via the job queue: testabc\n",
+					'13 SHA-1 value(s) currently being processed via jobs. Waiting until there are 5 or less SHA-1 ' .
+					"value(s) being processed before adding more jobs.\n",
+					'6 SHA-1 value(s) currently being processed via jobs. Waiting until there are 5 or less SHA-1 ' .
+					"value(s) being processed before adding more jobs.\n",
+				], [],
+			],
+			'10 items in internal array before call, 1 SHA-1 in batch, max-polls as 2' => [
+				range( 'a', 'j' ), null, 2, false, [ 'testabc' ], [ range( 'a', 'g' ), [ 'testabc' ] ], [],
+				[], [],
+			],
+			'10 items in internal array before call, 2 SHA-1s in batch, max-polls as 2, verbose mode' => [
+				range( 'a', 'j' ), null, 2, true, [ 'testabc', 'test' ], [ range( 'a', 'g' ), [ 'testabc' ] ], [],
+				[
+					"Added 2 SHA-1 value(s) for scanning via the job queue: testabc, test\n",
+					'12 SHA-1 value(s) currently being processed via jobs. Waiting until there are 1 or less SHA-1 ' .
+					"value(s) being processed before adding more jobs.\n",
+					'5 SHA-1 value(s) currently being processed via jobs. Waiting until there are 1 or less SHA-1 ' .
+					"value(s) being processed before adding more jobs.\n"
+				],
+				[
+					'The internal array of SHA-1 values being processed has been cleared as more than ' .
+					"2 polls have occurred.\n"
+				],
+			],
+			'No items in internal array before call, no items in batch' => [
+				[], null, null, false, [], [], [], [], [],
+			],
+			'No items in internal array before call, no items in batch, verbose mode' => [
+				[], null, null, true, [], [], [],
+				[
+					"Added 0 SHA-1 value(s) for scanning via the job queue: \n"
+				], [],
 			]
 		];
+	}
+
+	public function testPollSha1ValuesForScanCompletion() {
+		$dbrMock = $this->createMock( IReadableDatabase::class );
+		$mockExpression = $this->createMock( Expression::class );
+		$dbrMock->method( 'expr' )
+			->with( 'mms_last_checked', '>', '20230504' )
+			->willReturn( $mockExpression );
+		// Create a SelectQueryBuilder that has a mock ::fetchFieldValues
+		$mockSelectQueryBuilder = $this->getMockBuilder( SelectQueryBuilder::class )
+			->setConstructorArgs( [ $dbrMock ] )
+			->onlyMethods( [ 'fetchFieldValues' ] )
+			->getMock();
+		$mockSelectQueryBuilder->expects( $this->once() )
+			->method( 'fetchFieldValues' )
+			->willReturn( [ 'test', 'test1234' ] );
+		// Implement $dbrMock::newSelectQueryBuilder to return the $mockSelectQueryBuilder
+		$dbrMock->method( 'newSelectQueryBuilder' )->willReturn( $mockSelectQueryBuilder );
+		// Create a mock IConnectionProvider that returns the $dbrMock from ::getReplicaDatabase
+		$mockConnectionProvider = $this->createMock( IConnectionProvider::class );
+		$mockConnectionProvider->method( 'getReplicaDatabase' )
+			->willReturn( $dbrMock );
+		// Create a mock LBFactory that expects a call to ::waitForReplication
+		$mockLoadBalancerFactory = $this->createMock( LBFactory::class );
+		$mockLoadBalancerFactory->expects( $this->once() )
+			->method( 'waitForReplication' );
+		// Get the object under test
+		$objectUnderTest = TestingAccessWrapper::newFromObject( new ScanFilesInScanTable() );
+		// Assign the mock LBFactory
+		$objectUnderTest->loadBalancerFactory = $mockLoadBalancerFactory;
+		// Create a new instance of the MediaModerationDatabaseLookup service using the mock connection provider
+		// and assign it to the object under test.
+		$objectUnderTest->mediaModerationDatabaseLookup = new MediaModerationDatabaseLookup( $mockConnectionProvider );
+		// Set the internal SHA-1 processing array to a defined value
+		$objectUnderTest->sha1ValuesBeingProcessed = [ 'test', 'testabc' ];
+		// Set lastChecked
+		$objectUnderTest->lastChecked = '20230504000000';
+		// Call the method under test
+		$this->assertArrayEquals(
+			[ 'test', 'test1234' ],
+			$objectUnderTest->pollSha1ValuesForScanCompletion(),
+			'::pollSha1ValuesForScanCompletion did not return the expected array.'
+		);
+		// Assert that the $mockSelectQueryBuilder has the expected query info
+		$this->assertArrayEquals(
+			[ 'mms_sha1' ],
+			$mockSelectQueryBuilder->getQueryInfo()['fields'],
+			'The fields used in a poll were not as expected'
+		);
+		$this->assertArrayEquals(
+			[ $mockExpression, 'mms_sha1' => [ 'test', 'testabc' ] ],
+			$mockSelectQueryBuilder->getQueryInfo()['conds'],
+			'The conditions used in a poll were not as expected'
+		);
 	}
 }
