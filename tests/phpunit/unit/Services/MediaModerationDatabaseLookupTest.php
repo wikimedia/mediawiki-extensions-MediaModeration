@@ -8,10 +8,12 @@ use IDBAccessObject;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
 use MediaWiki\Tests\Unit\MockServiceDependenciesTrait;
 use MediaWikiUnitTestCase;
+use Wikimedia\Rdbms\Expression;
 use Wikimedia\Rdbms\IConnectionProvider;
 use Wikimedia\Rdbms\IDatabase;
 use Wikimedia\Rdbms\IReadableDatabase;
 use Wikimedia\Rdbms\SelectQueryBuilder;
+use Wikimedia\TestingAccessWrapper;
 use Wikimedia\Timestamp\ConvertibleTimestamp;
 use Wikimedia\Timestamp\TimestampException;
 
@@ -214,15 +216,15 @@ class MediaModerationDatabaseLookupTest extends MediaWikiUnitTestCase {
 		// Get the object under test, with ::newSelectQueryBuilder mocked
 		$objectUnderTest = $this->getMockBuilder( MediaModerationDatabaseLookup::class )
 			->disableOriginalConstructor()
-			->onlyMethods( [ 'newSelectQueryBuilder' ] )
+			->onlyMethods( [ 'newSelectQueryBuilderForScan' ] )
 			->getMock();
 		$objectUnderTest->expects( $this->once() )
-			->method( 'newSelectQueryBuilder' )
+			->method( 'newSelectQueryBuilderForScan' )
 			->willReturn( $selectQueryBuilderMock );
 		// Call the method under test
 		$this->assertArrayEquals(
 			[ 'test', 'testing' ],
-			$objectUnderTest->getSha1ValuesForScan( 123, '', SelectQueryBuilder::SORT_ASC, '' ),
+			$objectUnderTest->getSha1ValuesForScan( 123, '', SelectQueryBuilder::SORT_ASC, [], '' ),
 			true,
 			true,
 			'::getSha1ValuesForScan did not return the expected results array.'
@@ -241,13 +243,14 @@ class MediaModerationDatabaseLookupTest extends MediaWikiUnitTestCase {
 		);
 	}
 
-	/** @dataProvider provideNewSelectQueryBuilder */
-	public function testNewSelectQueryBuilder(
-		$lastChecked, $direction, $matchStatus, $dbType, $expectedConds, $expectedOptions
+	/** @dataProvider provideNewSelectQueryBuilderForScan */
+	public function testNewSelectQueryBuilderForScan(
+		$lastChecked, $direction, $excludedSha1Values, $matchStatus, $dbType,
+		$expectedConds, $expectedOptions, $mockDbr = null
 	) {
 		// Create a mock IConnectionProvider that returns a mock IReadableDatabase
 		$mockConnectionProvider = $this->createMock( IConnectionProvider::class );
-		$mockDbr = $this->createMock( IReadableDatabase::class );
+		$mockDbr = $mockDbr ?? $this->createMock( IReadableDatabase::class );
 		$mockConnectionProvider->method( 'getReplicaDatabase' )
 			->willReturn( $mockDbr );
 		// Mock that the $mockDbr returns $dbType as the result of IReadableDatabase::getType
@@ -258,11 +261,13 @@ class MediaModerationDatabaseLookupTest extends MediaWikiUnitTestCase {
 		$mockDbr->method( 'newSelectQueryBuilder' )
 			->willReturn( new SelectQueryBuilder( $mockDbr ) );
 		// Get the object under test and call the method under test
-		/** @var MediaModerationDatabaseLookup $objectUnderTest */
 		$objectUnderTest = $this->newServiceInstance( MediaModerationDatabaseLookup::class, [
 			'connectionProvider' => $mockConnectionProvider
 		] );
-		$returnedSelectQueryBuilder = $objectUnderTest->newSelectQueryBuilder( $lastChecked, $direction, $matchStatus );
+		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
+		$returnedSelectQueryBuilder = $objectUnderTest->newSelectQueryBuilderForScan(
+			$lastChecked, $direction, $excludedSha1Values, $matchStatus
+		);
 		// Check that the WHERE conditions and options array returned by ::getQueryInfo
 		// method of the result of ::newSelectQueryBuilder is as expected.
 		$this->assertCount(
@@ -294,13 +299,15 @@ class MediaModerationDatabaseLookupTest extends MediaWikiUnitTestCase {
 		);
 	}
 
-	public static function provideNewSelectQueryBuilder() {
+	public static function provideNewSelectQueryBuilderForScan() {
 		return [
 			'Last checked null, direction ASC, any match status, on mariadb' => [
 				// $lastChecked parameter
 				null,
 				// $direction parameter
 				SelectQueryBuilder::SORT_ASC,
+				// $excludedSha1Values parameter
+				[],
 				// $matchStatus parameter
 				MediaModerationDatabaseLookup::ANY_MATCH_STATUS,
 				// String to be returned by IReadableDatabase::getType
@@ -313,6 +320,7 @@ class MediaModerationDatabaseLookupTest extends MediaWikiUnitTestCase {
 			'Last checked as null, direction DESC, match status null, on mariadb' => [
 				null,
 				SelectQueryBuilder::SORT_DESC,
+				[],
 				null,
 				'mariadb',
 				[ 'mms_last_checked' => null, 'mms_is_match' => null ],
@@ -321,6 +329,7 @@ class MediaModerationDatabaseLookupTest extends MediaWikiUnitTestCase {
 			'Last checked as null, direction DESC, match status null, on postgres' => [
 				null,
 				SelectQueryBuilder::SORT_DESC,
+				[],
 				'1',
 				'postgres',
 				[ 'mms_last_checked' => null, 'mms_is_match' => '1' ],
@@ -329,11 +338,30 @@ class MediaModerationDatabaseLookupTest extends MediaWikiUnitTestCase {
 			'Last checked as null, direction ASC, match status as 0, on postgres' => [
 				null,
 				SelectQueryBuilder::SORT_ASC,
+				[],
 				'0',
 				'postgres',
 				[ 'mms_last_checked' => null, 'mms_is_match' => '0' ],
 				[ 'ORDER BY' => [ 'mms_last_checked ASC NULLS FIRST' ] ],
 			],
 		];
+	}
+
+	public function testNewSelectQueryBuilderForScanForExcludedSha1() {
+		$mockExpression = $this->createMock( Expression::class );
+		$mockDbr = $this->createMock( IReadableDatabase::class );
+		$mockDbr->method( 'expr' )
+			->with( 'mms_sha1', '!=', [ 'test1234', 'testingabc' ] )
+			->willReturn( $mockExpression );
+		$this->testNewSelectQueryBuilderForScan(
+			null,
+			SelectQueryBuilder::SORT_DESC,
+			[ 'test1234', 'testingabc' ],
+			null,
+			'mariadb',
+			[ 'mms_last_checked' => null, 'mms_is_match' => null, $mockExpression ],
+			[ 'ORDER BY' => [ 'mms_last_checked DESC' ] ],
+			$mockDbr
+		);
 	}
 }

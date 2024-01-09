@@ -2,14 +2,12 @@
 
 namespace MediaWiki\Extension\MediaModeration\Maintenance;
 
+use IDBAccessObject;
+use JobQueueGroup;
+use JobSpecification;
 use Maintenance;
-use MediaWiki\Extension\MediaModeration\PhotoDNA\IMediaModerationPhotoDNAServiceProvider;
-use MediaWiki\Extension\MediaModeration\PhotoDNA\Response;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
-use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseManager;
-use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileLookup;
-use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileProcessor;
-use MediaWiki\Language\RawMessage;
+use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileScanner;
 use MediaWiki\Status\StatusFormatter;
 use RequestContext;
 use StatusValue;
@@ -29,14 +27,14 @@ require_once "$IP/maintenance/Maintenance.php";
 class ScanFilesInScanTable extends Maintenance {
 
 	private LBFactory $loadBalancerFactory;
-	private IMediaModerationPhotoDNAServiceProvider $mediaModerationPhotoDNAServiceProvider;
-	private MediaModerationFileLookup $mediaModerationFileLookup;
-	private MediaModerationDatabaseManager $mediaModerationDatabaseManager;
 	private MediaModerationDatabaseLookup $mediaModerationDatabaseLookup;
-	private MediaModerationFileProcessor $mediaModerationFileProcessor;
+	private MediaModerationFileScanner $mediaModerationFileScanner;
+	private JobQueueGroup $jobQueueGroup;
 	private StatusFormatter $statusFormatter;
 
 	private ?string $lastChecked;
+	/** @var array If --use-jobqueue is specified, holds the SHA-1 values currently being processed by the job queue. */
+	private array $sha1ValuesBeingProcessed = [];
 
 	public function __construct() {
 		parent::__construct();
@@ -53,14 +51,49 @@ class ScanFilesInScanTable extends Maintenance {
 			'successfully scanned (i.e. the match status is not null) are not re-scanned by this script.',
 		);
 		$this->addOption(
+			'use-jobqueue',
+			'Scan files concurrently using the job queue. Each job scans one SHA-1 and are added in ' .
+			'batches of --batch-size. The script waits to add more jobs until the number of jobs left processing ' .
+			'less than --poll-until. Using the job queue increases the speed of scanning, but disables output to ' .
+			'console about the status of scans as these are handled by jobs which produce no console output.',
+		);
+		$this->addOption(
 			'sleep',
 			'Sleep time (in seconds) between every batch of SHA-1 values scanned. Default: 1',
 			false,
 			true
 		);
 		$this->addOption(
+			'poll-sleep',
+			'Sleep time (in seconds) between every poll to check for completed scanning jobs. This is done ' .
+			'so that the script does not add more jobs to scan SHA-1 values until the SHA-1 values being currently ' .
+			'processed is equal or less than --poll-until. Does nothing if the --use-jobqueue option is not ' .
+			'specified. Default: 1',
+			false,
+			true
+		);
+		$this->addOption(
+			'poll-until',
+			'If --use-jobqueue is specified, used to wait until there are this or less SHA-1s being ' .
+			'currently being processed by the job queue. This is checked via polling and the speed of polling is ' .
+			'controlled by --poll-sleep. The default for this option is half of the value of --batch-size (which ' .
+			'is 200 by default).',
+			false,
+			true
+		);
+		$this->addOption(
+			'max-polls',
+			'If --use-jobqueue is specified, then this controls the number of times that the status of ' .
+			'scans in the job queue are polled. If the number of times polled exceeds this value the array that ' .
+			'tracks the SHA-1 values currently being processed is emptied to avoid failed jobs causing the script ' .
+			'to infinitely loop.',
+			false,
+			true
+		);
+		$this->addOption(
 			'verbose',
-			'Enables verbose mode which prints out information once a SHA-1 has finished being scanned.',
+			'Enables verbose mode which prints out information once a SHA-1 has finished being scanned.' .
+			'If --use-jobqueue is specified, this instead prints out information about the jobs being queued.',
 			false,
 			false,
 			'v'
@@ -74,68 +107,50 @@ class ScanFilesInScanTable extends Maintenance {
 		$this->parseLastCheckedTimestamp();
 
 		foreach ( $this->generateSha1ValuesForScan() as $sha1 ) {
-			$newMatchStatus = $this->mediaModerationDatabaseLookup->getMatchStatusForSha1( $sha1 );
-			// Used so that the SHA-1 is only outputted once by ::maybeOutputVerboseStatusError if it
-			// is called multiple times.
-			$hasOutputtedSha1 = false;
-			foreach ( $this->mediaModerationFileLookup->getFileObjectsForSha1( $sha1 ) as $file ) {
-				if ( !$this->mediaModerationFileProcessor->canScanFile( $file ) ) {
-					// If this $file cannot be scanned, then try the next file with this SHA-1
-					// and if in verbose mode output to the console about this.
-					$this->maybeOutputVerboseStatusError(
-						StatusValue::newFatal(
-							new RawMessage(
-								'The file ' . $file->getName() . ' cannot be scanned.'
-							)
-						),
-						$sha1,
-						$hasOutputtedSha1
-					);
-					continue;
-				}
-				// Run the check using the PhotoDNA API.
-				$checkResult = $this->mediaModerationPhotoDNAServiceProvider->check( $file );
-				/** @var Response|null $response */
-				$response = $checkResult->getValue();
-				if ( $response === null || $response->getStatusCode() !== Response::STATUS_OK ) {
-					// Assume something is wrong with the thumbnail if the request fails,
-					// and just try a new $file with this SHA-1 and output information about
-					// the failed request if in verbose mode.
-					$this->maybeOutputVerboseStatusError( $checkResult, $sha1, $hasOutputtedSha1 );
-					continue;
-				}
-				$newMatchStatus = $response->isMatch();
-				// Stop processing this SHA-1 as we have a result.
-				break;
+			if ( $this->hasOption( 'use-jobqueue' ) ) {
+				// Push scan jobs to the job queue if --use-jobqueue is set.
+				// To monitor the status of scans when using the job queue it
+				// is intended that the user monitors statsd / the logging channel.
+				$this->jobQueueGroup->push( new JobSpecification(
+					'mediaModerationScanFileJob',
+					[ 'sha1' => $sha1 ]
+				) );
+			} else {
+				$scanStatus = $this->mediaModerationFileScanner->scanSha1( $sha1 );
+				$this->maybeOutputVerboseScanResult( $sha1, $scanStatus );
 			}
-			// Update the match status, even if none of the $file objects could be scanned.
-			// If no scanning was successful, then the status will remain
-			$this->mediaModerationDatabaseManager->updateMatchStatusForSha1( $sha1, $newMatchStatus );
-			// TODO: Send an email if $newMatchStatus is true (T351407).
-			$this->maybeOutputVerboseInformation( $sha1, $newMatchStatus );
 		}
 	}
 
 	/**
-	 * Outputs verbose information about the SHA-1 provided if
+	 * Outputs verbose information about the status of a scan for a provided SHA-1 if
 	 * verbose mode is enabled via the --verbose command line argument.
 	 *
 	 * @param string $sha1 The SHA-1 that was just checked
-	 * @param ?bool $matchStatus The match status determined by the scan
+	 * @param StatusValue $checkResult The StatusValue as returned by MediaModerationFileScanner::scanSha1
 	 * @return void
 	 */
-	protected function maybeOutputVerboseInformation( string $sha1, ?bool $matchStatus ) {
+	protected function maybeOutputVerboseScanResult( string $sha1, StatusValue $checkResult ) {
 		if ( !$this->hasOption( 'verbose' ) ) {
 			return;
 		}
+		// Output any warnings or errors.
+		if ( !$checkResult->isGood() && count( $checkResult->getErrors() ) ) {
+			$this->error( "SHA-1 $sha1\n" );
+			if ( count( $checkResult->getErrors() ) === 1 ) {
+				$this->error( '* ' . $this->statusFormatter->getWikiText( $checkResult ) . "\n" );
+			} elseif ( count( $checkResult->getErrors() ) > 1 ) {
+				$this->error( $this->statusFormatter->getWikiText( $checkResult ) );
+			}
+		}
 		$outputString = "SHA-1 $sha1: ";
-		if ( $matchStatus === null ) {
+		if ( $checkResult->getValue() === null ) {
 			$outputString .= "Scan failed.\n";
 			// If the scan failed, make this an error output.
 			$this->error( $outputString );
 			return;
 		}
-		if ( $matchStatus ) {
+		if ( $checkResult->getValue() ) {
 			$outputString .= "Positive match.\n";
 		} else {
 			$outputString .= "No match.\n";
@@ -143,38 +158,12 @@ class ScanFilesInScanTable extends Maintenance {
 		$this->output( $outputString );
 	}
 
-	/**
-	 * Outputs verbose information about the provided $checkResult if
-	 * verbose mode is enabled via the --verbose command line argument.
-	 *
-	 * @param StatusValue $checkResult The result returned by IMediaModerationPhotoDNAServiceProvider::check
-	 *   or a StatusValue with a RawMessage.
-	 * @param string $sha1 The SHA-1 being processed.
-	 * @param bool &$hasOutputtedSha1 Whether the SHA-1 currently being processed has already been outputted to
-	 *   the console.
-	 * @return void
-	 */
-	protected function maybeOutputVerboseStatusError(
-		StatusValue $checkResult, string $sha1, bool &$hasOutputtedSha1
-	) {
-		if ( !$this->hasOption( 'verbose' ) ) {
-			return;
-		}
-		if ( !$hasOutputtedSha1 ) {
-			$this->error( "SHA-1 $sha1\n" );
-			$hasOutputtedSha1 = true;
-		}
-		$this->error( '...' . $this->statusFormatter->getWikiText( $checkResult ) . "\n" );
-	}
-
 	protected function initServices() {
 		$services = $this->getServiceContainer();
 		$this->loadBalancerFactory = $services->getDBLoadBalancerFactory();
-		$this->mediaModerationPhotoDNAServiceProvider = $services->get( 'MediaModerationPhotoDNAServiceProvider' );
-		$this->mediaModerationFileLookup = $services->get( 'MediaModerationFileLookup' );
-		$this->mediaModerationDatabaseManager = $services->get( 'MediaModerationDatabaseManager' );
 		$this->mediaModerationDatabaseLookup = $services->get( 'MediaModerationDatabaseLookup' );
-		$this->mediaModerationFileProcessor = $services->get( 'MediaModerationFileProcessor' );
+		$this->mediaModerationFileScanner = $services->get( 'MediaModerationFileScanner' );
+		$this->jobQueueGroup = $services->getJobQueueGroup();
 		$this->statusFormatter = $services->getFormatterFactory()->getStatusFormatter( RequestContext::getMain() );
 	}
 
@@ -200,11 +189,24 @@ class ScanFilesInScanTable extends Maintenance {
 			//    and from a string without any changes in value (thus it must be an integer
 			//    in string form).
 			// Convert it to a TS_MW timestamp by adding 000000 to the end (the time component).
+			if (
+				$lastChecked === $this->mediaModerationDatabaseLookup
+					->getDateFromTimestamp( ConvertibleTimestamp::now() )
+			) {
+				$this->fatalError( 'The --last-checked argument cannot be the current date.' );
+			}
 			$this->lastChecked = $lastChecked . '000000';
 		} elseif ( ConvertibleTimestamp::convert( TS_MW, $lastChecked ) ) {
 			// If the 'last-checked' argument is recognised as a timestamp by ConvertibleTimestamp::convert,
 			// then get the date part and discard the time part (replacing it with 000000).
-			$this->lastChecked = $this->mediaModerationDatabaseLookup->getDateFromTimestamp( $lastChecked ) . '000000';
+			$dateFromTimestamp = $this->mediaModerationDatabaseLookup->getDateFromTimestamp( $lastChecked );
+			if (
+				$dateFromTimestamp === $this->mediaModerationDatabaseLookup
+					->getDateFromTimestamp( ConvertibleTimestamp::now() )
+			) {
+				$this->fatalError( 'The --last-checked argument cannot be the current date.' );
+			}
+			$this->lastChecked = $dateFromTimestamp . '000000';
 		} else {
 			// The 'last-checked' argument could not be parsed, so raise an error
 			$this->fatalError(
@@ -226,6 +228,7 @@ class ScanFilesInScanTable extends Maintenance {
 				$this->getBatchSize() ?? 200,
 				$this->lastChecked,
 				SelectQueryBuilder::SORT_ASC,
+				$this->sha1ValuesBeingProcessed,
 				MediaModerationDatabaseLookup::NULL_MATCH_STATUS
 			);
 			// Store the number of rows returned to determine if another batch should be performed.
@@ -233,10 +236,100 @@ class ScanFilesInScanTable extends Maintenance {
 			yield from $batch;
 			// Sleep for the number of seconds specified in the 'sleep' option.
 			sleep( intval( $this->getOption( 'sleep', 1 ) ) );
+			if ( $this->hasOption( 'use-jobqueue' ) ) {
+				// Wait until the number of SHA-1 values being processed drops below a specific count.
+				$this->waitForJobQueueSize( $batch );
+			}
 			// Wait for replication so that updates to the mms_is_match and mms_last_checked
 			// on the rows processed in this batch are replicated to replica DBs.
 			$this->loadBalancerFactory->waitForReplication();
 		} while ( $lastBatchRowCount !== 0 );
+	}
+
+	/**
+	 * Waits for the number of SHA-1 values currently being processed using jobs to be less
+	 * than half the batch size.
+	 *
+	 * When in verbose mode this method also prints out information about the SHA-1 values being processed.
+	 *
+	 * @param array $batch The new batch of SHA-1s being processed. If no batch was added,
+	 *   specify an empty array.
+	 * @return void
+	 */
+	protected function waitForJobQueueSize( array $batch ) {
+		$pollUntil = intval( $this->getOption( 'poll-until', floor( ( $this->getBatchSize() ?? 200 ) / 2 ) ) );
+		if ( $this->hasOption( 'verbose' ) ) {
+			// If in verbose mode, print out the batch that was just added to the console.
+			$batchSize = count( $batch );
+			$this->output(
+				"Added $batchSize SHA-1 value(s) for scanning via the job queue: " .
+				implode( ', ', $batch ) . "\n"
+			);
+		}
+		// Add the new SHA-1 values being processed by the job queue to the array keeping track
+		// of the job queue count. Needed because JobQueueEventBus does not return the current
+		// job queue count.
+		$this->sha1ValuesBeingProcessed = array_merge( $this->sha1ValuesBeingProcessed, $batch );
+		// Wait until at least half of the SHA-1's have been updated to have mms_last_checked as the current date
+		// or we have looped more than --max-polls times.
+		$numberOfTimesPolled = 0;
+		if ( !count( $this->sha1ValuesBeingProcessed ) ) {
+			// Return early if sha1ValuesBeingProcessed is empty, as we have nothing to wait for.
+			return;
+		}
+		do {
+			if ( $this->hasOption( 'verbose' ) ) {
+				// If in verbose mode, print out how many jobs are currently processing and how many we are
+				// waiting to complete before adding more.
+				$sha1sBeingProcessedCount = count( $this->sha1ValuesBeingProcessed );
+				$this->output(
+					"$sha1sBeingProcessedCount SHA-1 value(s) currently being processed via jobs. " .
+					"Waiting until there are $pollUntil or less SHA-1 value(s) being processed before " .
+					"adding more jobs.\n"
+				);
+			}
+			$this->sha1ValuesBeingProcessed = array_diff(
+				$this->sha1ValuesBeingProcessed, $this->pollSha1ValuesForScanCompletion()
+			);
+			sleep( intval( $this->getOption( 'poll-sleep', 1 ) ) );
+			$numberOfTimesPolled++;
+		} while (
+			count( $this->sha1ValuesBeingProcessed ) > $pollUntil &&
+			$numberOfTimesPolled < $this->getOption( 'max-polls', 60 )
+		);
+		// If the we polled too many times, then reset the internal array of SHA-1s being processed as it is probably
+		// out of sync to the actual number of jobs running.
+		if ( $numberOfTimesPolled >= $this->getOption( 'max-polls', 60 ) ) {
+			if ( $this->hasOption( 'verbose' ) ) {
+				$this->error(
+					'The internal array of SHA-1 values being processed has been cleared as more than ' .
+					"{$this->getOption( 'max-polls', 60 )} polls have occurred.\n"
+				);
+			}
+			$this->sha1ValuesBeingProcessed = [];
+		}
+	}
+
+	protected function pollSha1ValuesForScanCompletion(): array {
+		$dbr = $this->mediaModerationDatabaseLookup->getDb( IDBAccessObject::READ_NORMAL );
+		// Wait for replication to occur to avoid polling a out-of-date replica DB.
+		$this->loadBalancerFactory->waitForReplication();
+		$queryBuilder = $dbr->newSelectQueryBuilder()
+			->select( 'mms_sha1' )
+			->from( 'mediamoderation_scan' )
+			->where( [
+				$dbr->expr(
+					'mms_last_checked',
+					'>',
+					$this->mediaModerationDatabaseLookup->getDateFromTimestamp( $this->lastChecked )
+				),
+			] );
+		if ( count( $this->sha1ValuesBeingProcessed ) ) {
+			$queryBuilder->andWhere( [
+				'mms_sha1' => $this->sha1ValuesBeingProcessed
+			] );
+		}
+		return $queryBuilder->fetchFieldValues();
 	}
 }
 

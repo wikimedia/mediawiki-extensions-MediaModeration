@@ -41,7 +41,8 @@
 	},
 	"JobClasses": {
 		"processMediaModeration": "MediaWiki\\Extension\\MediaModeration\\Job\\ProcessMediaModerationJob",
-		"processMediaModerationPrioritized": "MediaWiki\\Extension\\MediaModeration\\Job\\ProcessMediaModerationJob"
+		"processMediaModerationPrioritized": "MediaWiki\\Extension\\MediaModeration\\Job\\ProcessMediaModerationJob",
+		"mediaModerationScanFileJob": "MediaWiki\\Extension\\MediaModeration\\Job\\MediaModerationScanFileJob"
 	},
 	"ServiceWiringFiles": [
 		"src/ServiceWiring.php"
