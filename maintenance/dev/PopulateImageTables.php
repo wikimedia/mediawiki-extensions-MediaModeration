@@ -55,7 +55,7 @@ class PopulateImageTables extends Maintenance {
 			$maintenanceUpload = new UploadFromUrl();
 			if ( !isset( $image['pageimage'] ) ) {
 				// TODO This occurs often. Should find some way to require that the metadata is present.
-				$this->output( '... skipping, does not have image metadata' );
+				$this->output( "... skipping, does not have image metadata\n" );
 				continue;
 			}
 			$maintenanceUpload->initialize( $image['pageimage'], $image['original']['source'] );
