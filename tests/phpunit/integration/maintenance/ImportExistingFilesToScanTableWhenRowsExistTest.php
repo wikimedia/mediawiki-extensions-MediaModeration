@@ -306,7 +306,7 @@ class ImportExistingFilesToScanTableWhenRowsExistTest extends MaintenanceBaseTes
 					'fa_timestamp' => $this->db->timestamp( '20201105235239' ),
 					'fa_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j70ru',
 					'fa_deleted' => 0,
-					'fa_deleted_timestamp' => '20210506070809',
+					'fa_deleted_timestamp' => $this->db->timestamp( '20210506070809' ),
 					'fa_deleted_reason_id' => $commentId,
 				],
 				// Has same timestamp as the above file, but different SHA-1
@@ -326,7 +326,7 @@ class ImportExistingFilesToScanTableWhenRowsExistTest extends MaintenanceBaseTes
 					'fa_timestamp' => $this->db->timestamp( '20201105235239' ),
 					'fa_sha1' => 'sy02psim0bgdh0st4vdltuzoh7j70ru',
 					'fa_deleted' => 0,
-					'fa_deleted_timestamp' => '20210506070810',
+					'fa_deleted_timestamp' => $this->db->timestamp( '20210506070810' ),
 					'fa_deleted_reason_id' => $commentId,
 				],
 				// Has same timestamp and SHA-1 as the above file
@@ -346,7 +346,7 @@ class ImportExistingFilesToScanTableWhenRowsExistTest extends MaintenanceBaseTes
 					'fa_timestamp' => $this->db->timestamp( '20201105235239' ),
 					'fa_sha1' => 'sy02psim0bgdh0st4vdltuzoh7j70ru',
 					'fa_deleted' => 0,
-					'fa_deleted_timestamp' => '20210506070808',
+					'fa_deleted_timestamp' => $this->db->timestamp( '20210506070808' ),
 					'fa_deleted_reason_id' => $commentId,
 				],
 				// Has a different SHA-1 and greater timestamp than any other filearchive row.
@@ -366,7 +366,7 @@ class ImportExistingFilesToScanTableWhenRowsExistTest extends MaintenanceBaseTes
 					'fa_timestamp' => $this->db->timestamp( '20231105235239' ),
 					'fa_sha1' => 'sy02psim0bgdh0st4vdltuzoh7j60ru',
 					'fa_deleted' => 0,
-					'fa_deleted_timestamp' => '20231205235239',
+					'fa_deleted_timestamp' => $this->db->timestamp( '20231205235239' ),
 					'fa_deleted_reason_id' => $commentId,
 				]
 			] )
