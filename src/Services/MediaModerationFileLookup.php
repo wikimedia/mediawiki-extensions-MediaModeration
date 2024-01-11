@@ -107,10 +107,12 @@ class MediaModerationFileLookup {
 	public function getRowCountForTimestamp( string $table, string $timestamp, ?string $sha1 ): int {
 		$fileSelectQueryBuilder = $this->getFileSelectQueryBuilder( $table )
 			->clearFields()
-			->field( 'COUNT(*)' )
-			->where( [
-				$this->getTimestampFieldForTable( $table ) => $timestamp,
+			->field( 'COUNT(*)' );
+		if ( $timestamp ) {
+			$fileSelectQueryBuilder->where( [
+				$this->getTimestampFieldForTable( $table ) => $this->localRepo->getReplicaDB()->timestamp( $timestamp ),
 			] );
+		}
 		if ( $sha1 !== null ) {
 			$fileSelectQueryBuilder->where( [
 				$this->getSha1FieldForTable( $table ) => $sha1,

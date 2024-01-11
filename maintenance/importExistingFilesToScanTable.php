@@ -203,7 +203,7 @@ class ImportExistingFilesToScanTable extends LoggedUpdateMaintenance {
 			$queryBuilder->where( $this->dbr->expr(
 				$this->mediaModerationFileLookup->getTimestampFieldForTable( $table ),
 				'>=',
-				$startTimestamp
+				$this->dbr->timestamp( $startTimestamp )
 			) );
 		}
 		$rowCountInTable = $queryBuilder
@@ -246,7 +246,7 @@ class ImportExistingFilesToScanTable extends LoggedUpdateMaintenance {
 		$filesWithTheCutoffTimestamp = (int)$fileSelectQueryBuilder
 			->clearFields()
 			->field( 'COUNT(*)' )
-			->where( $this->dbr->expr( $timestampField, '=', $previousBatchFinalTimestamp ) )
+			->where( $this->dbr->expr( $timestampField, '=', $this->dbr->timestamp( $previousBatchFinalTimestamp ) ) )
 			->caller( __METHOD__ )
 			->fetchField();
 		// Sanity check that the new batch size would actually be larger (otherwise
@@ -295,7 +295,8 @@ class ImportExistingFilesToScanTable extends LoggedUpdateMaintenance {
 		// than the cutoff timestamp.
 		if ( $previousBatchFinalTimestamp ) {
 			$fileSelectQueryBuilder
-				->where( $this->dbr->expr( $timestampField, '>=', $previousBatchFinalTimestamp ) );
+				->where( $this->dbr->expr(
+					$timestampField, '>=', $this->dbr->timestamp( $previousBatchFinalTimestamp ) ) );
 		}
 		// Order by the timestamp (oldest to newest) and set the limit as the batch size.
 		$fileSelectQueryBuilder

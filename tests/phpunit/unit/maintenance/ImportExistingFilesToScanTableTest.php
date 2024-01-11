@@ -67,6 +67,10 @@ class ImportExistingFilesToScanTableTest extends MediaWikiUnitTestCase {
 			->method( 'expr' )
 			->with( $expectedTimestampField, '>=', $previousBatchFinalTimestamp )
 			->willReturn( $mockExpressionObject );
+		$mockDbr->expects( $previousBatchFinalTimestamp ? $this->once() : $this->never() )
+			->method( 'timestamp' )
+			->with( $previousBatchFinalTimestamp )
+			->willReturn( $previousBatchFinalTimestamp );
 		// Create a mock LocalRepo that returns a mock DB from ::getReplicaDb
 		$mockLocalRepo = $this->createMock( LocalRepo::class );
 		$mockLocalRepo->method( 'getReplicaDB' )
@@ -198,6 +202,10 @@ class ImportExistingFilesToScanTableTest extends MediaWikiUnitTestCase {
 			->method( 'expr' )
 			->with( 'img_timestamp', '=', '20230405060708' )
 			->willReturn( $mockExpressionObject );
+		$mockDbr->expects( $this->once() )
+			->method( 'timestamp' )
+			->with( '20230405060708' )
+			->willReturn( '20230405060708' );
 		$objectUnderTest->dbr = $mockDbr;
 		// Verify the return value is as expected.
 		$this->assertSame(
@@ -576,6 +584,9 @@ class ImportExistingFilesToScanTableTest extends MediaWikiUnitTestCase {
 		$mockDbr->method( 'expr' )
 			->with( 'img_timestamp', '>=', $startTimestamp )
 			->willReturn( $mockExpression );
+		$mockDbr->method( 'timestamp' )
+			->with( $startTimestamp )
+			->willReturn( $startTimestamp );
 		// Mock the batch size
 		$objectUnderTest->method( 'getBatchSize' )
 			->willReturn( $batchSize );
