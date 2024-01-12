@@ -149,7 +149,10 @@ return [
 			$services->get( 'MediaModerationDatabaseManager' ),
 			$services->get( 'MediaModerationFileLookup' ),
 			$services->get( 'MediaModerationFileProcessor' ),
-			$services->get( 'MediaModerationPhotoDNAServiceProvider' )
+			$services->get( 'MediaModerationPhotoDNAServiceProvider' ),
+			$services->getFormatterFactory()->getStatusFormatter( RequestContext::getMain() ),
+			$services->getPerDbNameStatsdDataFactory(),
+			LoggerFactory::getInstance( 'mediamoderation' )
 		);
 	},
 	'MediaModerationHandler' =>

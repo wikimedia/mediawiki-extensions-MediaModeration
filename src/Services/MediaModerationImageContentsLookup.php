@@ -142,6 +142,9 @@ class MediaModerationImageContentsLookup {
 		}
 		if ( !$thumbnailMimeType ) {
 			// We cannot send a request to PhotoDNA without knowing what the mime type is.
+			$this->perDbNameStatsdDataFactory->increment(
+				'MediaModeration.ImageContentsLookup.Thumbnail.MimeType.LookupFailed'
+			);
 			return StatusValue::newFatal( new RawMessage(
 				'Could not get mime type of thumbnail for $1',
 				[ $thumbnail->getFile()->getName() ]
@@ -149,6 +152,9 @@ class MediaModerationImageContentsLookup {
 		}
 		if ( !in_array( $thumbnailMimeType, MediaModerationFileProcessor::ALLOWED_MIME_TYPES, true ) ) {
 			// We cannot send a request to PhotoDNA with a thumbnail type that is unsupported by the API.
+			$this->perDbNameStatsdDataFactory->increment(
+				'MediaModeration.ImageContentsLookup.Thumbnail.MimeType.Unsupported'
+			);
 			return StatusValue::newFatal( new RawMessage(
 				'Mime type of thumbnail for $1 is not supported by PhotoDNA.',
 				[ $thumbnail->getFile()->getName() ]
@@ -172,17 +178,29 @@ class MediaModerationImageContentsLookup {
 			1000 * $delay
 		);
 		if ( !$thumbnail ) {
+			$this->perDbNameStatsdDataFactory->increment(
+				'MediaModeration.ImageContentsLookup.Thumbnail.Transform.Failed'
+			);
 			return StatusValue::newFatal( new RawMessage( $genericErrorMessage ) );
 		}
 		if ( $thumbnail instanceof MediaTransformError ) {
+			$this->perDbNameStatsdDataFactory->increment(
+				'MediaModeration.ImageContentsLookup.Thumbnail.Transform.Failed'
+			);
 			return StatusValue::newFatal( new RawMessage( $genericErrorMessage . ': ' . $thumbnail->toText() ) );
 		}
 		if ( !( $thumbnail instanceof ThumbnailImage ) ) {
+			$this->perDbNameStatsdDataFactory->increment(
+				'MediaModeration.ImageContentsLookup.Thumbnail.Transform.Failed'
+			);
 			return StatusValue::newFatal( new RawMessage(
 				$genericErrorMessage . ': not an instance of ThumbnailImage, got ' . get_class( $thumbnail )
 			) );
 		}
 		if ( !$thumbnail->hasFile() ) {
+			$this->perDbNameStatsdDataFactory->increment(
+				'MediaModeration.ImageContentsLookup.Thumbnail.Transform.Failed'
+			);
 			return StatusValue::newFatal( new RawMessage(
 				$genericErrorMessage . ', got a ' . get_class( $thumbnail ) . ' but ::hasFile() returns false.'
 			) );
@@ -192,6 +210,9 @@ class MediaModerationImageContentsLookup {
 
 	protected function getThumbnailContents( ThumbnailImage $thumbnail ): StatusValue {
 		if ( $thumbnail->getHeight() < 160 || $thumbnail->getWidth() < 160 ) {
+			$this->perDbNameStatsdDataFactory->increment(
+				'MediaModeration.ImageContentsLookup.Thumbnail.Contents.TooSmall'
+			);
 			// PhotoDNA requires that images be at least 160px by 160px, so don't use the
 			// thumbnail if either dimension is too small.
 			return StatusValue::newFatal( new RawMessage(
@@ -200,6 +221,9 @@ class MediaModerationImageContentsLookup {
 			) );
 		}
 		if ( !$thumbnail->getStoragePath() ) {
+			$this->perDbNameStatsdDataFactory->increment(
+				'MediaModeration.ImageContentsLookup.Thumbnail.Contents.LookupFailed'
+			);
 			return StatusValue::newFatal( new RawMessage(
 				'Could not get storage path of thumbnail for $1',
 				[ $thumbnail->getFile()->getName() ]
@@ -207,12 +231,18 @@ class MediaModerationImageContentsLookup {
 		}
 		$fileContents = $this->fileBackend->getFileContents( [ 'src' => $thumbnail->getStoragePath() ] );
 		if ( !$fileContents ) {
+			$this->perDbNameStatsdDataFactory->increment(
+				'MediaModeration.ImageContentsLookup.Thumbnail.Contents.LookupFailed'
+			);
 			return StatusValue::newFatal( new RawMessage(
 				'Could not get thumbnail contents for $1',
 				[ $thumbnail->getFile()->getName() ]
 			) );
 		}
 		if ( strlen( $fileContents ) > 4000000 ) {
+			$this->perDbNameStatsdDataFactory->increment(
+				'MediaModeration.ImageContentsLookup.Thumbnail.Contents.TooLarge'
+			);
 			// Check that the size of the file does not exceed 4MB, as PhotoDNA returns an
 			// error for files that are any larger.
 			// strlen returns the size of the string in bytes and 4MB is 4,000,000 bytes.
@@ -232,6 +262,9 @@ class MediaModerationImageContentsLookup {
 	 */
 	protected function getFileContents( $file ): StatusValue {
 		if ( $file->getSize() && $file->getSize() > 4000000 ) {
+			$this->perDbNameStatsdDataFactory->increment(
+				'MediaModeration.ImageContentsLookup.File.Contents.TooLarge'
+			);
 			// Check that the size of the file does not exceed 4MB, as PhotoDNA returns an
 			// error for files that are any larger.
 			return StatusValue::newFatal( new RawMessage(
@@ -243,6 +276,9 @@ class MediaModerationImageContentsLookup {
 			( $file->getHeight() && $file->getHeight() < 160 ) ||
 			( $file->getWidth() && $file->getWidth() < 160 )
 		) {
+			$this->perDbNameStatsdDataFactory->increment(
+				'MediaModeration.ImageContentsLookup.File.Contents.TooSmall'
+			);
 			// Check that the height and width is at least 160px by 160px
 			// as PhotoDNA requires that the file be at least that size.
 			// If the height or width is false, then just ignore this check
@@ -260,6 +296,9 @@ class MediaModerationImageContentsLookup {
 			$filePath = $file->getPath();
 		}
 		if ( !$filePath ) {
+			$this->perDbNameStatsdDataFactory->increment(
+				'MediaModeration.ImageContentsLookup.File.Contents.LookupFailed'
+			);
 			return StatusValue::newFatal( new RawMessage(
 				'Could not get storage path of original file for $1',
 				[ $file->getName() ]
@@ -267,6 +306,9 @@ class MediaModerationImageContentsLookup {
 		}
 		$fileContents = $this->fileBackend->getFileContents( [ 'src' => $filePath ] );
 		if ( !$fileContents ) {
+			$this->perDbNameStatsdDataFactory->increment(
+				'MediaModeration.ImageContentsLookup.File.Contents.LookupFailed'
+			);
 			return StatusValue::newFatal( new RawMessage(
 				'Could not get original file contents for $1',
 				[ $file->getName() ]
