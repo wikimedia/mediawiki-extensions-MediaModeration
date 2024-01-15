@@ -25,7 +25,7 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 
 	/** @dataProvider provideExecute */
 	public function testExecute(
-		$mockResponsesConfig, $expectedPositiveMatches, $expectedNegativeMatches, $expectedNullMatches
+		$mockResponsesConfig, $useJobQueue, $expectedPositiveMatches, $expectedNegativeMatches, $expectedNullMatches
 	) {
 		// Cause the mock response endpoint to be used and define mock responses
 		$this->overrideConfigValues( [
@@ -33,10 +33,19 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 			'MediaModerationPhotoDNASubscriptionKey' => '',
 			'MediaModerationPhotoDNAMockServiceFiles' => $mockResponsesConfig
 		] );
-		// Set 'sleep' to 0 to prevent the test taking too long.
+		// Set 'sleep' and 'poll-sleep' to 0 to prevent the test taking too long.
 		$this->maintenance->setOption( 'sleep', 0 );
+		$this->maintenance->setOption( 'poll-sleep', 0 );
+		// Set the --use-jobqueue option if $useJobQueue is true
+		if ( $useJobQueue ) {
+			$this->maintenance->setOption( 'use-jobqueue', 1 );
+		}
 		// Run the maintenance script
 		$this->maintenance->execute();
+		// Wait until all jobs are complete if $useJobQueue is true
+		if ( $useJobQueue ) {
+			$this->runJobs();
+		}
 		// Assert the state of the DB is as expected.
 		$this->assertArrayEquals(
 			$expectedPositiveMatches,
@@ -80,6 +89,26 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 					'FilesToIsMatchMap' => [],
 					'FilesToStatusCodeMap' => [],
 				],
+				false,
+				// One file was already scanned as a match so isn't rescanned.
+				[ 'sy02psim0bgdh0st4vdltuzoh7j60ru' ],
+				[
+					'sy02psim0bgdh0jt4vdltuzoh7j80yu',
+					'sy02psim0bgdh0jt4vdltuzoh7j80ru',
+					'sy02psim0bgdh0jt4vdltuzoh7j70ru',
+					'sy02psim0bgdh0jt4vdltuzoh7j800u',
+					'sy02psim0bgdh0st4vdltuzoh7j70ru',
+					'sy02psim0bgdh0st4vdlguzoh7j60ru',
+				],
+				// One file was unscannable.
+				[ 'sy02psim0bgdh0jt4vdltuzoh7j80au' ],
+			],
+			'All files scanned that could be scanned are scanned as negative using job queue' => [
+				[
+					'FilesToIsMatchMap' => [],
+					'FilesToStatusCodeMap' => [],
+				],
+				true,
 				// One file was already scanned as a match so isn't rescanned.
 				[ 'sy02psim0bgdh0st4vdltuzoh7j60ru' ],
 				[
@@ -102,6 +131,7 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 						'Random-112m.png' => Response::STATUS_IMAGE_PIXEL_SIZE_NOT_IN_RANGE
 					],
 				],
+				false,
 				// One file was already scanned as a match so isn't rescanned plus the
 				// one that now matches.
 				[
@@ -119,7 +149,36 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 					'sy02psim0bgdh0jt4vdltuzoh7j80au',
 					'sy02psim0bgdh0jt4vdltuzoh7j80ru',
 				],
-			]
+			],
+			'Some files were positive matches and some failed to scan using job queue' => [
+				[
+					'FilesToIsMatchMap' => [
+						'Random-13m.png' => true,
+					],
+					'FilesToStatusCodeMap' => [
+						'Random-112m.png' => Response::STATUS_IMAGE_PIXEL_SIZE_NOT_IN_RANGE,
+						'Random-15m.png' => Response::STATUS_COULD_NOT_VERIFY_FILE_AS_IMAGE,
+					],
+				],
+				true,
+				// One file was already scanned as a match so isn't rescanned plus the
+				// one that now matches.
+				[
+					'sy02psim0bgdh0st4vdltuzoh7j60ru',
+					'sy02psim0bgdh0jt4vdltuzoh7j80yu',
+				],
+				[
+					'sy02psim0bgdh0jt4vdltuzoh7j70ru',
+					'sy02psim0bgdh0jt4vdltuzoh7j800u',
+					'sy02psim0bgdh0st4vdlguzoh7j60ru',
+					'sy02psim0bgdh0st4vdltuzoh7j70ru',
+				],
+				// One file was unscannable and the other failed to scan.
+				[
+					'sy02psim0bgdh0jt4vdltuzoh7j80au',
+					'sy02psim0bgdh0jt4vdltuzoh7j80ru',
+				],
+			],
 		];
 	}
 

@@ -17,12 +17,12 @@ class MediaModerationDatabaseLookupTest extends MediaWikiIntegrationTestCase {
 
 	/** @dataProvider provideGetRowsFromScanTable */
 	public function testGetRowsFromScanTable(
-		$limit, $lastChecked, $direction, $matchStatus, $expectedResults, $shouldCompareInOrder
+		$limit, $lastChecked, $direction, $excludedSha1Values, $matchStatus, $expectedResults, $shouldCompareInOrder
 	) {
 		/** @var MediaModerationDatabaseLookup $objectUnderTest */
 		$objectUnderTest = $this->getServiceContainer()->get( 'MediaModerationDatabaseLookup' );
 		$returnedResults = $objectUnderTest->getSha1ValuesForScan(
-			$limit, $lastChecked, $direction, $matchStatus
+			$limit, $lastChecked, $direction, $excludedSha1Values, $matchStatus
 		);
 		$this->assertArrayEquals(
 			$expectedResults,
@@ -42,6 +42,8 @@ class MediaModerationDatabaseLookupTest extends MediaWikiIntegrationTestCase {
 				'20231211143402',
 				// The $direction parameter for ::getRowsFromScanTable
 				SelectQueryBuilder::SORT_ASC,
+				// The $excludedSha1Values parameter for ::getRowsFromScanTable
+				[],
 				// The $matchStatus parameter for ::getRowsFromScanTable
 				MediaModerationDatabaseLookup::ANY_MATCH_STATUS,
 				// The SHA-1 values that should be returned
@@ -61,6 +63,7 @@ class MediaModerationDatabaseLookupTest extends MediaWikiIntegrationTestCase {
 				5,
 				null,
 				SelectQueryBuilder::SORT_DESC,
+				[],
 				MediaModerationDatabaseLookup::NULL_MATCH_STATUS,
 				[
 					'sy02psim0bgdh0jt4vdltuzoh7j80yu',
@@ -74,6 +77,7 @@ class MediaModerationDatabaseLookupTest extends MediaWikiIntegrationTestCase {
 				2,
 				'20231210143402',
 				SelectQueryBuilder::SORT_DESC,
+				[],
 				MediaModerationDatabaseLookup::ANY_MATCH_STATUS,
 				[
 					'sy02psim0bgdh0st4vdlguzoh7j60ru',
@@ -85,6 +89,7 @@ class MediaModerationDatabaseLookupTest extends MediaWikiIntegrationTestCase {
 				3,
 				'20231211143402',
 				SelectQueryBuilder::SORT_DESC,
+				[],
 				MediaModerationDatabaseLookup::POSITIVE_MATCH_STATUS,
 				[ 'sy02psim0bgdh0st4vdltuzoh7j60ru' ],
 				true,
@@ -93,6 +98,7 @@ class MediaModerationDatabaseLookupTest extends MediaWikiIntegrationTestCase {
 				3,
 				'20231211143402',
 				SelectQueryBuilder::SORT_DESC,
+				[],
 				MediaModerationDatabaseLookup::NEGATIVE_MATCH_STATUS,
 				[
 					'sy02psim0bgdh0st4vdltuzoh7j70ru',
