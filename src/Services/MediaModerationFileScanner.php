@@ -2,9 +2,12 @@
 
 namespace MediaWiki\Extension\MediaModeration\Services;
 
+use Liuggio\StatsdClient\Factory\StatsdDataFactoryInterface;
 use MediaWiki\Extension\MediaModeration\PhotoDNA\IMediaModerationPhotoDNAServiceProvider;
 use MediaWiki\Extension\MediaModeration\PhotoDNA\Response;
 use MediaWiki\Language\RawMessage;
+use MediaWiki\Status\StatusFormatter;
+use Psr\Log\LoggerInterface;
 use StatusValue;
 
 /**
@@ -18,19 +21,28 @@ class MediaModerationFileScanner {
 	private MediaModerationFileLookup $mediaModerationFileLookup;
 	private MediaModerationFileProcessor $mediaModerationFileProcessor;
 	private IMediaModerationPhotoDNAServiceProvider $mediaModerationPhotoDNAServiceProvider;
+	private StatsdDataFactoryInterface $perDbNameStatsdDataFactory;
+	private StatusFormatter $statusFormatter;
+	private LoggerInterface $logger;
 
 	public function __construct(
 		MediaModerationDatabaseLookup $mediaModerationDatabaseLookup,
 		MediaModerationDatabaseManager $mediaModerationDatabaseManager,
 		MediaModerationFileLookup $mediaModerationFileLookup,
 		MediaModerationFileProcessor $mediaModerationFileProcessor,
-		IMediaModerationPhotoDNAServiceProvider $mediaModerationPhotoDNAServiceProvider
+		IMediaModerationPhotoDNAServiceProvider $mediaModerationPhotoDNAServiceProvider,
+		StatusFormatter $statusFormatter,
+		StatsdDataFactoryInterface $perDbNameStatsdDataFactory,
+		LoggerInterface $logger
 	) {
 		$this->mediaModerationDatabaseLookup = $mediaModerationDatabaseLookup;
 		$this->mediaModerationDatabaseManager = $mediaModerationDatabaseManager;
 		$this->mediaModerationFileLookup = $mediaModerationFileLookup;
 		$this->mediaModerationFileProcessor = $mediaModerationFileProcessor;
 		$this->mediaModerationPhotoDNAServiceProvider = $mediaModerationPhotoDNAServiceProvider;
+		$this->statusFormatter = $statusFormatter;
+		$this->perDbNameStatsdDataFactory = $perDbNameStatsdDataFactory;
+		$this->logger = $logger;
 	}
 
 	/**
@@ -51,8 +63,10 @@ class MediaModerationFileScanner {
 			if ( !$this->mediaModerationFileProcessor->canScanFile( $file ) ) {
 				// If this $file cannot be scanned, then try the next file with this SHA-1
 				// and if in verbose mode output to the console about this.
+				$this->perDbNameStatsdDataFactory->increment( 'MediaModeration.FileScanner.CanScanFileReturnedFalse' );
 				$returnStatus->fatal( new RawMessage(
-					'The file ' . $file->getName() . ' cannot be scanned.'
+					'The file $1 cannot be scanned.',
+					[ $file->getName() ]
 				) );
 				continue;
 			}
@@ -77,6 +91,26 @@ class MediaModerationFileScanner {
 		// TODO: Send an email if $newMatchStatus is true (T351407).
 		if ( $newMatchStatus !== null ) {
 			$returnStatus->setResult( true, $newMatchStatus );
+		}
+		if ( !$returnStatus->isOK() ) {
+			// Create a warning if the SHA-1 could not be scanned.
+			$this->logger->warning(
+				'Unable to scan SHA-1 $sha1. MediaModerationFileScanner::scanSha1 returned this: {return-message}',
+				[
+					'sha1' => $sha1,
+					'return-message' => $this->statusFormatter->getMessage( $returnStatus, [ 'lang' => 'en' ] ),
+				]
+			);
+		} elseif ( !$returnStatus->isGood() ) {
+			// Create a info if the SHA-1 scanning succeeded with warnings.
+			$this->logger->info(
+				'Scan of SHA-1 $sha1 succeeded with warnings. MediaModerationFileScanner::scanSha1 ' .
+				'returned this: {return-message}',
+				[
+					'sha1' => $sha1,
+					'return-message' => $this->statusFormatter->getMessage( $returnStatus, [ 'lang' => 'en' ] ),
+				]
+			);
 		}
 		return $returnStatus;
 	}

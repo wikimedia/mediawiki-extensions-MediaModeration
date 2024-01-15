@@ -10,8 +10,10 @@ use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileLookup;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileProcessor;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileScanner;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationPhotoDNAServiceProvider;
+use MediaWiki\Status\StatusFormatter;
 use MediaWiki\Tests\Unit\MockServiceDependenciesTrait;
 use MediaWikiUnitTestCase;
+use Psr\Log\LoggerInterface;
 use StatusValue;
 
 /**
@@ -67,6 +69,52 @@ class MediaModerationFileScannerTest extends MediaWikiUnitTestCase {
 		$mockMediaModerationDatabaseManager->expects( $this->once() )
 			->method( 'updateMatchStatusForSha1' )
 			->with( $sha1, $expectedNewMatchStatus ?? $mockOldMatchStatus );
+		// Get a mock LoggerInterface and StatusFormatter. Expect calls to the mock logger depending
+		// on the expected state of the returned status.
+		$mockLogger = $this->createMock( LoggerInterface::class );
+		$mockStatusFormatter = $this->createMock( StatusFormatter::class );
+		if ( $expectStatusToBeGood ) {
+			// No logging should occur if there were no errors or warnings in the status.
+			$mockLogger->expects( $this->never() )
+				->method( 'warning' );
+			$mockLogger->expects( $this->never() )
+				->method( 'info' );
+			$mockStatusFormatter->expects( $this->never() )
+				->method( 'getMessage' );
+		} elseif ( $expectStatusToBeOkay ) {
+			// A info log should occur if there were warnings in the status.
+			$mockLogger->expects( $this->never() )
+				->method( 'warning' );
+			$mockLogger->expects( $this->once() )
+				->method( 'info' )
+				->with(
+					'Scan of SHA-1 $sha1 succeeded with warnings. MediaModerationFileScanner::scanSha1 ' .
+					'returned this: {return-message}',
+					[
+						'sha1' => $sha1,
+						'return-message' => 'mock-info-message',
+					]
+				);
+			$mockStatusFormatter->expects( $this->once() )
+				->method( 'getMessage' )
+				->willReturn( 'mock-info-message' );
+		} else {
+			// A warning should occur if there were errors and no scan could be completed.
+			$mockLogger->expects( $this->once() )
+				->method( 'warning' )
+				->with(
+					'Unable to scan SHA-1 $sha1. MediaModerationFileScanner::scanSha1 returned this: {return-message}',
+					[
+						'sha1' => $sha1,
+						'return-message' => 'mock-warning-message',
+					]
+				);
+			$mockLogger->expects( $this->never() )
+				->method( 'info' );
+			$mockStatusFormatter->expects( $this->once() )
+				->method( 'getMessage' )
+				->willReturn( 'mock-warning-message' );
+		}
 		// Get the object under test
 		/** @var MediaModerationFileScanner $objectUnderTest */
 		$objectUnderTest = $this->newServiceInstance(
@@ -77,6 +125,8 @@ class MediaModerationFileScannerTest extends MediaWikiUnitTestCase {
 				'mediaModerationFileLookup' => $mockMediaModerationFileLookup,
 				'mediaModerationFileProcessor' => $mockMediaModerationFileProcessor,
 				'mediaModerationPhotoDNAServiceProvider' => $mockMediaModerationPhotoDNAServiceProvider,
+				'statusFormatter' => $mockStatusFormatter,
+				'logger' => $mockLogger,
 			]
 		);
 		// Call the method under test

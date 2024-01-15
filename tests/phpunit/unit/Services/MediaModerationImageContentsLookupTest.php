@@ -89,6 +89,10 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 			->willReturn( 'Test.png' );
 		$mockFile->method( 'transform' )
 			->willReturn( $thumbnail );
+		// Define a mock StatsdDataFactoryInterface that expects a call to ::increment.
+		$mockPerDbNameStatsdDataFactory = $this->createMock( StatsdDataFactoryInterface::class );
+		$mockPerDbNameStatsdDataFactory->expects( $this->once() )
+			->method( 'increment' );
 		// Call the method under test
 		/** @var MediaModerationImageContentsLookup $objectUnderTest */
 		$objectUnderTest = $this->newServiceInstance(
@@ -97,7 +101,8 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 				'options' => new ServiceOptions(
 					MediaModerationImageContentsLookup::CONSTRUCTOR_OPTIONS,
 					new HashConfig( self::CONSTRUCTOR_OPTIONS_DEFAULTS )
-				)
+				),
+				'perDbNameStatsdDataFactory' => $mockPerDbNameStatsdDataFactory
 			]
 		);
 		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
@@ -133,6 +138,15 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 		$mockMimeAnalyzer->method( 'guessMimeType' )
 			->with( 'mock-path' )
 			->willReturn( $guessFromContentsResult );
+		// Define a mock StatsdDataFactoryInterface that expects a call to ::increment if $expectedReturnValue is null.
+		$mockPerDbNameStatsdDataFactory = $this->createMock( StatsdDataFactoryInterface::class );
+		if ( $expectedReturnValue === null ) {
+			$mockPerDbNameStatsdDataFactory->expects( $this->once() )
+				->method( 'increment' );
+		} else {
+			$mockPerDbNameStatsdDataFactory->expects( $this->never() )
+				->method( 'increment' );
+		}
 		// Get the object under test
 		$objectUnderTest = $this->newServiceInstance(
 			MediaModerationImageContentsLookup::class,
@@ -141,7 +155,8 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 					MediaModerationImageContentsLookup::CONSTRUCTOR_OPTIONS,
 					new HashConfig( self::CONSTRUCTOR_OPTIONS_DEFAULTS )
 				),
-				'mimeAnalyzer' => $mockMimeAnalyzer
+				'mimeAnalyzer' => $mockMimeAnalyzer,
+				'perDbNameStatsdDataFactory' => $mockPerDbNameStatsdDataFactory,
 			]
 		);
 		// Call the method under test
@@ -197,6 +212,15 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 				->method( 'getFileContentsMulti' )
 				->willReturn( [ $mockStoragePathValue => $mockFileContentsValue ] );
 		}
+		// Define a mock StatsdDataFactoryInterface that expects a call to ::increment if $expectedReturnValue is null.
+		$mockPerDbNameStatsdDataFactory = $this->createMock( StatsdDataFactoryInterface::class );
+		if ( $expectedReturnValue === null ) {
+			$mockPerDbNameStatsdDataFactory->expects( $this->once() )
+				->method( 'increment' );
+		} else {
+			$mockPerDbNameStatsdDataFactory->expects( $this->never() )
+				->method( 'increment' );
+		}
 		// Get the object under test with the FileBackend as $mockFileBackend.
 		$objectUnderTest = $this->newServiceInstance(
 			MediaModerationImageContentsLookup::class,
@@ -205,7 +229,8 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 					MediaModerationImageContentsLookup::CONSTRUCTOR_OPTIONS,
 					new HashConfig( self::CONSTRUCTOR_OPTIONS_DEFAULTS )
 				),
-				'fileBackend' => $mockFileBackend
+				'fileBackend' => $mockFileBackend,
+				'perDbNameStatsdDataFactory' => $mockPerDbNameStatsdDataFactory,
 			]
 		);
 		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
@@ -275,6 +300,15 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 				->method( 'getFileContentsMulti' )
 				->willReturn( [ $mockStoragePathValue => $expectedReturnValue ?? false ] );
 		}
+		// Define a mock StatsdDataFactoryInterface that expects a call to ::increment if $expectedReturnValue is null.
+		$mockPerDbNameStatsdDataFactory = $this->createMock( StatsdDataFactoryInterface::class );
+		if ( $expectedReturnValue === null ) {
+			$mockPerDbNameStatsdDataFactory->expects( $this->once() )
+				->method( 'increment' );
+		} else {
+			$mockPerDbNameStatsdDataFactory->expects( $this->never() )
+				->method( 'increment' );
+		}
 		// Get the object under test with the FileBackend as $mockFileBackend.
 		$objectUnderTest = $this->newServiceInstance(
 			MediaModerationImageContentsLookup::class,
@@ -283,7 +317,8 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 					MediaModerationImageContentsLookup::CONSTRUCTOR_OPTIONS,
 					new HashConfig( self::CONSTRUCTOR_OPTIONS_DEFAULTS )
 				),
-				'fileBackend' => $mockFileBackend
+				'fileBackend' => $mockFileBackend,
+				'perDbNameStatsdDataFactory' => $mockPerDbNameStatsdDataFactory,
 			]
 		);
 		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
