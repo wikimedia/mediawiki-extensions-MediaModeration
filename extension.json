@@ -1,8 +1,9 @@
 {
 	"name": "MediaModeration",
-	"version": "0.1.0",
+	"version": "2.0.0",
 	"author": [
-		"Core Platform & Trust and Safety Teams"
+		"Core Platform & Trust and Safety Teams",
+		"Trust and Safety Product Team"
 	],
 	"url": "https://www.mediawiki.org/wiki/Extension:MediaModeration",
 	"descriptionmsg": "mediamoderation-desc",
@@ -21,9 +22,6 @@
 	"AutoloadNamespaces": {
 		"MediaWiki\\Extension\\MediaModeration\\": "src/"
 	},
-	"TestAutoloadClasses": {
-		"MediaWiki\\Extension\\MediaModeration\\Tests\\MocksHelperTrait": "tests/phpunit/MocksHelperTrait.php"
-	},
 	"Hooks": {
 		"UploadComplete": "UploadCompleteHandler",
 		"LoadExtensionSchemaUpdates": "SchemaChangesHandler"
@@ -41,8 +39,6 @@
 		}
 	},
 	"JobClasses": {
-		"processMediaModeration": "MediaWiki\\Extension\\MediaModeration\\Job\\ProcessMediaModerationJob",
-		"processMediaModerationPrioritized": "MediaWiki\\Extension\\MediaModeration\\Job\\ProcessMediaModerationJob",
 		"mediaModerationScanFileJob": "MediaWiki\\Extension\\MediaModeration\\Job\\MediaModerationScanFileJob"
 	},
 	"ServiceWiringFiles": [
@@ -73,20 +69,9 @@
 			"value": "https://api.microsoftmoderator.com/photodna/v1.0/Match",
 			"description": "URL to PhotoDNA service endpoint."
 		},
-		"MediaModerationSendThumbnails": {
-			"value": true,
-			"description": "Whether photo should be thumbnailed before sending it to PhotoDNA."
-		},
 		"MediaModerationThumbnailWidth": {
 			"value": 320,
 			"description": "Width, in pixels, that MediaModeration will use when transforming files to a thumbnail to send to PhotoDNA. Default is 320, which should already exist as a pre-rendered thumbnail per $wgUploadThumbnailRenderMap in production."
-		},
-		"MediaModerationThumbnailSize": {
-			"value": {
-				"width": 160,
-				"height": 160
-			},
-			"description": "The width and height of the thumbnail."
 		},
 		"MediaModerationPhotoDNASubscriptionKey": {
 			"value": "",

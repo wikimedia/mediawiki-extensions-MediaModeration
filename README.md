@@ -1,4 +1,5 @@
 # README
+TODO: Update docs to instead detail how to run using new script.
 
 #### The purpose of the extension is to improve the Foundation’s existing workflows for child protection content.
 

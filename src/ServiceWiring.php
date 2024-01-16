@@ -173,55 +173,5 @@ return [
 			LoggerFactory::getInstance( 'mediamoderation' )
 		);
 	},
-	'MediaModerationHandler' =>
-		static function ( MediaWikiServices $services ): MediaModerationHandler {
-			return new MediaModerationHandler(
-				$services->getRepoGroup()->getLocalRepo(),
-				$services->getService( 'ThumbnailProvider' ),
-				$services->getService( 'RequestModerationCheck' ),
-				$services->getService( 'ProcessModerationCheckResult' ),
-				LoggerFactory::getInstance( 'mediamoderation' )
-			);
-		},
-	'RequestModerationCheck' =>
-		static function ( MediaWikiServices $services ): RequestModerationCheck {
-			return new RequestModerationCheck(
-				new ServiceOptions(
-					RequestModerationCheck::CONSTRUCTOR_OPTIONS,
-					$services->getConfigFactory()->makeConfig( 'MediaModeration' )
-				),
-				$services->getHttpRequestFactory(),
-				MediaWikiServices::getInstance()->getStatsdDataFactory(),
-				LoggerFactory::getInstance( 'mediamoderation' )
-			);
-		},
-	'ProcessModerationCheckResult' =>
-		static function ( MediaWikiServices $services ): ProcessModerationCheckResult {
-			return new ProcessModerationCheckResult(
-				new ServiceOptions(
-					ProcessModerationCheckResult::CONSTRUCTOR_OPTIONS,
-					$services->getConfigFactory()->makeConfig( 'MediaModeration' )
-				),
-				/**
-				 * The purpose of the formatter is to create a message to notify
-				 * a very the limited group of moderators, so that no need to use
-				 * other language than en.
-				 */
-				$services->getMessageFormatterFactory()->getTextFormatter( 'en' ),
-				$services->getEmailer(),
-				LoggerFactory::getInstance( 'mediamoderation' )
-			);
-		},
-	'ThumbnailProvider' =>
-		static function ( MediaWikiServices $services ): ThumbnailProvider {
-			$configFactory = $services->getConfigFactory();
-			return new ThumbnailProvider(
-				new ServiceOptions(
-					ThumbnailProvider::CONSTRUCTOR_OPTIONS,
-					$configFactory->makeConfig( 'MediaModeration' )
-				),
-				LoggerFactory::getInstance( 'mediamoderation' )
-			);
-		},
 ];
 // @codeCoverageIgnoreEnd
