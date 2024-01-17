@@ -260,51 +260,62 @@ class ImportExistingFilesToScanTableTest extends MediaWikiUnitTestCase {
 			->with( 'image', $previousBatchFinalTimestamp )
 			->willReturn( [ $queryResult, $lastTimestamp, $batchSize ?? 200 ] );
 		// Define mocks and expectations for the method calls in the foreach loop of ::performBatch.
-		$getFileObjectForRowWithConsecutive = [];
-		$getFileObjectForRowReturnConsecutive = [];
-		$fileExistsInScanTableWithConsecutive = [];
-		$fileExistsInScanTableReturnConsecutive = [];
-		$insertFileWithConsecutive = [];
+		$getFileObjectForRowExpectedRows = [];
+		$getFileObjectForRowReturnedFiles = [];
+		$fileExistsInScanTableExpectedFiles = [];
+		$fileExistsInScanTableReturnValues = [];
+		$insertFileExpectedFiles = [];
 		foreach ( $queryResult as $row ) {
 			// Mock $mockMediaModerationFileFactory::getFileObjectForRow to expect the correct order of rows and
 			// also return a mock File object for the associated call.
-			$getFileObjectForRowWithConsecutive[] = [ $row, 'image' ];
+			$getFileObjectForRowExpectedRows[] = $row;
 			$rowAsArray = (array)$row;
 			$mockFile = $this->createMock( File::class );
 			$mockFile->method( 'getSha1' )
 				->willReturn( $rowAsArray['sha1'] );
 			$mockFile->method( 'getTimestamp' )
 				->willReturn( array_key_exists( 'timestamp', $rowAsArray ) ? $rowAsArray['timestamp'] : '' );
-			$getFileObjectForRowReturnConsecutive[] = $mockFile;
+			$getFileObjectForRowReturnedFiles[] = $mockFile;
 			if ( $mockFile->getSha1() ) {
 				// Mock the MediaModerationDatabaseLookup::fileExistsInScanTable to return the value of the $row's
 				// 'exists_in_scan_table' key (or by default false).
-				$fileExistsInScanTableWithConsecutive[] = [ $mockFile ];
+				$fileExistsInScanTableExpectedFiles[] = $mockFile;
 				$doesFileExistInScanTable = array_key_exists( 'exists_in_scan_table', $rowAsArray ) &&
 					$rowAsArray['exists_in_scan_table'];
-				$fileExistsInScanTableReturnConsecutive[] = $doesFileExistInScanTable;
+				$fileExistsInScanTableReturnValues[] = $doesFileExistInScanTable;
 				if ( !$doesFileExistInScanTable ) {
 					// Expect that MediaModerationFileProcessor::insertFile is called for files which have a valid SHA-1
 					// and for which value of the $row['exists_in_scan_table'] is false.
-					$insertFileWithConsecutive[] = [ $mockFile ];
+					$insertFileExpectedFiles[] = $mockFile;
 				}
 			}
 		}
 		// Apply the expectations and mocks for consecutive calls to the methods in the foreach loop.
 		$mockMediaModerationFileFactory = $this->createMock( MediaModerationFileFactory::class );
-		$mockMediaModerationFileFactory->expects( $this->exactly( count( $getFileObjectForRowWithConsecutive ) ) )
+		$mockMediaModerationFileFactory->expects( $this->exactly( count( $getFileObjectForRowExpectedRows ) ) )
 			->method( 'getFileObjectForRow' )
-			->withConsecutive( ...$getFileObjectForRowWithConsecutive )
-			->willReturnOnConsecutiveCalls( ...$getFileObjectForRowReturnConsecutive );
+			->willReturnCallback(
+				function ( $row, $tbl ) use ( &$getFileObjectForRowExpectedRows, &$getFileObjectForRowReturnedFiles ) {
+					$this->assertEquals( array_shift( $getFileObjectForRowExpectedRows ), $row );
+					$this->assertSame( 'image', $tbl );
+					return array_shift( $getFileObjectForRowReturnedFiles );
+				}
+			);
 		$mockMediaModerationDatabaseLookup = $this->createMock( MediaModerationDatabaseLookup::class );
-		$mockMediaModerationDatabaseLookup->expects( $this->exactly( count( $fileExistsInScanTableWithConsecutive ) ) )
+		$mockMediaModerationDatabaseLookup->expects( $this->exactly( count( $fileExistsInScanTableExpectedFiles ) ) )
 			->method( 'fileExistsInScanTable' )
-			->withConsecutive( ...$fileExistsInScanTableWithConsecutive )
-			->willReturnOnConsecutiveCalls( ...$fileExistsInScanTableReturnConsecutive );
+			->willReturnCallback(
+				function ( $file ) use ( &$fileExistsInScanTableExpectedFiles, &$fileExistsInScanTableReturnValues ) {
+					$this->assertSame( array_shift( $fileExistsInScanTableExpectedFiles ), $file );
+					return array_shift( $fileExistsInScanTableReturnValues );
+				}
+			);
 		$mockMediaModerationFileProcessor = $this->createMock( MediaModerationFileProcessor::class );
-		$mockMediaModerationFileProcessor->expects( $this->exactly( count( $insertFileWithConsecutive ) ) )
+		$mockMediaModerationFileProcessor->expects( $this->exactly( count( $insertFileExpectedFiles ) ) )
 			->method( 'insertFile' )
-			->withConsecutive( ...$insertFileWithConsecutive );
+			->willReturnCallback( function ( $file ) use ( &$insertFileExpectedFiles ) {
+				$this->assertSame( array_shift( $insertFileExpectedFiles ), $file );
+			} );
 		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
 		$objectUnderTest->mBatchSize = $batchSize;
 		$objectUnderTest->mediaModerationDatabaseLookup = $mockMediaModerationDatabaseLookup;

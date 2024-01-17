@@ -83,8 +83,8 @@ class ProcessModerationCheckResultTest extends MediaWikiUnitTestCase {
 		$emailer = $this->getMockIEmailer();
 		$formatter = $this->getMockTextFormatter();
 
-		$formatter->method( 'format' )
-			->withConsecutive( [ $this->anything() ], [ $this->anything() ] )
+		$formatter->expects( $this->exactly( 2 ) )
+			->method( 'format' )
 			->willReturnOnConsecutiveCalls( "Message Body", "Message Subject" );
 
 		$options = new ServiceOptions(

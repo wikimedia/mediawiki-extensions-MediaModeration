@@ -225,7 +225,7 @@ trait MocksHelperTrait {
 
 	/**
 	 * Creates mock object for TextFormatter
-	 * @return ITextFormatter
+	 * @return ITextFormatter&MockObject
 	 */
 	public function getMockTextFormatter(): ITextFormatter {
 		return $this->getMockBuilder( ITextFormatter::class )
