@@ -78,10 +78,13 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 			'MediaModeration.PhotoDNAServiceProviderRequestTime',
 			1000 * $delay
 		);
-		$statsdKey = $status->isOK() ? 'OK' : 'Error';
-		$this->perDbNameStatsdDataFactory->increment(
-			'MediaModeration.PhotoDNAServiceProvider.Execute.' . $statsdKey
-		);
+		if ( $status->isOK() ) {
+			$this->perDbNameStatsdDataFactory->increment( 'MediaModeration.PhotoDNAServiceProvider.Execute.OK' );
+		} else {
+			$this->perDbNameStatsdDataFactory->increment(
+				'MediaModeration.PhotoDNAServiceProvider.Execute.Error.' . $request->getStatus()
+			);
+		}
 		if ( !$status->isOK() ) {
 			// Something went badly wrong.
 			$errorMessage = FormatJson::decode( $request->getContent(), true );
