@@ -76,19 +76,19 @@ class MediaModerationFileScannerTest extends MediaWikiUnitTestCase {
 		if ( $expectStatusToBeGood ) {
 			// No logging should occur if there were no errors or warnings in the status.
 			$mockLogger->expects( $this->never() )
-				->method( 'warning' );
+				->method( 'debug' );
 			$mockLogger->expects( $this->never() )
 				->method( 'info' );
 			$mockStatusFormatter->expects( $this->never() )
 				->method( 'getMessage' );
 		} elseif ( $expectStatusToBeOkay ) {
-			// A info log should occur if there were warnings in the status.
+			// A debug log should occur if there were warnings in the status.
 			$mockLogger->expects( $this->never() )
-				->method( 'warning' );
+				->method( 'log' );
 			$mockLogger->expects( $this->once() )
-				->method( 'info' )
+				->method( 'debug' )
 				->with(
-					'Scan of SHA-1 $sha1 succeeded with warnings. MediaModerationFileScanner::scanSha1 ' .
+					'Scan of SHA-1 {sha1} succeeded with warnings. MediaModerationFileScanner::scanSha1 ' .
 					'returned this: {return-message}',
 					[
 						'sha1' => $sha1,
@@ -99,18 +99,18 @@ class MediaModerationFileScannerTest extends MediaWikiUnitTestCase {
 				->method( 'getMessage' )
 				->willReturn( 'mock-info-message' );
 		} else {
-			// A warning should occur if there were errors and no scan could be completed.
+			// A info log should occur if there were errors and no scan could be completed.
 			$mockLogger->expects( $this->once() )
-				->method( 'warning' )
+				->method( 'info' )
 				->with(
-					'Unable to scan SHA-1 $sha1. MediaModerationFileScanner::scanSha1 returned this: {return-message}',
+					'Unable to scan SHA-1 {sha1}. MediaModerationFileScanner::scanSha1 returned this: {return-message}',
 					[
 						'sha1' => $sha1,
 						'return-message' => 'mock-warning-message',
 					]
 				);
 			$mockLogger->expects( $this->never() )
-				->method( 'info' );
+				->method( 'debug' );
 			$mockStatusFormatter->expects( $this->once() )
 				->method( 'getMessage' )
 				->willReturn( 'mock-warning-message' );
