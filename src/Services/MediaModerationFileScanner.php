@@ -93,18 +93,18 @@ class MediaModerationFileScanner {
 			$returnStatus->setResult( true, $newMatchStatus );
 		}
 		if ( !$returnStatus->isOK() ) {
-			// Create a warning if the SHA-1 could not be scanned.
-			$this->logger->warning(
-				'Unable to scan SHA-1 $sha1. MediaModerationFileScanner::scanSha1 returned this: {return-message}',
+			// Create a info if the SHA-1 could not be scanned.
+			$this->logger->info(
+				'Unable to scan SHA-1 {sha1}. MediaModerationFileScanner::scanSha1 returned this: {return-message}',
 				[
 					'sha1' => $sha1,
 					'return-message' => $this->statusFormatter->getMessage( $returnStatus, [ 'lang' => 'en' ] ),
 				]
 			);
 		} elseif ( !$returnStatus->isGood() ) {
-			// Create a info if the SHA-1 scanning succeeded with warnings.
-			$this->logger->info(
-				'Scan of SHA-1 $sha1 succeeded with warnings. MediaModerationFileScanner::scanSha1 ' .
+			// Create a debug if the SHA-1 scanning succeeded with warnings.
+			$this->logger->debug(
+				'Scan of SHA-1 {sha1} succeeded with warnings. MediaModerationFileScanner::scanSha1 ' .
 				'returned this: {return-message}',
 				[
 					'sha1' => $sha1,
