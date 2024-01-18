@@ -171,7 +171,7 @@ class MediaModerationImageContentsLookup {
 	protected function getThumbnailForFile( File $file ): StatusValue {
 		$genericErrorMessage = 'Could not transform file ' . $file->getName();
 		$start = microtime( true );
-		$thumbnail = $file->transform( [ 'width' => $this->thumbnailWidth ], File::RENDER_NOW );
+		$thumbnail = $file->transform( [ 'width' => $this->thumbnailWidth ] );
 		$delay = microtime( true ) - $start;
 		$this->perDbNameStatsdDataFactory->timing(
 			'MediaModeration.PhotoDNAServiceProviderThumbnailTransform',
