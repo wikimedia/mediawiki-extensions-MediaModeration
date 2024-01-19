@@ -4,6 +4,7 @@ namespace MediaWiki\Extension\MediaModeration\Tests\Integration\Hooks\Handlers;
 
 use File;
 use MediaWiki\Config\HashConfig;
+use MediaWiki\Deferred\DeferredUpdates;
 use MediaWiki\Extension\MediaModeration\Hooks\Handlers\UploadCompleteHandler;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
 use MediaWikiIntegrationTestCase;
@@ -26,9 +27,11 @@ class UploadCompleteHandlerTest extends MediaWikiIntegrationTestCase {
 	public function testFileAddedToScanTableLoop() {
 		$objectUnderTest = new UploadCompleteHandler(
 			$this->getServiceContainer()->get( 'MediaModerationFileProcessor' ),
+			$this->getServiceContainer()->get( 'MediaModerationDatabaseLookup' ),
+			$this->getServiceContainer()->get( 'MediaModerationEmailer' ),
 			new HashConfig( [ 'MediaModerationAddToScanTableOnUpload' => true ] )
 		);
-		// Mock a file to define a SHA-1
+		// Create a mock File object
 		$mockFile = $this->createMock( File::class );
 		$mockFile->method( 'getMimeType' )
 			->willReturn( 'image/gif' );
@@ -41,6 +44,8 @@ class UploadCompleteHandlerTest extends MediaWikiIntegrationTestCase {
 			->willReturn( $mockFile );
 		// Simulate a file upload.
 		$objectUnderTest->onUploadComplete( $mockUploadBase );
+		// Wait for the deferred update to run.
+		DeferredUpdates::doUpdates();
 		// Check that the file exists according to the lookup service.
 		/** @var MediaModerationDatabaseLookup $mediaModerationDatabaseLookup */
 		$mediaModerationDatabaseLookup = $this->getServiceContainer()->get( 'MediaModerationDatabaseLookup' );

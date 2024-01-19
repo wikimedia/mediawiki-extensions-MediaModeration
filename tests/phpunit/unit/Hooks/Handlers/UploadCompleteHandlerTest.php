@@ -24,6 +24,8 @@ use File;
 use MediaWiki\Config\HashConfig;
 use MediaWiki\Deferred\DeferredUpdates;
 use MediaWiki\Extension\MediaModeration\Hooks\Handlers\UploadCompleteHandler;
+use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
+use MediaWiki\Extension\MediaModeration\Services\MediaModerationEmailer;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileProcessor;
 use MediaWiki\Tests\Unit\MockServiceDependenciesTrait;
 use MediaWikiUnitTestCase;
@@ -38,8 +40,11 @@ use Wikimedia\TestingAccessWrapper;
 class UploadCompleteHandlerTest extends MediaWikiUnitTestCase {
 	use MockServiceDependenciesTrait;
 
-	public function testOnUploadComplete() {
+	/** @dataProvider provideOnUploadComplete */
+	public function testOnUploadComplete( $fileAlreadyExistsInScanTable, $sha1IsAlreadyAMatch, $expectCallToEmailer ) {
 		$mockFile = $this->createMock( File::class );
+		$mockFile->method( 'getSha1' )
+			->willReturn( 'sha1' );
 		// Mock that the UploadBase::getLocalFile returns a mock file.
 		$uploadBase = $this->createMock( UploadBase::class );
 		$uploadBase->method( 'getLocalFile' )
@@ -54,9 +59,27 @@ class UploadCompleteHandlerTest extends MediaWikiUnitTestCase {
 		$mockMediaModerationFileProcessor->expects( $this->once() )
 			->method( 'insertFile' )
 			->with( $mockFile );
+		// Expect that MediaModerationDatabaseLookup::fileExistsInScanTable is called once
+		// and ::getMatchStatusForSha1 is called once if ::fileExistsInScanTable returns true.
+		$mockMediaModerationDatabaseLookup = $this->createMock( MediaModerationDatabaseLookup::class );
+		$mockMediaModerationDatabaseLookup->expects( $this->once() )
+			->method( 'fileExistsInScanTable' )
+			->with( $mockFile )
+			->willReturn( $fileAlreadyExistsInScanTable );
+		$mockMediaModerationDatabaseLookup->expects( $fileAlreadyExistsInScanTable ? $this->once() : $this->never() )
+			->method( 'getMatchStatusForSha1' )
+			->with( 'sha1' )
+			->willReturn( $sha1IsAlreadyAMatch );
+		// Expect that MediaModerationEmailer::sendEmail is called once if $sha1IsAlreadyAMatch is true.
+		$mockMediaModerationEmailer = $this->createMock( MediaModerationEmailer::class );
+		$mockMediaModerationEmailer->expects( $expectCallToEmailer ? $this->once() : $this->never() )
+			->method( 'sendEmailForSha1' );
 		// Get the object under test.
 		$objectUnderTest = new UploadCompleteHandler(
-			$mockMediaModerationFileProcessor, new HashConfig( [ 'MediaModerationAddToScanTableOnUpload' => true ] )
+			$mockMediaModerationFileProcessor,
+			$mockMediaModerationDatabaseLookup,
+			$mockMediaModerationEmailer,
+			new HashConfig( [ 'MediaModerationAddToScanTableOnUpload' => true ] )
 		);
 		// As the logger is created in the constructor, re-assign it to the mock
 		// logger for the test.
@@ -67,6 +90,15 @@ class UploadCompleteHandlerTest extends MediaWikiUnitTestCase {
 		// Cause the deferred updates to run, so that the deferred update for the
 		// call to MediaModerationFileProcessor::insertFile is run before the test ends.
 		DeferredUpdates::doUpdates();
+	}
+
+	public static function provideOnUploadComplete() {
+		return [
+			'File does not exist in scan table' => [ false, false, false ],
+			'File exists in scan table, but sha1 has a null match status' => [ true, null, false ],
+			'File exists in scan table, but sha1 is not a match' => [ true, false, false ],
+			'File exists in scan table, and sha1 is a match' => [ true, true, true ],
+		];
 	}
 
 	public function testOnUploadCompleteForNullFile() {
