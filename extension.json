@@ -31,6 +31,8 @@
 			"class": "MediaWiki\\Extension\\MediaModeration\\Hooks\\Handlers\\UploadCompleteHandler",
 			"services": [
 				"MediaModerationFileProcessor",
+				"MediaModerationDatabaseLookup",
+				"MediaModerationEmailer",
 				"MainConfig"
 			]
 		},
