@@ -19,14 +19,6 @@ use UploadBase;
  */
 class UploadCompleteHandlerTest extends MediaWikiIntegrationTestCase {
 
-	protected function setUp(): void {
-		parent::setUp();
-
-		$this->tablesUsed = [
-			'mediamoderation_scan'
-		];
-	}
-
 	/**
 	 * Tests that an uploaded file is added to the scan table and
 	 * that the lookup service says it was added to the table.
