@@ -25,6 +25,7 @@ use MediaWiki\Extension\MediaModeration\PeriodicMetrics\MediaModerationMetricsFa
 use MediaWiki\Extension\MediaModeration\PhotoDNA\IMediaModerationPhotoDNAServiceProvider;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseManager;
+use MediaWiki\Extension\MediaModeration\Services\MediaModerationEmailer;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileFactory;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileLookup;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileProcessor;
@@ -150,8 +151,25 @@ return [
 			$services->get( 'MediaModerationFileLookup' ),
 			$services->get( 'MediaModerationFileProcessor' ),
 			$services->get( 'MediaModerationPhotoDNAServiceProvider' ),
+			$services->get( 'MediaModerationEmailer' ),
 			$services->getFormatterFactory()->getStatusFormatter( RequestContext::getMain() ),
 			$services->getPerDbNameStatsdDataFactory(),
+			LoggerFactory::getInstance( 'mediamoderation' )
+		);
+	},
+	'MediaModerationEmailer' => static function (
+		MediaWikiServices $services
+	): MediaModerationEmailer {
+		return new MediaModerationEmailer(
+			new ServiceOptions(
+				MediaModerationEmailer::CONSTRUCTOR_OPTIONS,
+				$services->getMainConfig(),
+			),
+			$services->getEmailer(),
+			$services->get( 'MediaModerationDatabaseLookup' ),
+			$services->get( 'MediaModerationFileLookup' ),
+			RequestContext::getMain(),
+			$services->getLanguageFactory()->getLanguage( 'en' ),
 			LoggerFactory::getInstance( 'mediamoderation' )
 		);
 	},

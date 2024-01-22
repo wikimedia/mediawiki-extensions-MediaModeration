@@ -6,6 +6,7 @@ use File;
 use MediaWiki\Extension\MediaModeration\PhotoDNA\Response;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseManager;
+use MediaWiki\Extension\MediaModeration\Services\MediaModerationEmailer;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileLookup;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileProcessor;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileScanner;
@@ -27,7 +28,7 @@ class MediaModerationFileScannerTest extends MediaWikiUnitTestCase {
 	/** @dataProvider provideScanSha1 */
 	public function testScanSha1(
 		$mockOldMatchStatus, $numberOfFileObjects, array $canScanFileResults, array $mockPhotoDNAResponses,
-		$expectStatusToBeGood, $expectStatusToBeOkay, $expectedNewMatchStatus
+		$expectStatusToBeGood, $expectStatusToBeOkay, $expectedNewMatchStatus, $expectCallToEmailer
 	) {
 		$sha1 = 'testing1234';
 		// Define a mock MediaModerationDatabaseLookup that expects to be called and will return $mockOldMatchStatus
@@ -69,6 +70,11 @@ class MediaModerationFileScannerTest extends MediaWikiUnitTestCase {
 		$mockMediaModerationDatabaseManager->expects( $this->once() )
 			->method( 'updateMatchStatusForSha1' )
 			->with( $sha1, $expectedNewMatchStatus ?? $mockOldMatchStatus );
+		// Expect that MediaModerationEmailer is always called
+		$mockMediaModerationEmailer = $this->createMock( MediaModerationEmailer::class );
+		$mockMediaModerationEmailer->expects( $expectCallToEmailer ? $this->once() : $this->never() )
+			->method( 'sendEmailForSha1' )
+			->with( $sha1 );
 		// Get a mock LoggerInterface and StatusFormatter. Expect calls to the mock logger depending
 		// on the expected state of the returned status.
 		$mockLogger = $this->createMock( LoggerInterface::class );
@@ -125,6 +131,7 @@ class MediaModerationFileScannerTest extends MediaWikiUnitTestCase {
 				'mediaModerationFileLookup' => $mockMediaModerationFileLookup,
 				'mediaModerationFileProcessor' => $mockMediaModerationFileProcessor,
 				'mediaModerationPhotoDNAServiceProvider' => $mockMediaModerationPhotoDNAServiceProvider,
+				'mediaModerationEmailer' => $mockMediaModerationEmailer,
 				'statusFormatter' => $mockStatusFormatter,
 				'logger' => $mockLogger,
 			]
@@ -171,9 +178,11 @@ class MediaModerationFileScannerTest extends MediaWikiUnitTestCase {
 				false,
 				// The expected new match status
 				null,
+				// Whether MediaModerationEmailer::sendEmailForSha1 should be called
+				false,
 			],
 			'One File object that cannot be scanned for SHA-1 which already has been matched' => [
-				true, 1, [ false ], [], false, false, null,
+				true, 1, [ false ], [], false, false, null, false,
 			],
 			'One File object that can be scanned but PhotoDNA rejects' => [
 				false,
@@ -183,9 +192,10 @@ class MediaModerationFileScannerTest extends MediaWikiUnitTestCase {
 				false,
 				false,
 				null,
+				false,
 			],
-			'One File object that PhotoDNA accepts the scan on' => [
-				null, 1, [ true ], [ new Response( Response::STATUS_OK ) ], true, true, false,
+			'One File object that PhotoDNA accepts the scan on but is a negative match' => [
+				null, 1, [ true ], [ new Response( Response::STATUS_OK ) ], true, true, false, false,
 			],
 			'Multiple File objects with last being accepted by PhotoDNA' => [
 				null,
@@ -197,6 +207,7 @@ class MediaModerationFileScannerTest extends MediaWikiUnitTestCase {
 					new Response( Response::STATUS_OK, true )
 				],
 				false,
+				true,
 				true,
 				true,
 			],

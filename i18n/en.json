@@ -5,6 +5,10 @@
 		]
 	},
 	"mediamoderation-desc": "Service for detecting matches against known child exploitation image hash datasets.",
+	"mediamoderation-email-body-intro": "The following {{PLURAL:$1|file revision on $2 is|file revisions on $2 are}} a possible match to a known child exploitation image based on their hash:",
+	"mediamoderation-email-body-file-line": "* $1: $2",
+	"mediamoderation-email-body-file-revision-plaintext-url": "$1 ( $2 )",
+	"mediamoderation-email-body-files-missing-timestamp": "The following filenames had versions which matched that had no upload timestamp: $1",
 	"mediamoderation-email-body": "Possible match against known child exploitation image hash in file $1.",
-	"mediamoderation-email-subject": "Hash match"
+	"mediamoderation-email-subject": "Automated scan found hash match"
 }

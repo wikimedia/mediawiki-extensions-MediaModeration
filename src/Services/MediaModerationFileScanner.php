@@ -21,6 +21,7 @@ class MediaModerationFileScanner {
 	private MediaModerationFileLookup $mediaModerationFileLookup;
 	private MediaModerationFileProcessor $mediaModerationFileProcessor;
 	private IMediaModerationPhotoDNAServiceProvider $mediaModerationPhotoDNAServiceProvider;
+	private MediaModerationEmailer $mediaModerationEmailer;
 	private StatsdDataFactoryInterface $perDbNameStatsdDataFactory;
 	private StatusFormatter $statusFormatter;
 	private LoggerInterface $logger;
@@ -31,6 +32,7 @@ class MediaModerationFileScanner {
 		MediaModerationFileLookup $mediaModerationFileLookup,
 		MediaModerationFileProcessor $mediaModerationFileProcessor,
 		IMediaModerationPhotoDNAServiceProvider $mediaModerationPhotoDNAServiceProvider,
+		MediaModerationEmailer $mediaModerationEmailer,
 		StatusFormatter $statusFormatter,
 		StatsdDataFactoryInterface $perDbNameStatsdDataFactory,
 		LoggerInterface $logger
@@ -40,6 +42,7 @@ class MediaModerationFileScanner {
 		$this->mediaModerationFileLookup = $mediaModerationFileLookup;
 		$this->mediaModerationFileProcessor = $mediaModerationFileProcessor;
 		$this->mediaModerationPhotoDNAServiceProvider = $mediaModerationPhotoDNAServiceProvider;
+		$this->mediaModerationEmailer = $mediaModerationEmailer;
 		$this->statusFormatter = $statusFormatter;
 		$this->perDbNameStatsdDataFactory = $perDbNameStatsdDataFactory;
 		$this->logger = $logger;
@@ -88,7 +91,11 @@ class MediaModerationFileScanner {
 		// Update the match status, even if none of the $file objects could be scanned.
 		// If no scanning was successful, then the status will remain
 		$this->mediaModerationDatabaseManager->updateMatchStatusForSha1( $sha1, $newMatchStatus ?? $oldMatchStatus );
-		// TODO: Send an email if $newMatchStatus is true (T351407).
+		if ( $newMatchStatus && $newMatchStatus !== $oldMatchStatus ) {
+			// Send an email for this SHA-1 if the match status has changed to positive.
+			// If the match status was already positive, then an email has already been sent.
+			$this->mediaModerationEmailer->sendEmailForSha1( $sha1 );
+		}
 		if ( $newMatchStatus !== null ) {
 			$returnStatus->setResult( true, $newMatchStatus );
 		}
