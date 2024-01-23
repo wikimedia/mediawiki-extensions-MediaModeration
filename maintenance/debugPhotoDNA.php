@@ -9,6 +9,8 @@ use MediaWiki\Extension\MediaModeration\Services\MediaModerationPhotoDNAServiceP
 use MediaWiki\Title\Title;
 use RequestContext;
 
+// This is a developer script, no need to count it in code coverage metrics.
+// @codeCoverageIgnoreStart
 $IP = getenv( 'MW_INSTALL_PATH' );
 if ( $IP === false ) {
 	$IP = __DIR__ . '/../../..';
@@ -82,3 +84,4 @@ class DebugPhotoDNA extends Maintenance {
 
 $maintClass = DebugPhotoDNA::class;
 require_once RUN_MAINTENANCE_IF_MAIN;
+// @codeCoverageIgnoreEnd

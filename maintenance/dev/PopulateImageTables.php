@@ -10,6 +10,8 @@ use MediaWiki\Title\Title;
 use MediaWiki\User\User;
 use UploadFromUrl;
 
+// This is a local development only script, no need to count it in code coverage metrics.
+// @codeCoverageIgnoreStart
 $IP = getenv( 'MW_INSTALL_PATH' );
 if ( $IP === false ) {
 	$IP = __DIR__ . '/../../..';
@@ -145,3 +147,4 @@ class PopulateImageTables extends Maintenance {
 
 $maintClass = PopulateImageTables::class;
 require_once RUN_MAINTENANCE_IF_MAIN;
+// @codeCoverageIgnoreEnd
