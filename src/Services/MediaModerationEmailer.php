@@ -4,13 +4,11 @@ namespace MediaWiki\Extension\MediaModeration\Services;
 
 use ArchivedFile;
 use File;
-use IDBAccessObject;
 use Language;
 use LocalFile;
 use MailAddress;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Html\Html;
-use MediaWiki\Language\RawMessage;
 use MediaWiki\Mail\IEmailer;
 use MediaWiki\MainConfigNames;
 use MessageLocalizer;
@@ -56,26 +54,14 @@ class MediaModerationEmailer {
 	/**
 	 * Send an email to those listed in wgMediaModerationRecipientList about files with the given $sha1.
 	 *
+	 * Do not call this unless the SHA-1 has been determined to be a positive match by PhotoDNA.
+	 *
 	 * @param string $sha1 The SHA-1 of files to send an email.
 	 * @param ?string $minimumTimestamp Optional. If provided, limits the files that are sent in the email
 	 *   to those which are uploaded after this date.
 	 * @return StatusValue
 	 */
 	public function sendEmailForSha1( string $sha1, ?string $minimumTimestamp = null ) {
-		// First double check that the SHA-1 is marked as a match using the primary DB as the mms_is_match
-		// value probably just was updated.
-		if ( !$this->mediaModerationDatabaseLookup->getMatchStatusForSha1( $sha1, IDBAccessObject::READ_LATEST ) ) {
-			// If the SHA-1 isn't marked as a match, log a warning and return without sending an email.
-			$this->logger->error(
-				'Attempted to send email for SHA-1 {sha1} that was not a match.',
-				[ 'sha1' => $sha1 ]
-			);
-			return StatusValue::newFatal( new RawMessage(
-				'Attempted to send email for SHA-1 $1 that was not a match.',
-				[ $sha1 ]
-			) );
-		}
-
 		$to = array_map( static function ( $address ) {
 			return new MailAddress( $address );
 		}, $this->options->get( 'MediaModerationRecipientList' ) );
@@ -118,7 +104,8 @@ class MediaModerationEmailer {
 	 * Generates a list of File and ArchivedFile objects grouped by their file name (result of ::getName).
 	 *
 	 * @param string $sha1
-	 * @param ?string $minimumTimestamp
+	 * @param ?string $minimumTimestamp If not null, then only include File/ArchivedFile objects for this SHA-1 which
+	 *   have a timestamp greater than or equal to this value.
 	 * @return LocalFile[][]|ArchivedFile[][]
 	 */
 	protected function getFileObjectsGroupedByFileName( string $sha1, ?string $minimumTimestamp ): array {
@@ -143,7 +130,7 @@ class MediaModerationEmailer {
 	 * Returns the HTML version of the email sent by ::sendEmailForSha1
 	 *
 	 * @param string $sha1
-	 * @param ?string $minimumTimestamp
+	 * @param ?string $minimumTimestamp See ::sendEmailForSha1
 	 * @return string HTML
 	 */
 	protected function getEmailBodyHtml( string $sha1, ?string $minimumTimestamp ): string {
@@ -198,7 +185,7 @@ class MediaModerationEmailer {
 	 * Returns the plaintext version of the email sent by ::sendEmailForSha1
 	 *
 	 * @param string $sha1
-	 * @param ?string $minimumTimestamp
+	 * @param ?string $minimumTimestamp See ::sendEmailForSha1
 	 * @return string
 	 */
 	protected function getEmailBodyPlaintext( string $sha1, ?string $minimumTimestamp ): string {

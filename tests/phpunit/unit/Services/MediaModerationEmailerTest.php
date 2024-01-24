@@ -130,37 +130,6 @@ class MediaModerationEmailerTest extends MediaWikiUnitTestCase {
 		];
 	}
 
-	/** @dataProvider provideMatchStatusesOtherThanPositive */
-	public function testSendEmailForSha1WhenNotAMatch( $matchStatus ) {
-		// Create a mock MediaModerationDatabaseLookup that will return $matchStatus from ::getMatchStatusForSha1
-		$mockMediaModerationDatabaseLookup = $this->createMock( MediaModerationDatabaseLookup::class );
-		$mockMediaModerationDatabaseLookup->method( 'getMatchStatusForSha1' )
-			->willReturn( $matchStatus );
-		// Create a mock Logger that expects ::error is called.
-		$mockLogger = $this->createMock( LoggerInterface::class );
-		$mockLogger->expects( $this->once() )
-			->method( 'error' )
-			->with(
-				'Attempted to send email for SHA-1 {sha1} that was not a match.',
-				[ 'sha1' => 'test-sha1' ]
-			);
-		// Create the object under test
-		$objectUnderTest = $this->newServiceInstance( MediaModerationEmailer::class, [
-			'mediaModerationDatabaseLookup' => $mockMediaModerationDatabaseLookup,
-			'logger' => $mockLogger,
-		] );
-		// Call the method under test
-		$actualEmailerStatus = $objectUnderTest->sendEmailForSha1( 'test-sha1' );
-		$this->assertStatusNotOK( $actualEmailerStatus );
-	}
-
-	public static function provideMatchStatusesOtherThanPositive() {
-		return [
-			'Null match status' => [ MediaModerationDatabaseLookup::NULL_MATCH_STATUS ],
-			'Negative match status' => [ (bool)MediaModerationDatabaseLookup::NEGATIVE_MATCH_STATUS ],
-		];
-	}
-
 	public function testSendEmailForSha1OnBadEmail() {
 		$mockEmailerStatus = StatusValue::newFatal( new RawMessage( 'test' ) );
 		// Create a mock IEmailer that returns $mockEmailerStatus from ::send

@@ -111,11 +111,11 @@ class MediaModerationEmailerTest extends MediaWikiIntegrationTestCase {
 				'20230405060708',
 				"The following file revision on mediawiki is a possible match to a known child exploitation " .
 				"image based on their hash:\n<ul><li>Test.png: 06:07, 5 April 2024</li></ul>\n" .
-				"The following filenames had versions which matched that had no upload timestamp: " .
+				"The following filenames had versions which matched, but had no upload timestamp: " .
 				"Test.png and Test2.png\n",
 				"The following file revision on mediawiki is a possible match to a known child exploitation " .
 				"image based on their hash:\n* Test.png: 06:07, 5 April 2024\n" .
-				"The following filenames had versions which matched that had no upload timestamp: " .
+				"The following filenames had versions which matched, but had no upload timestamp: " .
 				"Test.png and Test2.png\n",
 			],
 		];
