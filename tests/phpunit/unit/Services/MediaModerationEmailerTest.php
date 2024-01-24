@@ -13,8 +13,6 @@ use MediaWiki\Mail\IEmailer;
 use MediaWiki\MainConfigNames;
 use MediaWiki\Tests\Unit\MockServiceDependenciesTrait;
 use MediaWikiUnitTestCase;
-use Message;
-use MessageLocalizer;
 use Psr\Log\LoggerInterface;
 use StatusValue;
 use Wikimedia\TestingAccessWrapper;
@@ -181,23 +179,17 @@ class MediaModerationEmailerTest extends MediaWikiUnitTestCase {
 				'Email indicating SHA-1 match failed to send. SHA-1: {sha1}',
 				[ 'sha1' => 'test-sha1', 'status' => $mockEmailerStatus ]
 			);
-		// Create a mock MessageLocalizer for the ::msg call for the email subject.
-		$mockMessageLocalizer = $this->createMock( MessageLocalizer::class );
-		$mockMessage = $this->createMock( Message::class );
-		$mockMessage->method( 'escaped' )
-			->willReturn( 'test' );
-		$mockMessageLocalizer->method( 'msg' )
-			->with( 'mediamoderation-email-subject' )
-			->willReturn( $mockMessage );
 		// Create the object under test
 		$objectUnderTest = $this->getMockBuilder( MediaModerationEmailer::class )
 			->disableOriginalConstructor()
-			->onlyMethods( [ 'getEmailBodyPlaintext', 'getEmailBodyHtml' ] )
+			->onlyMethods( [ 'getEmailBodyPlaintext', 'getEmailBodyHtml', 'getEmailSubject' ] )
 			->getMock();
 		$objectUnderTest->method( 'getEmailBodyHtml' )
 			->willReturn( 'html-body' );
 		$objectUnderTest->method( 'getEmailBodyPlaintext' )
 			->willReturn( 'plaintext-body' );
+		$objectUnderTest->method( 'getEmailSubject' )
+			->willReturn( 'email-subject' );
 		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
 		$objectUnderTest->options = new ServiceOptions(
 			MediaModerationEmailer::CONSTRUCTOR_OPTIONS,
@@ -210,7 +202,6 @@ class MediaModerationEmailerTest extends MediaWikiUnitTestCase {
 		$objectUnderTest->mediaModerationDatabaseLookup = $mockMediaModerationDatabaseLookup;
 		$objectUnderTest->emailer = $mockEmailer;
 		$objectUnderTest->logger = $mockLogger;
-		$objectUnderTest->messageLocalizer = $mockMessageLocalizer;
 		// Call the method under test
 		$actualEmailerStatus = $objectUnderTest->sendEmailForSha1( 'test-sha1' );
 		$this->assertStatusNotOK( $actualEmailerStatus );

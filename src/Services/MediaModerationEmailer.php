@@ -16,6 +16,7 @@ use MediaWiki\MainConfigNames;
 use MessageLocalizer;
 use Psr\Log\LoggerInterface;
 use StatusValue;
+use Wikimedia\Timestamp\ConvertibleTimestamp;
 
 class MediaModerationEmailer {
 
@@ -82,7 +83,7 @@ class MediaModerationEmailer {
 		$emailerStatus = $this->emailer->send(
 			$to,
 			new MailAddress( $this->options->get( 'MediaModerationFrom' ) ),
-			$this->messageLocalizer->msg( 'mediamoderation-email-subject' )->escaped(),
+			$this->getEmailSubject( $sha1 ),
 			$this->getEmailBodyPlaintext( $sha1, $minimumTimestamp ),
 			$this->getEmailBodyHtml( $sha1, $minimumTimestamp )
 		);
@@ -94,6 +95,23 @@ class MediaModerationEmailer {
 			);
 		}
 		return $emailerStatus;
+	}
+
+	/**
+	 * Returns the subject line for the email sent by ::sendEmailForSha1.
+	 *
+	 * The subject line includes the SHA-1 and the current date and time to avoid duplications.
+	 * Just using the date and time is not unique enough in the case that resendMatchEmails.php is run,
+	 * as multiple emails with the same send time could be sent (as the seconds are not included)
+	 *
+	 * @param string $sha1
+	 * @return string
+	 */
+	protected function getEmailSubject( string $sha1 ): string {
+		return $this->messageLocalizer->msg( 'mediamoderation-email-subject' )
+			->params( $sha1 )
+			->dateTimeParams( ConvertibleTimestamp::now() )
+			->escaped();
 	}
 
 	/**
