@@ -9,5 +9,5 @@
 	"mediamoderation-email-body-file-line": "{{notranslate}} Used as a bullet point item in the email to detail a match on a given file.\n\nParameters:\n* $1 - The name of the file on-wiki which may be wrapped in a link.\n* $2 - A localised list containing the upload timestamps for the files that matched. These upload timestamps may be individually wrapped in a link.",
 	"mediamoderation-email-body-file-revision-plaintext-url": "{{notranslate}} Used as a item in a list of upload timestamps for files which was a match according to PhotoDNA.\n\nParameters:\n* $1 - The upload timestamp in a human readable format\n* $2 - The URL to the file revision.",
 	"mediamoderation-email-body-files-missing-timestamp": "{{notranslate}} Text added to the bottom of the email sent when a SHA-1 matches to indicate what filenames had file versions that matched but also had no upload timestamp.",
-	"mediamoderation-email-subject": "{{notranslate}} The subject for the email sent when a SHA-1 matches PhotoDNA."
+	"mediamoderation-email-subject": "{{notranslate}} The subject for the email sent when a SHA-1 matches PhotoDNA.\n\nParameters:\n* $1 - The SHA-1 that was a match.\n* $2 - The time that the email was sent for de-duplication of the subject line."
 }

@@ -7,6 +7,7 @@ use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileLookup;
 use MediaWiki\MainConfigNames;
 use MediaWikiIntegrationTestCase;
 use Wikimedia\TestingAccessWrapper;
+use Wikimedia\Timestamp\ConvertibleTimestamp;
 
 /**
  * @covers \MediaWiki\Extension\MediaModeration\Services\MediaModerationEmailer
@@ -118,5 +119,18 @@ class MediaModerationEmailerTest extends MediaWikiIntegrationTestCase {
 				"Test.png and Test2.png\n",
 			],
 		];
+	}
+
+	public function testGetEmailSubject() {
+		ConvertibleTimestamp::setFakeTime( '20230405060708' );
+		$this->overrideConfigValue( MainConfigNames::AmericanDates, false );
+		$this->overrideConfigValue( MainConfigNames::Sitename, 'mediawiki' );
+		$objectUnderTest = $this->getServiceContainer()->get( 'MediaModerationEmailer' );
+		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
+		$this->assertSame(
+			'Automated scan found hash match for hash syrtqda72zc7dpjqeukz3d686doficu at 06:07, 5 April 2023',
+			$objectUnderTest->getEmailSubject( 'syrtqda72zc7dpjqeukz3d686doficu' ),
+			'::getEmailSubject did not return the expected subject line.'
+		);
 	}
 }

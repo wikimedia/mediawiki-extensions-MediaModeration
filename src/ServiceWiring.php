@@ -20,6 +20,7 @@
 
 namespace MediaWiki\Extension\MediaModeration;
 
+use DerivativeContext;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Extension\MediaModeration\PeriodicMetrics\MediaModerationMetricsFactory;
 use MediaWiki\Extension\MediaModeration\PhotoDNA\IMediaModerationPhotoDNAServiceProvider;
@@ -160,6 +161,9 @@ return [
 	'MediaModerationEmailer' => static function (
 		MediaWikiServices $services
 	): MediaModerationEmailer {
+		// The emails sent by this service should be in English.
+		$messageLocalizer = new DerivativeContext( RequestContext::getMain() );
+		$messageLocalizer->setLanguage( 'en' );
 		return new MediaModerationEmailer(
 			new ServiceOptions(
 				MediaModerationEmailer::CONSTRUCTOR_OPTIONS,
@@ -168,7 +172,7 @@ return [
 			$services->getEmailer(),
 			$services->get( 'MediaModerationDatabaseLookup' ),
 			$services->get( 'MediaModerationFileLookup' ),
-			RequestContext::getMain(),
+			$messageLocalizer,
 			$services->getLanguageFactory()->getLanguage( 'en' ),
 			LoggerFactory::getInstance( 'mediamoderation' )
 		);
