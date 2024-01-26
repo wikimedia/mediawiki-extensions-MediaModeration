@@ -8,7 +8,7 @@ use IDBAccessObject;
 use Wikimedia\Rdbms\IDatabase;
 use Wikimedia\Timestamp\ConvertibleTimestamp;
 
-class MediaModerationDatabaseManager implements IDBAccessObject {
+class MediaModerationDatabaseManager {
 
 	private IDatabase $dbw;
 	private MediaModerationDatabaseLookup $mediaModerationDatabaseLookup;
@@ -31,7 +31,7 @@ class MediaModerationDatabaseManager implements IDBAccessObject {
 	 */
 	public function insertFileToScanTable( $file ) {
 		if ( !$this->mediaModerationDatabaseLookup->fileExistsInScanTable(
-			$file, MediaModerationDatabaseLookup::READ_LATEST
+			$file, IDBAccessObject::READ_LATEST
 		) ) {
 			$this->insertToScanTableInternal( $file );
 		}

@@ -11,7 +11,7 @@ use Wikimedia\Rdbms\SelectQueryBuilder;
 use Wikimedia\Timestamp\ConvertibleTimestamp;
 use Wikimedia\Timestamp\TimestampException;
 
-class MediaModerationDatabaseLookup implements IDBAccessObject {
+class MediaModerationDatabaseLookup {
 
 	public const ANY_MATCH_STATUS = 'any';
 	public const POSITIVE_MATCH_STATUS = '1';
@@ -31,7 +31,7 @@ class MediaModerationDatabaseLookup implements IDBAccessObject {
 	 * @param int $flags IDBAccessObject flags. Does not support READ_LOCKING or READ_EXCLUSIVE
 	 * @return bool
 	 */
-	public function fileExistsInScanTable( $file, int $flags = self::READ_NORMAL ): bool {
+	public function fileExistsInScanTable( $file, int $flags = IDBAccessObject::READ_NORMAL ): bool {
 		$db = $this->getDb( $flags );
 		return (bool)$db->newSelectQueryBuilder()
 			->select( 'COUNT(*)' )
@@ -49,7 +49,7 @@ class MediaModerationDatabaseLookup implements IDBAccessObject {
 	 * @param int $flags IDBAccessObject flags. Does not support READ_LOCKING or READ_EXCLUSIVE
 	 * @return bool|null The match status (null indicates the SHA-1 hasn't been scanned)
 	 */
-	public function getMatchStatusForSha1( string $sha1, int $flags = self::READ_NORMAL ): ?bool {
+	public function getMatchStatusForSha1( string $sha1, int $flags = IDBAccessObject::READ_NORMAL ): ?bool {
 		$db = $this->getDb( $flags );
 		$rawMatchStatus = $db->newSelectQueryBuilder()
 			->select( 'mms_is_match' )
@@ -72,7 +72,7 @@ class MediaModerationDatabaseLookup implements IDBAccessObject {
 	 * @return IReadableDatabase
 	 */
 	public function getDb( int $flags ): IReadableDatabase {
-		if ( $flags & self::READ_LATEST ) {
+		if ( $flags & IDBAccessObject::READ_LATEST ) {
 			return $this->connectionProvider->getPrimaryDatabase( 'virtual-mediamoderation' );
 		} else {
 			return $this->connectionProvider->getReplicaDatabase( 'virtual-mediamoderation' );
@@ -116,7 +116,7 @@ class MediaModerationDatabaseLookup implements IDBAccessObject {
 		$lastChecked, string $direction, array $excludedSha1Values, ?string $matchStatus = self::ANY_MATCH_STATUS
 	): SelectQueryBuilder {
 		// Get a replica DB connection.
-		$dbr = $this->getDb( self::READ_NORMAL );
+		$dbr = $this->getDb( IDBAccessObject::READ_NORMAL );
 		// Create a SelectQueryBuilder that reads from the mediamoderation_scan table.
 		// The fields to read is set by the callers of this method.
 		$selectQueryBuilder = $dbr->newSelectQueryBuilder()
