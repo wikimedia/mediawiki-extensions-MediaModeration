@@ -4,5 +4,8 @@
 			"Eleassar"
 		]
 	},
-	"mediamoderation-desc": "Storitev za odkrivanje ujemanj z znanimi podatkovnimi zbirkami zgoščenih vrednosti slik o izkoriščanju otrok."
+	"mediamoderation-desc": "Storitev za odkrivanje ujemanj z znanimi podatkovnimi zbirkami zgoščenih vrednosti slik o izkoriščanju otrok.",
+	"mediamoderation-email-body-intro": "{{PLURAL:$1|one=Naslednja redakcija datoteke na $2 je|two=Naslednji redakciji datoteke na $2 sta|few=Naslednje redakcije datoteke na $2 so|Naslednje redakcije datoteke na $2 so}} na podlagi njihove zgoščene vrednosti možno ujemanje z znano sliko izkoriščanja otrok:",
+	"mediamoderation-email-body-files-missing-timestamp": "Naslednja imena datotek so imela različice, ki so se ujemale in niso imele časovnega žiga naložitve: $1",
+	"mediamoderation-email-subject": "Samodejno skeniranje je našlo ujemanje zgoščene vrednosti za zgoščeno vrednost $1 ob času $2"
 }

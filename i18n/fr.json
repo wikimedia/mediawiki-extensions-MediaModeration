@@ -1,10 +1,17 @@
 {
 	"@metadata": {
 		"authors": [
+			"Amire80",
+			"Daniel236",
 			"Eneelk",
 			"Verdy p",
 			"Wladek92"
 		]
 	},
-	"mediamoderation-desc": "Service pour détecter les correspondances avec des jeux données de signatures connues d’images relatives à l’exploitation des enfants."
+	"mediamoderation-desc": "Service pour détecter les correspondances avec des jeux données de signatures connues d’images relatives à l’exploitation des enfants.",
+	"mediamoderation-email-body-intro": "Le {{PLURAL:$1| la révision du fichier sur $2 est|les révisions du fichier sur $2 sont}} une correspondance possible avec une image connue pour l'exploitation d'enfants en fonction de leur hachage :",
+	"mediamoderation-email-body-file-line": "* $1 : $2",
+	"mediamoderation-email-body-file-revision-plaintext-url": "$1 ($2)",
+	"mediamoderation-email-body-files-missing-timestamp": "Les noms de fichiers suivants avaient des versions correspondantes qui n'avaient pas de timestamp de téléchargement: $1",
+	"mediamoderation-email-subject": "L'analyse automatisée a trouvé une correspondance de hachage pour le hachage $1 à $2"
 }
