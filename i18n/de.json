@@ -1,9 +1,11 @@
 {
 	"@metadata": {
-		"authors": []
+		"authors": [
+			"Brettchenweber"
+		]
 	},
 	"mediamoderation-desc": "Dienst zur Erkennung von Übereinstimmungen mit bekannten Hash-Datensätzen von Bildern, in denen Kinder ausgebeutet werden.",
-	"mediamoderation-email-body-intro": "Die {{PLURAL:$1|folgenden Dateiversion auf $2 passt|folgenden Dateiversionen auf $2 passen}} möglicherweise zu einem bekannten Kinderporno-Bild, basierend auf ihrem Hash:",
+	"mediamoderation-email-body-intro": "Die {{PLURAL:$1|folgende Dateiversion auf $2 passt|folgenden Dateiversionen auf $2 passen}} möglicherweise zu einem bekannten Kinderporno-Bild, basierend auf ihrem Hash:",
 	"mediamoderation-email-body-files-missing-timestamp": "Die folgenden Dateinamen hatten übereinstimmende Versionen, die keinen Hochlade-Zeitstempel hatten: $1",
 	"mediamoderation-email-subject": "Automatischer Scan fand Hash-Übereinstimmung für Hashwert $1 bei $2"
 }
