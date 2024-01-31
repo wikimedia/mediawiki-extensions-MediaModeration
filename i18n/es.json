@@ -7,7 +7,5 @@
 			"No se"
 		]
 	},
-	"mediamoderation-desc": "Servicio para detectar coincidencias con conjuntos de hashes de imágenes de explotación infantil conocidas.",
-	"mediamoderation-email-body-files-missing-timestamp": "Los siguientes nombres de archivos tenían versiones que coincidían y no tenían marca de tiempo de carga: $1",
-	"mediamoderation-email-subject": "El análisis automático encontró coincidencia de hash para hash $1 en $2"
+	"mediamoderation-desc": "Servicio para detectar coincidencias con conjuntos de hashes de imágenes de explotación infantil conocidas."
 }
