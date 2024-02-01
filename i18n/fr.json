@@ -4,11 +4,12 @@
 			"Amire80",
 			"Daniel236",
 			"Eneelk",
+			"Thibaut120094",
 			"Verdy p",
 			"Wladek92"
 		]
 	},
 	"mediamoderation-desc": "Service pour détecter les correspondances avec des jeux données de signatures connues d’images relatives à l’exploitation des enfants.",
 	"mediamoderation-email-body-file-line": "* $1 : $2",
-	"mediamoderation-email-body-file-revision-plaintext-url": "$1 ($2)"
+	"mediamoderation-email-body-file-revision-plaintext-url": "$1 ( $2 )"
 }
