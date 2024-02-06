@@ -11,11 +11,14 @@ use MediaTransformError;
 use MediaWiki\Config\HashConfig;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Extension\MediaModeration\Exception\RuntimeException;
+use MediaWiki\Extension\MediaModeration\Media\ThumborThumbnailImage;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationImageContentsLookup;
+use MediaWiki\Http\HttpRequestFactory;
 use MediaWiki\Language\RawMessage;
 use MediaWiki\Tests\Unit\MockServiceDependenciesTrait;
 use MediaWikiUnitTestCase;
 use MimeAnalyzer;
+use MWHttpRequest;
 use PHPUnit\Framework\MockObject\MockObject;
 use StatusValue;
 use ThumbnailImage;
@@ -44,6 +47,8 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 		$fileBackendMock = $this->createMock( FileBackend::class );
 		$fileBackendMock->method( 'getFileContentsMulti' )
 			->willReturn( [ 'test' => false ] );
+		$mockFile->method( 'getRepo' )
+			->willReturn( $this->createMock( LocalRepo::class ) );
 		// Call the method under test
 		/** @var MediaModerationImageContentsLookup $objectUnderTest */
 		$objectUnderTest = $this->newServiceInstance(
@@ -89,6 +94,10 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 			->willReturn( 'Test.png' );
 		$mockFile->method( 'transform' )
 			->willReturn( $thumbnail );
+		$mockFile->method( 'getRepo' )
+			->willReturn( $this->createMock( LocalRepo::class ) );
+		$mockFile->expects( $this->once() )->method( 'transform' )
+			->withConsecutive( [ [ 'width' => 320 ], File::RENDER_NOW ] );
 		// Define a mock StatsdDataFactoryInterface that expects a call to ::increment.
 		$mockPerDbNameStatsdDataFactory = $this->createMock( StatsdDataFactoryInterface::class );
 		$mockPerDbNameStatsdDataFactory->expects( $this->once() )
@@ -102,7 +111,8 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 					MediaModerationImageContentsLookup::CONSTRUCTOR_OPTIONS,
 					new HashConfig( self::CONSTRUCTOR_OPTIONS_DEFAULTS )
 				),
-				'perDbNameStatsdDataFactory' => $mockPerDbNameStatsdDataFactory
+				'perDbNameStatsdDataFactory' => $mockPerDbNameStatsdDataFactory,
+				'httpRequestFactory' => $this->createMock( HttpRequestFactory::class )
 			]
 		);
 		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
@@ -117,6 +127,61 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 			'::transform returns an unexpected class' => [ RuntimeException::class ],
 			'::transform returns ThumbnailImage with ::hasFile as false' => [ ThumbnailImage::class ],
 		];
+	}
+
+	public function testGetThumbnailForFileWithThumborRequest() {
+		// Define a mock File class that returns a pre-defined ::getName
+		$mockFile = $this->createMock( File::class );
+		$mockFile->method( 'getName' )
+			->willReturn( 'Test.png' );
+		$mockFile->method( 'getThumbUrl' )
+			->willReturn( 'http://thumb' );
+		$mockFile->expects( $this->never() )->method( 'transform' );
+		$mockLocalRepo = $this->createMock( LocalRepo::class );
+		$mockLocalRepo->method( 'getThumbProxyUrl' )->willReturn( 'http://foo' );
+		$mockLocalRepo->method( 'getThumbProxySecret' )->willReturn( 'secret' );
+		$mockFile->method( 'getRepo' )->willReturn( $mockLocalRepo );
+		// Define a mock StatsdDataFactoryInterface that expects a call to ::increment.
+		$mockPerDbNameStatsdDataFactory = $this->createMock( StatsdDataFactoryInterface::class );
+		$mockPerDbNameStatsdDataFactory->expects( $this->never() )
+			->method( 'increment' );
+		$mockPerDbNameStatsdDataFactory->expects( $this->once() )
+			->method( 'timing' )
+			->with( 'MediaModeration.PhotoDNAServiceProviderThumbnailTransformThumborRequest' );
+		$mockHttpRequestFactory = $this->createMock( HttpRequestFactory::class );
+		$mockRequest = $this->createMock( MWHttpRequest::class );
+		$mockRequest->method( 'execute' )->willReturn(
+			StatusValue::newGood()
+		);
+		$imageContents = file_get_contents( __DIR__ . '/../../fixtures/489px-Lagoon_Nebula.jpg' );
+		$mockRequest->method( 'getContent' )->willReturn( $imageContents );
+		$mockRequest->method( 'getResponseHeader' )->with( 'content-type' )->willReturn( 'image/jpeg' );
+		$mockRequest->expects( $this->once() )->method( 'execute' );
+		$mockRequest->expects( $this->once() )->method( 'setHeader' );
+
+		$mockHttpRequestFactory->method( 'create' )->willReturn( $mockRequest );
+		$mockHttpRequestFactory->expects( $this->once() )->method( 'create' );
+		// Call the method under test
+		/** @var MediaModerationImageContentsLookup $objectUnderTest */
+		$objectUnderTest = $this->newServiceInstance(
+			MediaModerationImageContentsLookup::class,
+			[
+				'options' => new ServiceOptions(
+					MediaModerationImageContentsLookup::CONSTRUCTOR_OPTIONS,
+					new HashConfig( self::CONSTRUCTOR_OPTIONS_DEFAULTS )
+				),
+				'perDbNameStatsdDataFactory' => $mockPerDbNameStatsdDataFactory,
+				'httpRequestFactory' => $mockHttpRequestFactory
+			]
+		);
+		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
+		$actualStatus = $objectUnderTest->getThumbnailForFile( $mockFile );
+		$this->assertStatusOK( $actualStatus );
+		/** @var ThumborThumbnailImage $thumbnail */
+		$thumbnail = $actualStatus->getValue();
+		$this->assertEquals( 480, $thumbnail->getHeight() );
+		$this->assertEquals( 489, $thumbnail->getWidth() );
+		$this->assertEquals( $imageContents, $thumbnail->getContent() );
 	}
 
 	/** @dataProvider provideGetThumbnailMimeType */
@@ -389,6 +454,7 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 				$mockStatsdInterface,
 				$this->createMock( MimeAnalyzer::class ),
 				$this->createMock( LocalRepo::class ),
+				$this->createMock( HttpRequestFactory::class )
 			] )
 			->getMock();
 		// Mock the StatusValue objects returned by the methods defined to be mocked
