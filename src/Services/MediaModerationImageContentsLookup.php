@@ -9,7 +9,9 @@ use Liuggio\StatsdClient\Factory\StatsdDataFactoryInterface;
 use LocalRepo;
 use MediaTransformError;
 use MediaWiki\Config\ServiceOptions;
+use MediaWiki\Extension\MediaModeration\Media\ThumborThumbnailImage;
 use MediaWiki\Extension\MediaModeration\Status\ImageContentsLookupStatus;
+use MediaWiki\Http\HttpRequestFactory;
 use MediaWiki\Language\RawMessage;
 use MimeAnalyzer;
 use StatusValue;
@@ -31,6 +33,8 @@ class MediaModerationImageContentsLookup {
 	private MimeAnalyzer $mimeAnalyzer;
 	private LocalRepo $localRepo;
 
+	private HttpRequestFactory $httpRequestFactory;
+
 	private int $thumbnailWidth;
 
 	public function __construct(
@@ -38,7 +42,8 @@ class MediaModerationImageContentsLookup {
 		FileBackend $fileBackend,
 		StatsdDataFactoryInterface $perDbNameStatsdDataFactory,
 		MimeAnalyzer $mimeAnalyzer,
-		LocalRepo $localRepo
+		LocalRepo $localRepo,
+		HttpRequestFactory $httpRequestFactory
 	) {
 		$options->assertRequiredOptions( self::CONSTRUCTOR_OPTIONS );
 		$this->fileBackend = $fileBackend;
@@ -46,6 +51,7 @@ class MediaModerationImageContentsLookup {
 		$this->mimeAnalyzer = $mimeAnalyzer;
 		$this->localRepo = $localRepo;
 		$this->thumbnailWidth = $options->get( 'MediaModerationThumbnailWidth' );
+		$this->httpRequestFactory = $httpRequestFactory;
 	}
 
 	/**
@@ -136,7 +142,9 @@ class MediaModerationImageContentsLookup {
 	protected function getThumbnailMimeType( ThumbnailImage $thumbnail ): StatusValue {
 		// Attempt to work out what the mime type of the file is based on the extension, and if that
 		// fails then try based on the contents of the thumbnail.
-		$thumbnailMimeType = $this->mimeAnalyzer->getMimeTypeFromExtensionOrNull( $thumbnail->getExtension() );
+		$thumbnailMimeType = $thumbnail instanceof ThumborThumbnailImage ?
+			$thumbnail->getContentType() :
+			$this->mimeAnalyzer->getMimeTypeFromExtensionOrNull( $thumbnail->getExtension() );
 		if ( $thumbnailMimeType === null ) {
 			$thumbnailMimeType = $this->mimeAnalyzer->guessMimeType( $thumbnail->getLocalCopyPath() );
 		}
@@ -165,13 +173,60 @@ class MediaModerationImageContentsLookup {
 
 	/**
 	 * @param File $file
-	 * @return StatusValue<ThumbnailImage> A StatusValue with a ThumbnailImage object as the value
+	 * @return StatusValue<ThumbnailImage|ThumborThumbnailImage> A StatusValue with a ThumbnailImage object as the value
 	 *   if it is a good status.
 	 */
 	protected function getThumbnailForFile( File $file ): StatusValue {
 		$genericErrorMessage = 'Could not transform file ' . $file->getName();
 		$start = microtime( true );
-		$thumbnail = $file->transform( [ 'width' => $this->thumbnailWidth ] );
+		$thumbName = $file->thumbName( [ 'width' => $this->thumbnailWidth ] );
+		$thumbProxyUrl = $file->getRepo()->getThumbProxyUrl();
+		$secret = $file->getRepo()->getThumbProxySecret();
+		if ( $thumbProxyUrl && $secret ) {
+			// Specific to Wikimedia setup only: proxy the request to Thumbor,
+			// which should result in the thumbnail being generated on disk
+			// @see wfProxyThumbnailRequest()
+			$req = $this->httpRequestFactory->create(
+				$thumbProxyUrl . $file->getThumbRel( $thumbName )
+			);
+			$req->setHeader( 'X-Swift-Secret', $secret );
+			$result = $req->execute();
+			if ( $result->isGood() ) {
+				$imageContent = $req->getContent();
+				// getimagesizefromstring() can return a PHP Notice if
+				// the contents are invalid. Suppress the notice, and check
+				// instead of the result is truthy.
+				// phpcs:ignore Generic.PHP.NoSilencedErrors.Discouraged
+				$imageMetadata = @getimagesizefromstring( $imageContent );
+				if ( $imageMetadata ) {
+					$thumbnail = new ThumborThumbnailImage(
+						$file,
+						$file->getThumbUrl( $thumbName ),
+						[
+							'width' => $imageMetadata[0],
+							'height' => $imageMetadata[1]
+						],
+						$imageContent,
+						$req->getResponseHeader( 'content-type' )
+					);
+					$this->perDbNameStatsdDataFactory->timing(
+						'MediaModeration.PhotoDNAServiceProviderThumbnailTransformThumborRequest',
+						1000 * ( microtime( true ) - $start )
+					);
+					return StatusValue::newGood( $thumbnail );
+				}
+			}
+			// The request failed, so increment the failure counter and use regular ::transform
+			// for checks done farther on.
+			$this->perDbNameStatsdDataFactory->increment(
+				'MediaModeration.ImageContentsLookup.Thumbnail.ThumborTransform.Failed'
+			);
+			$thumbnail = $file->transform( [ 'width' => $this->thumbnailWidth ] );
+		} else {
+			// For non Wikimedia setups, use RENDER_NOW to ensure we have
+			// a file to work with.
+			$thumbnail = $file->transform( [ 'width' => $this->thumbnailWidth ], File::RENDER_NOW );
+		}
 		$delay = microtime( true ) - $start;
 		$this->perDbNameStatsdDataFactory->timing(
 			'MediaModeration.PhotoDNAServiceProviderThumbnailTransform',
@@ -229,7 +284,9 @@ class MediaModerationImageContentsLookup {
 				[ $thumbnail->getFile()->getName() ]
 			) );
 		}
-		$fileContents = $this->fileBackend->getFileContents( [ 'src' => $thumbnail->getStoragePath() ] );
+		$fileContents = $thumbnail instanceof ThumborThumbnailImage ?
+			$thumbnail->getContent() :
+			$this->fileBackend->getFileContents( [ 'src' => $thumbnail->getStoragePath() ] );
 		if ( !$fileContents ) {
 			$this->perDbNameStatsdDataFactory->increment(
 				'MediaModeration.ImageContentsLookup.Thumbnail.Contents.LookupFailed'

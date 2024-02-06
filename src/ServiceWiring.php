@@ -140,7 +140,8 @@ return [
 			$services->getRepoGroup()->getLocalRepo()->getBackend(),
 			$services->getPerDbNameStatsdDataFactory(),
 			$services->getMimeAnalyzer(),
-			$services->getRepoGroup()->getLocalRepo()
+			$services->getRepoGroup()->getLocalRepo(),
+			$services->getHttpRequestFactory()
 		);
 	},
 	'MediaModerationFileScanner' => static function (
