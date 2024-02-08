@@ -275,7 +275,7 @@ class MediaModerationImageContentsLookup {
 				[ $thumbnail->getFile()->getName() ]
 			) );
 		}
-		if ( !$thumbnail->getStoragePath() ) {
+		if ( !( $thumbnail instanceof ThumborThumbnailImage ) && !$thumbnail->getStoragePath() ) {
 			$this->perDbNameStatsdDataFactory->increment(
 				'MediaModeration.ImageContentsLookup.Thumbnail.Contents.LookupFailed'
 			);
