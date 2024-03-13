@@ -23,7 +23,7 @@ class MediaModerationEmailerTest extends MediaWikiIntegrationTestCase {
 		// needs to remain consistent for the test to work.
 		$this->setUserLang( 'en' );
 		$this->overrideConfigValue( MainConfigNames::AmericanDates, false );
-		$this->overrideConfigValue( MainConfigNames::Sitename, 'mediawiki' );
+		$this->overrideConfigValue( MainConfigNames::CanonicalServer, 'https://mediawiki.org' );
 		// Convert $fileObjectsFileNamesAndTimestamps to an array of mock File objects
 		$mockFileObjects = [];
 		foreach ( $fileObjectsFileNamesAndTimestamps as $fileObjectEntry ) {
@@ -77,12 +77,13 @@ class MediaModerationEmailerTest extends MediaWikiIntegrationTestCase {
 				// The $minimumTimestamp argument passed to the method under test
 				null,
 				// The expected HTML email body to be returned by ::getEmailBodyHTML
-				"The following file revisions on mediawiki are a possible match to a known child exploitation " .
-				"image based on their hash:\n<ul><li>Test.png: <a href=\"test.com\">06:07, 5 April 2023</a> and " .
-				"06:07, 5 April 2024</li></ul>\n",
+				"The following file revisions on <a href=\"https://mediawiki.org\">https://mediawiki.org</a> are a " .
+				"possible match to a known child exploitation image based on their hash:\n" .
+				"<ul><li>Test.png: <a href=\"test.com\">06:07, 5 April 2023</a> and 06:07, 5 April 2024</li></ul>\n",
 				// The expected plaintext email body to be returned by ::getEmailBodyPlaintext
-				"The following file revisions on mediawiki are a possible match to a known child exploitation " .
-				"image based on their hash:\n* Test.png: 06:07, 5 April 2023 ( test.com ) and 06:07, 5 April 2024\n",
+				"The following file revisions on https://mediawiki.org are a possible match to a known child " .
+				"exploitation image based on their hash:\n* Test.png: 06:07, 5 April 2023 ( test.com ) and " .
+				"06:07, 5 April 2024\n",
 			],
 			'Multiple filenames and a minimum timestamp' => [
 				[
@@ -92,12 +93,12 @@ class MediaModerationEmailerTest extends MediaWikiIntegrationTestCase {
 					[ 'name' => 'Test2.png', 'timestamp' => '20220405060709', 'url' => 'test.com/test' ],
 				],
 				'20220405060709',
-				"The following file revisions on mediawiki are a possible match to a known child exploitation " .
-				"image based on their hash:\n" .
+				"The following file revisions on <a href=\"https://mediawiki.org\">https://mediawiki.org</a> are a " .
+				"possible match to a known child exploitation image based on their hash:\n" .
 				"<ul><li>Test.png: <a href=\"a.com\">06:07, 5 April 2023</a> and 06:07, 5 April 2024</li></ul>\n" .
 				"<ul><li>Test2.png: <a href=\"test.com/test\">06:07, 5 April 2022</a></li></ul>\n",
-				"The following file revisions on mediawiki are a possible match to a known child exploitation " .
-				"image based on their hash:\n" .
+				"The following file revisions on https://mediawiki.org are a possible match to a known child " .
+				"exploitation image based on their hash:\n" .
 				"* Test.png: 06:07, 5 April 2023 ( a.com ) and 06:07, 5 April 2024\n" .
 				"* Test2.png: 06:07, 5 April 2022 ( test.com/test )\n",
 			],
@@ -109,12 +110,13 @@ class MediaModerationEmailerTest extends MediaWikiIntegrationTestCase {
 					[ 'name' => 'Test2.png', 'timestamp' => false ],
 				],
 				'20230405060708',
-				"The following file revision on mediawiki is a possible match to a known child exploitation " .
-				"image based on their hash:\n<ul><li>Test.png: 06:07, 5 April 2024</li></ul>\n" .
+				"The following file revision on <a href=\"https://mediawiki.org\">https://mediawiki.org</a> is a " .
+				"possible match to a known child exploitation image based on their hash:\n" .
+				"<ul><li>Test.png: 06:07, 5 April 2024</li></ul>\n" .
 				"The following filenames had versions which matched, but had no upload timestamp: " .
 				"Test.png and Test2.png\n",
-				"The following file revision on mediawiki is a possible match to a known child exploitation " .
-				"image based on their hash:\n* Test.png: 06:07, 5 April 2024\n" .
+				"The following file revision on https://mediawiki.org is a possible match to a known child " .
+				"exploitation image based on their hash:\n* Test.png: 06:07, 5 April 2024\n" .
 				"The following filenames had versions which matched, but had no upload timestamp: " .
 				"Test.png and Test2.png\n",
 			],
