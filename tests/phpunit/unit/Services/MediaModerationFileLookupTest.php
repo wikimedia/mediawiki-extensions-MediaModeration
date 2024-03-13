@@ -225,7 +225,7 @@ class MediaModerationFileLookupTest extends MediaWikiUnitTestCase {
 		// Call the method under test (::getFileObjectsForSha1)
 		$this->assertCount(
 			$expectedFileFactoryCallCount,
-			$objectUnderTest->getFileObjectsForSha1( '1234' ),
+			iterator_to_array( $objectUnderTest->getFileObjectsForSha1( '1234' ) ),
 			'::getFileObjectsForSha1 did not return the expected number of LocalFile objects.'
 		);
 	}
