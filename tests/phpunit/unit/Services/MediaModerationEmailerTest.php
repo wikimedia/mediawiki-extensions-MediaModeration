@@ -5,7 +5,6 @@ namespace MediaWiki\Extension\MediaModeration\Tests\Unit\Services;
 use File;
 use MediaWiki\Config\HashConfig;
 use MediaWiki\Config\ServiceOptions;
-use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationEmailer;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileLookup;
 use MediaWiki\Language\RawMessage;
@@ -136,10 +135,6 @@ class MediaModerationEmailerTest extends MediaWikiUnitTestCase {
 		$mockEmailer = $this->createMock( IEmailer::class );
 		$mockEmailer->method( 'send' )
 			->willReturn( $mockEmailerStatus );
-		// Create a mock MediaModerationDatabaseLookup that will return true from ::getMatchStatusForSha1
-		$mockMediaModerationDatabaseLookup = $this->createMock( MediaModerationDatabaseLookup::class );
-		$mockMediaModerationDatabaseLookup->method( 'getMatchStatusForSha1' )
-			->willReturn( true );
 		// Create a mock Logger that expects ::error is called.
 		$mockLogger = $this->createMock( LoggerInterface::class );
 		$mockLogger->expects( $this->once() )
@@ -165,10 +160,9 @@ class MediaModerationEmailerTest extends MediaWikiUnitTestCase {
 			new HashConfig( [
 				'MediaModerationRecipientList' => [ 'test@test.com' ],
 				'MediaModerationFrom' => 'testing@test.com',
-				MainConfigNames::Sitename => 'test',
+				MainConfigNames::CanonicalServer => 'http://example.com',
 			] )
 		);
-		$objectUnderTest->mediaModerationDatabaseLookup = $mockMediaModerationDatabaseLookup;
 		$objectUnderTest->emailer = $mockEmailer;
 		$objectUnderTest->logger = $mockLogger;
 		// Call the method under test
