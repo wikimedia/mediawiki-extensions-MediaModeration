@@ -21,12 +21,11 @@ class MediaModerationEmailer {
 	public const CONSTRUCTOR_OPTIONS = [
 		'MediaModerationRecipientList',
 		'MediaModerationFrom',
-		MainConfigNames::Sitename,
+		MainConfigNames::CanonicalServer,
 	];
 
 	private ServiceOptions $options;
 	private IEmailer $emailer;
-	private MediaModerationDatabaseLookup $mediaModerationDatabaseLookup;
 	private MediaModerationFileLookup $mediaModerationFileLookup;
 	private MessageLocalizer $messageLocalizer;
 	private Language $language;
@@ -35,7 +34,6 @@ class MediaModerationEmailer {
 	public function __construct(
 		ServiceOptions $options,
 		IEmailer $emailer,
-		MediaModerationDatabaseLookup $mediaModerationDatabaseLookup,
 		MediaModerationFileLookup $mediaModerationFileLookup,
 		MessageLocalizer $messageLocalizer,
 		Language $language,
@@ -44,7 +42,6 @@ class MediaModerationEmailer {
 		$options->assertRequiredOptions( self::CONSTRUCTOR_OPTIONS );
 		$this->options = $options;
 		$this->emailer = $emailer;
-		$this->mediaModerationDatabaseLookup = $mediaModerationDatabaseLookup;
 		$this->mediaModerationFileLookup = $mediaModerationFileLookup;
 		$this->messageLocalizer = $messageLocalizer;
 		$this->language = $language;
@@ -177,7 +174,7 @@ class MediaModerationEmailer {
 				->rawParams( $this->language->listToText( $uploadTimestampsForFile ) )
 				->parse() . "\n";
 		}
-		return $this->getEmailBodyIntroductionText( $fileObjectsCount ) . $returnHtml .
+		return $this->getEmailBodyIntroductionText( $fileObjectsCount, true ) . $returnHtml .
 			$this->getEmailBodyFooterText( $missingTimestamps );
 	}
 
@@ -227,7 +224,7 @@ class MediaModerationEmailer {
 				$this->language->listToText( $uploadTimestampsForFile )
 			)->escaped() . "\n";
 		}
-		return $this->getEmailBodyIntroductionText( $fileObjectsCount ) . $returnText .
+		return $this->getEmailBodyIntroductionText( $fileObjectsCount, false ) . $returnText .
 			$this->getEmailBodyFooterText( $missingTimestamps );
 	}
 
@@ -236,14 +233,23 @@ class MediaModerationEmailer {
 	 *
 	 * @param int $fileRevisionsCount The number of File/ArchivedFile objects processed which have ::getTimestamp
 	 *   return any other value than false.
+	 * @param bool $useHtml If true, then the HTML version of the email introduction is returned.
 	 * @return string
 	 */
-	protected function getEmailBodyIntroductionText( int $fileRevisionsCount ): string {
+	protected function getEmailBodyIntroductionText( int $fileRevisionsCount, bool $useHtml ): string {
 		// Add the introduction text to the start of the return text
-		return $this->messageLocalizer->msg( 'mediamoderation-email-body-intro' )
-			->numParams( $fileRevisionsCount )
-			->params( $this->options->get( MainConfigNames::Sitename ) )
-			->escaped() . "\n";
+		$introductionMessage = $this->messageLocalizer->msg( 'mediamoderation-email-body-intro' )
+			->numParams( $fileRevisionsCount );
+		if ( $useHtml ) {
+			$introductionMessage->rawParams( Html::element(
+				'a',
+				[ 'href' => $this->options->get( MainConfigNames::CanonicalServer ) ],
+				$this->options->get( MainConfigNames::CanonicalServer )
+			) );
+		} else {
+			$introductionMessage->params( $this->options->get( MainConfigNames::CanonicalServer ) );
+		}
+		return $introductionMessage->escaped() . "\n";
 	}
 
 	/**

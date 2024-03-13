@@ -171,7 +171,6 @@ return [
 				$services->getMainConfig(),
 			),
 			$services->getEmailer(),
-			$services->get( 'MediaModerationDatabaseLookup' ),
 			$services->get( 'MediaModerationFileLookup' ),
 			$messageLocalizer,
 			$services->getLanguageFactory()->getLanguage( 'en' ),
