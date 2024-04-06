@@ -504,12 +504,24 @@ class ImportExistingFilesToScanTableTest extends MediaWikiUnitTestCase {
 		// Mock the mock FileSelectQueryBuilder to return the LIMIT used in the query
 		$mockFileSelectQueryBuilder->method( 'getQueryInfo' )
 			->willReturn( [ 'options' => [ 'LIMIT' => $secondQueryResult->count() ] ] );
-		$objectUnderTest->method( 'getFileSelectQueryBuilder' )
-			->withConsecutive(
-				[ 'image', $previousBatchFinalTimestamp, false ],
-				[ 'image', $previousBatchFinalTimestamp, true ],
-			)
-			->willReturn( $mockFileSelectQueryBuilder );
+		$argsGetFileSelectQueryBuilder = [
+			[ 'image', $previousBatchFinalTimestamp, false, $mockFileSelectQueryBuilder ],
+			[ 'image', $previousBatchFinalTimestamp, true, $mockFileSelectQueryBuilder ],
+		];
+		$objectUnderTest->expects( $this->exactly( 2 ) )
+			->method( 'getFileSelectQueryBuilder' )
+			->willReturnCallback( function (
+				$table, $previousBatchFinalTimestamp, $shouldRaiseBatchSize
+			) use (
+				&$argsGetFileSelectQueryBuilder
+			) {
+				[ $expectedTable, $expectedTimestamp, $expectedRaiseBatchSize, $returnValue ]
+					= array_shift( $argsGetFileSelectQueryBuilder );
+				$this->assertSame( $expectedTable, $table );
+				$this->assertSame( $expectedTimestamp, $previousBatchFinalTimestamp );
+				$this->assertSame( $expectedRaiseBatchSize, $shouldRaiseBatchSize );
+				return $returnValue;
+			} );
 		// Mock the MediaModerationFileFactory::getFileObjectForRow method to return the
 		// File objects for the last row in the first and second queries.
 		$mockMediaModerationFileFactory = $this->createMock( MediaModerationFileFactory::class );
@@ -519,12 +531,18 @@ class ImportExistingFilesToScanTableTest extends MediaWikiUnitTestCase {
 		$mockFileObjectForSecondQuery = $this->createMock( File::class );
 		$mockFileObjectForSecondQuery->method( 'getTimestamp' )
 			->willReturn( $expectedLastFileTimestamp );
-		$mockMediaModerationFileFactory->method( 'getFileObjectForRow' )
-			->withConsecutive(
-				[ $lastResultRow, 'image' ],
-				[ $lastResultRowForSecondQuery, 'image' ]
-			)
-			->willReturn( $mockFileObject, $mockFileObjectForSecondQuery );
+		$argsGetFileObjectForRow = [
+			[ $lastResultRow, 'image', $mockFileObject ],
+			[ $lastResultRowForSecondQuery, 'image', $mockFileObjectForSecondQuery ],
+		];
+		$mockMediaModerationFileFactory->expects( $this->exactly( 2 ) )
+			->method( 'getFileObjectForRow' )
+			->willReturnCallback( function ( $row, $table ) use ( &$argsGetFileObjectForRow ) {
+				[ $expectedRow, $expectedTable, $returnValue ] = array_shift( $argsGetFileObjectForRow );
+				$this->assertEquals( $expectedRow, $row );
+				$this->assertSame( $expectedTable, $table );
+				return $returnValue;
+			} );
 		// Call the method under test
 		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
 		$objectUnderTest->mediaModerationFileFactory = $mockMediaModerationFileFactory;

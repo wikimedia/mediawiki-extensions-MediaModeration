@@ -97,7 +97,7 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 		$mockFile->method( 'getRepo' )
 			->willReturn( $this->createMock( LocalRepo::class ) );
 		$mockFile->expects( $this->once() )->method( 'transform' )
-			->withConsecutive( [ [ 'width' => 320 ], File::RENDER_NOW ] );
+			->with( [ 'width' => 320 ] );
 		// Define a mock StatsdDataFactoryInterface that expects a call to ::increment.
 		$mockPerDbNameStatsdDataFactory = $this->createMock( StatsdDataFactoryInterface::class );
 		$mockPerDbNameStatsdDataFactory->expects( $this->once() )
