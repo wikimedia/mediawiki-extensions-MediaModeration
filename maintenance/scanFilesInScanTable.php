@@ -3,6 +3,7 @@
 namespace MediaWiki\Extension\MediaModeration\Maintenance;
 
 use IDBAccessObject;
+use JobQueueError;
 use JobQueueGroup;
 use JobSpecification;
 use Maintenance;
@@ -111,10 +112,16 @@ class ScanFilesInScanTable extends Maintenance {
 				// Push scan jobs to the job queue if --use-jobqueue is set.
 				// To monitor the status of scans when using the job queue it
 				// is intended that the user monitors statsd / the logging channel.
-				$this->jobQueueGroup->push( new JobSpecification(
-					'mediaModerationScanFileJob',
-					[ 'sha1' => $sha1 ]
-				) );
+				try {
+					$this->jobQueueGroup->push( new JobSpecification(
+						'mediaModerationScanFileJob',
+						[ 'sha1' => $sha1 ]
+					) );
+				} catch ( JobQueueError $e ) {
+					// If the job failed to be inserted, then catch the exception and sleep as this can occur if the
+					// server is experiencing instability.
+					sleep( intval( $this->getOption( 'sleep', 1 ) ) );
+				}
 			} else {
 				$scanStatus = $this->mediaModerationFileScanner->scanSha1( $sha1 );
 				$this->maybeOutputVerboseScanResult( $sha1, $scanStatus );

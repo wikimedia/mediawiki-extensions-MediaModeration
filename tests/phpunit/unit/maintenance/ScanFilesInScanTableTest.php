@@ -4,6 +4,7 @@ namespace MediaWiki\Extension\MediaModeration\Tests\Unit\Maintenance;
 
 use Generator;
 use IJobSpecification;
+use JobQueueError;
 use JobQueueGroup;
 use MediaWiki\Extension\MediaModeration\Maintenance\ScanFilesInScanTable;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
@@ -357,6 +358,32 @@ class ScanFilesInScanTableTest extends MediaWikiUnitTestCase {
 			'A few SHA-1 values when using job queue' => [ [ 'test', 'test1234', 'abc' ], true ],
 			'A few SHA-1 values' => [ [ 'test', 'test1234', 'abc' ], false ],
 		];
+	}
+
+	public function testExecuteOnJobQueueError() {
+		// Get the object under test
+		$objectUnderTest = $this->getMockBuilder( ScanFilesInScanTable::class )
+			->onlyMethods( [ 'initServices', 'parseLastCheckedTimestamp', 'generateSha1ValuesForScan' ] )
+			->getMock();
+		// Define a mock for ::generateSha1ValuesForScan that returns some mock SHA-1 values
+		$objectUnderTest->expects( $this->once() )
+			->method( 'generateSha1ValuesForScan' )
+			->willReturnCallback( static function () {
+				yield from [ 'abc', '123' ];
+			} );
+		// Define a mock JobQueueGroup that will throw a JobQueueError exception.
+		$mockJobQueueGroup = $this->createMock( JobQueueGroup::class );
+		$mockJobQueueGroup->expects( $this->atLeastOnce() )
+			->method( 'push' )
+			->willThrowException( new JobQueueError( 'test-error' ) );
+		$objectUnderTest->setOption( 'use-jobqueue', 1 );
+		// Set 'sleep' option as 0 to prevent unit tests from running slowly.
+		$objectUnderTest->setOption( 'sleep', 0 );
+		// Assign the mock services to the object under test
+		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
+		$objectUnderTest->jobQueueGroup = $mockJobQueueGroup;
+		// Call the method under test
+		$objectUnderTest->execute();
 	}
 
 	/** @dataProvider provideWaitForJobQueueSize */
