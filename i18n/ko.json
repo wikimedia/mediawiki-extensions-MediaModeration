@@ -1,0 +1,8 @@
+{
+	"@metadata": {
+		"authors": [
+			"Ykhwong"
+		]
+	},
+	"mediamoderation-desc": "알려진 아동 착취 이미지 해시 데이터 세트와 일치하는 항목을 탐지하는 서비스입니다."
+}
