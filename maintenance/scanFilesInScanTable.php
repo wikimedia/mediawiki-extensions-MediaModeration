@@ -336,7 +336,7 @@ class ScanFilesInScanTable extends Maintenance {
 				'mms_sha1' => $this->sha1ValuesBeingProcessed
 			] );
 		}
-		return $queryBuilder->fetchFieldValues();
+		return $queryBuilder->caller( __METHOD__ )->fetchFieldValues();
 	}
 }
 

@@ -191,6 +191,7 @@ class MediaModerationDatabaseLookup {
 		return $this->newSelectQueryBuilderForScan( $lastChecked, $direction, $excludedSha1Values, $matchStatus )
 			->select( 'mms_sha1' )
 			->limit( $limit )
+			->caller( __METHOD__ )
 			->fetchFieldValues();
 	}
 }
