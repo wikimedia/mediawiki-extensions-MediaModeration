@@ -156,8 +156,10 @@ class MediaModerationDatabaseLookup {
 		}
 		// Exclude the SHA-1 values specified by the caller, if any are provided.
 		if ( count( $excludedSha1Values ) ) {
+			// Pass through array_values to remove any existing keys, which results in numeric keys that are
+			// acceptable to IReadableDatabase::expr.
 			$selectQueryBuilder->where( $dbr->expr(
-				'mms_sha1', '!=', $excludedSha1Values
+				'mms_sha1', '!=', array_values( $excludedSha1Values )
 			) );
 		}
 		// Return the constructed SelectQueryBuilder after adding the order by field.
