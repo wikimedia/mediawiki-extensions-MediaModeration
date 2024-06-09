@@ -76,7 +76,7 @@ class ResendMatchEmailsTest extends MaintenanceBaseTestCase {
 					[ 'sy02psim0bgdh0st4vdltuzoh7j60ru', StatusValue::newFatal( new RawMessage( 'test' ) ) ],
 				],
 				"Sent email for SHA-1 sy02psim0bgdh0jt4vdltuzoh7j80au.\n" .
-				"Email for SHA-1 sy02psim0bgdh0st4vdltuzoh7j60ru failed to send.\n* test\n",
+				"Email for SHA-1 sy02psim0bgdh0st4vdltuzoh7j60ru failed to send.\n\n* test\n\n",
 			],
 			'Scanned since as 20240101 with one fatal emailer status that has multiple errors' => [
 				'20240101',
@@ -86,7 +86,7 @@ class ResendMatchEmailsTest extends MaintenanceBaseTestCase {
 						StatusValue::newFatal( new RawMessage( 'test' ) )->fatal( new RawMessage( "test2" ) ),
 					],
 				],
-				"Email for SHA-1 sy02psim0bgdh0jt4vdltuzoh7j80au failed to send.\n* test\n* test2\n",
+				"Email for SHA-1 sy02psim0bgdh0jt4vdltuzoh7j80au failed to send.\n\n* test\n* test2\n\n",
 			],
 		];
 	}

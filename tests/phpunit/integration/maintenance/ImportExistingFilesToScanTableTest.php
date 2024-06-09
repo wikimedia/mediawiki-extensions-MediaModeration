@@ -68,7 +68,7 @@ class ImportExistingFilesToScanTableTest extends MaintenanceBaseTestCase {
 		// Run the maintenance script
 		$maintenance->execute();
 		$this->expectOutputString(
-			"The table option value 'invalidtable' is not a valid table to import images from.\n"
+			"The table option value 'invalidtable' is not a valid table to import images from.\n\n"
 		);
 		// Expect no rows in mediamoderation_scan, as the import should have added nothing.
 		$this->assertSame(
