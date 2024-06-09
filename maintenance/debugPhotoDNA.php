@@ -4,10 +4,10 @@ namespace MediaWiki\Extension\MediaModeration\Maintenance;
 
 use FormatJson;
 use Maintenance;
+use MediaWiki\Context\RequestContext;
 use MediaWiki\Extension\MediaModeration\PhotoDNA\Response;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationPhotoDNAServiceProvider;
 use MediaWiki\Title\Title;
-use RequestContext;
 
 // This is a developer script, no need to count it in code coverage metrics.
 // @codeCoverageIgnoreStart

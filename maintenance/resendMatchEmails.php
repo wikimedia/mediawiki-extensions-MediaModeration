@@ -4,10 +4,10 @@ namespace MediaWiki\Extension\MediaModeration\Maintenance;
 
 use IDBAccessObject;
 use Maintenance;
+use MediaWiki\Context\RequestContext;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationEmailer;
 use MediaWiki\Status\StatusFormatter;
-use RequestContext;
 use StatusValue;
 use Wikimedia\Rdbms\SelectQueryBuilder;
 use Wikimedia\Timestamp\ConvertibleTimestamp;

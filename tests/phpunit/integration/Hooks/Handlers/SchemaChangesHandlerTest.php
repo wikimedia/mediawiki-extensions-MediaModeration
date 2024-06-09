@@ -20,9 +20,9 @@
 
 namespace MediaWiki\Extension\MediaModeration\Tests\Integration\Hooks\Handlers;
 
-use DatabaseUpdater;
 use MediaWiki\Config\ConfigException;
 use MediaWiki\Extension\MediaModeration\Hooks\Handlers\SchemaChangesHandler;
+use MediaWiki\Installer\DatabaseUpdater;
 use MediaWikiIntegrationTestCase;
 use Wikimedia\Rdbms\IDatabase;
 

@@ -20,8 +20,9 @@
 
 namespace MediaWiki\Extension\MediaModeration;
 
-use DerivativeContext;
 use MediaWiki\Config\ServiceOptions;
+use MediaWiki\Context\DerivativeContext;
+use MediaWiki\Context\RequestContext;
 use MediaWiki\Extension\MediaModeration\PeriodicMetrics\MediaModerationMetricsFactory;
 use MediaWiki\Extension\MediaModeration\PhotoDNA\IMediaModerationPhotoDNAServiceProvider;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
@@ -36,7 +37,6 @@ use MediaWiki\Extension\MediaModeration\Services\MediaModerationMockPhotoDNAServ
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationPhotoDNAServiceProvider;
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\MediaWikiServices;
-use RequestContext;
 
 // PHP unit does not understand code coverage for this file
 // as the @covers annotation cannot cover a specific file
