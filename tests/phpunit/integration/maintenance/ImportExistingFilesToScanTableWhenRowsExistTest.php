@@ -232,7 +232,7 @@ class ImportExistingFilesToScanTableWhenRowsExistTest extends MaintenanceBaseTes
 		$commentId = $this->getServiceContainer()
 			->getCommentStore()
 			->createComment( $this->db, 'test' )->id;
-		$this->db->newInsertQueryBuilder()
+		$this->getDb()->newInsertQueryBuilder()
 			->insertInto( 'image' )
 			->rows( [
 				[
@@ -247,7 +247,7 @@ class ImportExistingFilesToScanTableWhenRowsExistTest extends MaintenanceBaseTes
 					'img_minor_mime' => 'png',
 					'img_description_id' => $commentId,
 					'img_actor' => $actorId,
-					'img_timestamp' => $this->db->timestamp( '20201105234242' ),
+					'img_timestamp' => $this->getDb()->timestamp( '20201105234242' ),
 					'img_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j80yu',
 				],
 				[
@@ -262,12 +262,12 @@ class ImportExistingFilesToScanTableWhenRowsExistTest extends MaintenanceBaseTes
 					'img_minor_mime' => 'png',
 					'img_description_id' => $commentId,
 					'img_actor' => $actorId,
-					'img_timestamp' => $this->db->timestamp( '20201105235242' ),
+					'img_timestamp' => $this->getDb()->timestamp( '20201105235242' ),
 					'img_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j80ru',
 				]
 			] )
 			->execute();
-		$this->db->newInsertQueryBuilder()
+		$this->getDb()->newInsertQueryBuilder()
 			->insertInto( 'oldimage' )
 			->row( [
 				'oi_name' => 'Random-11m.png',
@@ -282,12 +282,12 @@ class ImportExistingFilesToScanTableWhenRowsExistTest extends MaintenanceBaseTes
 				'oi_minor_mime' => 'png',
 				'oi_description_id' => $commentId,
 				'oi_actor' => $actorId,
-				'oi_timestamp' => $this->db->timestamp( '20201105235241' ),
+				'oi_timestamp' => $this->getDb()->timestamp( '20201105235241' ),
 				'oi_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j800u',
 				'oi_deleted' => File::DELETED_FILE | File::DELETED_COMMENT | File::DELETED_USER,
 			] )
 			->execute();
-		$this->db->newInsertQueryBuilder()
+		$this->getDb()->newInsertQueryBuilder()
 			->insertInto( 'filearchive' )
 			->rows( [
 				[
@@ -303,10 +303,10 @@ class ImportExistingFilesToScanTableWhenRowsExistTest extends MaintenanceBaseTes
 					'fa_minor_mime' => 'png',
 					'fa_description_id' => $commentId,
 					'fa_actor' => $actorId,
-					'fa_timestamp' => $this->db->timestamp( '20201105235239' ),
+					'fa_timestamp' => $this->getDb()->timestamp( '20201105235239' ),
 					'fa_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j70ru',
 					'fa_deleted' => 0,
-					'fa_deleted_timestamp' => $this->db->timestamp( '20210506070809' ),
+					'fa_deleted_timestamp' => $this->getDb()->timestamp( '20210506070809' ),
 					'fa_deleted_reason_id' => $commentId,
 				],
 				// Has same timestamp as the above file, but different SHA-1
@@ -323,10 +323,10 @@ class ImportExistingFilesToScanTableWhenRowsExistTest extends MaintenanceBaseTes
 					'fa_minor_mime' => 'jpeg',
 					'fa_description_id' => $commentId,
 					'fa_actor' => $actorId,
-					'fa_timestamp' => $this->db->timestamp( '20201105235239' ),
+					'fa_timestamp' => $this->getDb()->timestamp( '20201105235239' ),
 					'fa_sha1' => 'sy02psim0bgdh0st4vdltuzoh7j70ru',
 					'fa_deleted' => 0,
-					'fa_deleted_timestamp' => $this->db->timestamp( '20210506070810' ),
+					'fa_deleted_timestamp' => $this->getDb()->timestamp( '20210506070810' ),
 					'fa_deleted_reason_id' => $commentId,
 				],
 				// Has same timestamp and SHA-1 as the above file
@@ -343,10 +343,10 @@ class ImportExistingFilesToScanTableWhenRowsExistTest extends MaintenanceBaseTes
 					'fa_minor_mime' => 'jpeg',
 					'fa_description_id' => $commentId,
 					'fa_actor' => $actorId,
-					'fa_timestamp' => $this->db->timestamp( '20201105235239' ),
+					'fa_timestamp' => $this->getDb()->timestamp( '20201105235239' ),
 					'fa_sha1' => 'sy02psim0bgdh0st4vdltuzoh7j70ru',
 					'fa_deleted' => 0,
-					'fa_deleted_timestamp' => $this->db->timestamp( '20210506070808' ),
+					'fa_deleted_timestamp' => $this->getDb()->timestamp( '20210506070808' ),
 					'fa_deleted_reason_id' => $commentId,
 				],
 				// Has a different SHA-1 and greater timestamp than any other filearchive row.
@@ -363,10 +363,10 @@ class ImportExistingFilesToScanTableWhenRowsExistTest extends MaintenanceBaseTes
 					'fa_minor_mime' => 'jpeg',
 					'fa_description_id' => $commentId,
 					'fa_actor' => $actorId,
-					'fa_timestamp' => $this->db->timestamp( '20231105235239' ),
+					'fa_timestamp' => $this->getDb()->timestamp( '20231105235239' ),
 					'fa_sha1' => 'sy02psim0bgdh0st4vdltuzoh7j60ru',
 					'fa_deleted' => 0,
-					'fa_deleted_timestamp' => $this->db->timestamp( '20231205235239' ),
+					'fa_deleted_timestamp' => $this->getDb()->timestamp( '20231205235239' ),
 					'fa_deleted_reason_id' => $commentId,
 				]
 			] )

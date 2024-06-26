@@ -94,7 +94,7 @@ class ResendMatchEmailsTest extends MaintenanceBaseTestCase {
 	public function addDBData() {
 		parent::addDBData();
 
-		$this->db->newInsertQueryBuilder()
+		$this->getDb()->newInsertQueryBuilder()
 			->insertInto( 'mediamoderation_scan' )
 			->rows( [
 				[ 'mms_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j80yu' ],
@@ -102,7 +102,7 @@ class ResendMatchEmailsTest extends MaintenanceBaseTestCase {
 				[ 'mms_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j70ru' ],
 			] )
 			->execute();
-		$this->db->newInsertQueryBuilder()
+		$this->getDb()->newInsertQueryBuilder()
 			->insertInto( 'mediamoderation_scan' )
 			->rows( [
 				[

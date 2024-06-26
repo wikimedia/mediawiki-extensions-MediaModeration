@@ -64,7 +64,7 @@ class UpdateMetricsTest extends MaintenanceBaseTestCase {
 
 	public function addDBData() {
 		parent::addDBData();
-		$this->db->newInsertQueryBuilder()
+		$this->getDb()->newInsertQueryBuilder()
 			->insertInto( 'mediamoderation_scan' )
 			->rows( [
 				[ 'mms_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j80yu' ],
@@ -73,7 +73,7 @@ class UpdateMetricsTest extends MaintenanceBaseTestCase {
 				[ 'mms_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j800u' ]
 			] )
 			->execute();
-		$this->db->newInsertQueryBuilder()
+		$this->getDb()->newInsertQueryBuilder()
 			->insertInto( 'mediamoderation_scan' )
 			->rows( [
 				[
