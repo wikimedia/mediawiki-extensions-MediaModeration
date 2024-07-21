@@ -12,7 +12,6 @@ use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileScanner;
 use MediaWiki\Status\StatusFormatter;
 use StatusValue;
-use Wikimedia\Rdbms\LBFactory;
 use Wikimedia\Rdbms\SelectQueryBuilder;
 use Wikimedia\Timestamp\ConvertibleTimestamp;
 
@@ -27,7 +26,6 @@ require_once "$IP/maintenance/Maintenance.php";
  */
 class ScanFilesInScanTable extends Maintenance {
 
-	private LBFactory $loadBalancerFactory;
 	private MediaModerationDatabaseLookup $mediaModerationDatabaseLookup;
 	private MediaModerationFileScanner $mediaModerationFileScanner;
 	private JobQueueGroup $jobQueueGroup;
@@ -167,7 +165,6 @@ class ScanFilesInScanTable extends Maintenance {
 
 	protected function initServices() {
 		$services = $this->getServiceContainer();
-		$this->loadBalancerFactory = $services->getDBLoadBalancerFactory();
 		$this->mediaModerationDatabaseLookup = $services->get( 'MediaModerationDatabaseLookup' );
 		$this->mediaModerationFileScanner = $services->get( 'MediaModerationFileScanner' );
 		$this->jobQueueGroup = $services->getJobQueueGroup();
@@ -249,7 +246,7 @@ class ScanFilesInScanTable extends Maintenance {
 			}
 			// Wait for replication so that updates to the mms_is_match and mms_last_checked
 			// on the rows processed in this batch are replicated to replica DBs.
-			$this->loadBalancerFactory->waitForReplication();
+			$this->waitForReplication();
 		} while ( $lastBatchRowCount !== 0 );
 	}
 
@@ -320,7 +317,7 @@ class ScanFilesInScanTable extends Maintenance {
 	protected function pollSha1ValuesForScanCompletion(): array {
 		$dbr = $this->mediaModerationDatabaseLookup->getDb( IDBAccessObject::READ_NORMAL );
 		// Wait for replication to occur to avoid polling a out-of-date replica DB.
-		$this->loadBalancerFactory->waitForReplication();
+		$this->waitForReplication();
 		$queryBuilder = $dbr->newSelectQueryBuilder()
 			->select( 'mms_sha1' )
 			->from( 'mediamoderation_scan' )

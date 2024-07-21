@@ -74,8 +74,7 @@ class ImportExistingFilesToScanTable extends LoggedUpdateMaintenance {
 	/** @inheritDoc */
 	protected function doDBUpdates() {
 		$services = $this->getServiceContainer();
-		$loadBalancerFactory = $services->getDBLoadBalancerFactory();
-		$this->dbr = $loadBalancerFactory->getReplicaDatabase();
+		$this->dbr = $this->getReplicaDB();
 		$this->mediaModerationFileFactory = $services->get( 'MediaModerationFileFactory' );
 		$this->mediaModerationFileProcessor = $services->get( 'MediaModerationFileProcessor' );
 		$this->mediaModerationDatabaseLookup = $services->get( 'MediaModerationDatabaseLookup' );
@@ -114,7 +113,7 @@ class ImportExistingFilesToScanTable extends LoggedUpdateMaintenance {
 					$previousBatchFinalTimestamp
 				] = $this->performBatch( $table, $previousBatchFinalTimestamp );
 				sleep( intval( $this->getOption( 'sleep', 1 ) ) );
-				$loadBalancerFactory->waitForReplication();
+				$this->waitForReplication();
 				$batchNo += 1;
 			} while ( $filesLeft );
 		}

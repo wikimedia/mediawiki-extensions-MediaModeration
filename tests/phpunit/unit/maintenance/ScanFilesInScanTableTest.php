@@ -17,7 +17,6 @@ use StatusValue;
 use Wikimedia\Rdbms\Expression;
 use Wikimedia\Rdbms\IConnectionProvider;
 use Wikimedia\Rdbms\IReadableDatabase;
-use Wikimedia\Rdbms\LBFactory;
 use Wikimedia\Rdbms\SelectQueryBuilder;
 use Wikimedia\TestingAccessWrapper;
 use Wikimedia\Timestamp\ConvertibleTimestamp;
@@ -45,9 +44,9 @@ class ScanFilesInScanTableTest extends MediaWikiUnitTestCase {
 				[ 'sha-1-being-processed' ], MediaModerationDatabaseLookup::NULL_MATCH_STATUS,
 			)
 			->willReturnOnConsecutiveCalls( ...$returnedBatchesOfSha1Values );
-		// Get the object under test, with the MediaModerationDatabaseLookup and LoadBalancerFactory services mocked.
+		// Get the object under test, with the MediaModerationDatabaseLookup service mocked.
 		$objectUnderTest = $this->getMockBuilder( ScanFilesInScanTable::class )
-			->onlyMethods( [ 'waitForJobQueueSize' ] )
+			->onlyMethods( [ 'waitForJobQueueSize', 'waitForReplication' ] )
 			->getMock();
 		// Set 'sleep' option as 0 to prevent unit tests from running slowly.
 		$objectUnderTest->setOption( 'sleep', 0 );
@@ -57,10 +56,11 @@ class ScanFilesInScanTableTest extends MediaWikiUnitTestCase {
 		if ( $usesJobQueue ) {
 			$objectUnderTest->setOption( 'use-jobqueue', 1 );
 		}
+		$objectUnderTest->expects( $this->atLeastOnce() )
+			->method( 'waitForReplication' );
 		// Actually assign the mock services for the test.
 		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
 		$objectUnderTest->mediaModerationDatabaseLookup = $mockMediaModerationDatabaseLookup;
-		$objectUnderTest->loadBalancerFactory = $this->createMock( LBFactory::class );
 		$objectUnderTest->setBatchSize( $batchSize );
 		$objectUnderTest->lastChecked = $lastChecked;
 		$objectUnderTest->sha1ValuesBeingProcessed = [ 'sha-1-being-processed' ];
@@ -530,14 +530,14 @@ class ScanFilesInScanTableTest extends MediaWikiUnitTestCase {
 		$mockConnectionProvider = $this->createMock( IConnectionProvider::class );
 		$mockConnectionProvider->method( 'getReplicaDatabase' )
 			->willReturn( $dbrMock );
-		// Create a mock LBFactory that expects a call to ::waitForReplication
-		$mockLoadBalancerFactory = $this->createMock( LBFactory::class );
-		$mockLoadBalancerFactory->expects( $this->once() )
+		// Get the object under test, with a mocked ::waitForReplication method (to avoid calls to the service
+		// container).
+		$objectUnderTest = $this->getMockBuilder( ScanFilesInScanTable::class )
+			->onlyMethods( [ 'waitForReplication' ] )
+			->getMock();
+		$objectUnderTest->expects( $this->atLeastOnce() )
 			->method( 'waitForReplication' );
-		// Get the object under test
-		$objectUnderTest = TestingAccessWrapper::newFromObject( new ScanFilesInScanTable() );
-		// Assign the mock LBFactory
-		$objectUnderTest->loadBalancerFactory = $mockLoadBalancerFactory;
+		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
 		// Create a new instance of the MediaModerationDatabaseLookup service using the mock connection provider
 		// and assign it to the object under test.
 		$objectUnderTest->mediaModerationDatabaseLookup = new MediaModerationDatabaseLookup( $mockConnectionProvider );
