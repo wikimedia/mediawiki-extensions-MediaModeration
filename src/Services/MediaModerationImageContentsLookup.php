@@ -120,10 +120,7 @@ class MediaModerationImageContentsLookup {
 		if ( $returnStatus->isOK() ) {
 			// The $returnStatus can be good and have no message if the image was deleted and the source image is
 			// not supported by PhotoDNA (such as a deleted SVG).
-			$returnStatus->fatal( new RawMessage(
-				'Failed to get image contents for $1',
-				[ $file->getName() ]
-			) );
+			$returnStatus->fatal( new RawMessage( "Failed to get image contents for {$file->getName()}" ) );
 		}
 		// Increment the RuntimeException statsd counter, as we have reached a point where
 		// we could not generate a thumbnail where we should have been able to.
@@ -154,8 +151,7 @@ class MediaModerationImageContentsLookup {
 				'MediaModeration.ImageContentsLookup.Thumbnail.MimeType.LookupFailed'
 			);
 			return StatusValue::newFatal( new RawMessage(
-				'Could not get mime type of thumbnail for $1',
-				[ $thumbnail->getFile()->getName() ]
+				"Could not get mime type of thumbnail for {$thumbnail->getFile()->getName()}"
 			) );
 		}
 		if ( !in_array( $thumbnailMimeType, MediaModerationFileProcessor::ALLOWED_MIME_TYPES, true ) ) {
@@ -164,8 +160,7 @@ class MediaModerationImageContentsLookup {
 				'MediaModeration.ImageContentsLookup.Thumbnail.MimeType.Unsupported'
 			);
 			return StatusValue::newFatal( new RawMessage(
-				'Mime type of thumbnail for $1 is not supported by PhotoDNA.',
-				[ $thumbnail->getFile()->getName() ]
+				"Mime type of thumbnail for {$thumbnail->getFile()->getName()} is not supported by PhotoDNA."
 			) );
 		}
 		return StatusValue::newGood( $thumbnailMimeType );
@@ -271,8 +266,7 @@ class MediaModerationImageContentsLookup {
 			// PhotoDNA requires that images be at least 160px by 160px, so don't use the
 			// thumbnail if either dimension is too small.
 			return StatusValue::newFatal( new RawMessage(
-				'Thumbnail does not meet dimension requirements for $1',
-				[ $thumbnail->getFile()->getName() ]
+				"Thumbnail does not meet dimension requirements for {$thumbnail->getFile()->getName()}"
 			) );
 		}
 		if ( !( $thumbnail instanceof ThumborThumbnailImage ) && !$thumbnail->getStoragePath() ) {
@@ -280,8 +274,7 @@ class MediaModerationImageContentsLookup {
 				'MediaModeration.ImageContentsLookup.Thumbnail.Contents.LookupFailed'
 			);
 			return StatusValue::newFatal( new RawMessage(
-				'Could not get storage path of thumbnail for $1',
-				[ $thumbnail->getFile()->getName() ]
+				"Could not get storage path of thumbnail for {$thumbnail->getFile()->getName()}"
 			) );
 		}
 		$fileContents = $thumbnail instanceof ThumborThumbnailImage ?
@@ -292,8 +285,7 @@ class MediaModerationImageContentsLookup {
 				'MediaModeration.ImageContentsLookup.Thumbnail.Contents.LookupFailed'
 			);
 			return StatusValue::newFatal( new RawMessage(
-				'Could not get thumbnail contents for $1',
-				[ $thumbnail->getFile()->getName() ]
+				"Could not get thumbnail contents for {$thumbnail->getFile()->getName()}"
 			) );
 		}
 		if ( strlen( $fileContents ) > 4000000 ) {
@@ -304,8 +296,7 @@ class MediaModerationImageContentsLookup {
 			// error for files that are any larger.
 			// strlen returns the size of the string in bytes and 4MB is 4,000,000 bytes.
 			return StatusValue::newFatal( new RawMessage(
-				'Original file contents exceeds 4MB for $1',
-				[ $thumbnail->getFile()->getName() ]
+				"Original file contents exceeds 4MB for {$thumbnail->getFile()->getName()}"
 			) );
 		}
 		return StatusValue::newGood( $fileContents );
@@ -325,8 +316,7 @@ class MediaModerationImageContentsLookup {
 			// Check that the size of the file does not exceed 4MB, as PhotoDNA returns an
 			// error for files that are any larger.
 			return StatusValue::newFatal( new RawMessage(
-				'Original file contents exceeds 4MB for $1',
-				[ $file->getName() ]
+				"Original file contents exceeds 4MB for {$file->getName()}"
 			) );
 		}
 		if (
@@ -341,8 +331,7 @@ class MediaModerationImageContentsLookup {
 			// If the height or width is false, then just ignore this check
 			// as PhotoDNA will verify this for us.
 			return StatusValue::newFatal( new RawMessage(
-				'Original file does not meet dimension requirements for $1',
-				[ $file->getName() ]
+				"Original file does not meet dimension requirements for {$file->getName()}"
 			) );
 		}
 		if ( $file instanceof ArchivedFile ) {
@@ -357,8 +346,7 @@ class MediaModerationImageContentsLookup {
 				'MediaModeration.ImageContentsLookup.File.Contents.LookupFailed'
 			);
 			return StatusValue::newFatal( new RawMessage(
-				'Could not get storage path of original file for $1',
-				[ $file->getName() ]
+				"Could not get storage path of original file for {$file->getName()}"
 			) );
 		}
 		$fileContents = $this->fileBackend->getFileContents( [ 'src' => $filePath ] );
@@ -367,8 +355,7 @@ class MediaModerationImageContentsLookup {
 				'MediaModeration.ImageContentsLookup.File.Contents.LookupFailed'
 			);
 			return StatusValue::newFatal( new RawMessage(
-				'Could not get original file contents for $1',
-				[ $file->getName() ]
+				"Could not get original file contents for {$file->getName()}"
 			) );
 		}
 		return StatusValue::newGood( $fileContents );

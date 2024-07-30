@@ -108,8 +108,8 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 				'MediaModeration.PhotoDNAServiceProvider.Execute.InvalidJsonResponse'
 			);
 			return StatusValue::newFatal( new RawMessage(
-				'PhotoDNA returned an invalid JSON body for $1. Parse error: $2',
-				[ $file->getName(), $this->statusFormatter->getWikiText( $jsonParseStatus ) ]
+				'PhotoDNA returned an invalid JSON body for ' . $file->getName() . '. Parse error: ' .
+				$this->statusFormatter->getWikiText( $jsonParseStatus )
 			) );
 		}
 		$response = Response::newFromArray( $responseJson, $rawResponse );

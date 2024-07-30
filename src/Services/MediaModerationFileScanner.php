@@ -67,10 +67,7 @@ class MediaModerationFileScanner {
 				// If this $file cannot be scanned, then try the next file with this SHA-1
 				// and if in verbose mode output to the console about this.
 				$this->perDbNameStatsdDataFactory->increment( 'MediaModeration.FileScanner.CanScanFileReturnedFalse' );
-				$returnStatus->fatal( new RawMessage(
-					'The file $1 cannot be scanned.',
-					[ $file->getName() ]
-				) );
+				$returnStatus->fatal( new RawMessage( "The file {$file->getName()} cannot be scanned." ) );
 				continue;
 			}
 			// Run the check using the PhotoDNA API.
