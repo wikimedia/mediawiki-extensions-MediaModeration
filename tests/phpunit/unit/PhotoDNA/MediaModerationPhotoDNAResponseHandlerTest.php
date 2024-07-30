@@ -29,7 +29,10 @@ class MediaModerationPhotoDNAResponseHandlerTest extends MediaWikiUnitTestCase {
 			$this->assertStatusNotGood( $actual );
 		}
 		if ( !$expectedStatusIsGood ) {
-			$this->assertStatusMessage( $expectedMessage, $actual );
+			$this->assertStatusNotOK( $actual );
+			$message = $actual->getMessages()[0];
+			$this->assertSame( 'rawmessage', $message->getKey() );
+			$this->assertSame( $expectedMessage, $message->getParams()[0] );
 		}
 	}
 

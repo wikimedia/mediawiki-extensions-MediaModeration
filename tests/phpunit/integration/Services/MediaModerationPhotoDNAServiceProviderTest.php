@@ -58,7 +58,10 @@ class MediaModerationPhotoDNAServiceProviderTest extends MediaWikiIntegrationTes
 		/** @var IMediaModerationPhotoDNAServiceProvider $serviceProvider */
 		$serviceProvider = $this->getServiceContainer()->get( '_MediaModerationPhotoDNAServiceProviderProduction' );
 		$result = $serviceProvider->check( $this->getTestFile() );
-		$this->assertStatusError( 'PhotoDNA returned HTTP 401 error: Access denied', $result );
+		$this->assertStatusNotOK( $result );
+		$message = $result->getMessages()[0];
+		$this->assertSame( 'rawmessage', $message->getKey() );
+		$this->assertSame( 'PhotoDNA returned HTTP 401 error: Access denied', $message->getParams()[0] );
 	}
 
 	public function testCheckWithHttpErrorNoJson() {
@@ -75,9 +78,12 @@ class MediaModerationPhotoDNAServiceProviderTest extends MediaWikiIntegrationTes
 		/** @var IMediaModerationPhotoDNAServiceProvider $serviceProvider */
 		$serviceProvider = $this->getServiceContainer()->get( '_MediaModerationPhotoDNAServiceProviderProduction' );
 		$result = $serviceProvider->check( $this->getTestFile() );
-		$this->assertStatusError(
+		$this->assertStatusNotOK( $result );
+		$message = $result->getMessages()[0];
+		$this->assertSame( 'rawmessage', $message->getKey() );
+		$this->assertSame(
 			'PhotoDNA returned HTTP 500 error: Unable to get JSON in response from PhotoDNA',
-			$result
+			$message->getParams()[0]
 		);
 	}
 
@@ -96,9 +102,12 @@ class MediaModerationPhotoDNAServiceProviderTest extends MediaWikiIntegrationTes
 		$serviceProvider = $this->getServiceContainer()->get( '_MediaModerationPhotoDNAServiceProviderProduction' );
 		$testFile = $this->getTestFile();
 		$result = $serviceProvider->check( $testFile );
-		$this->assertStatusError(
-			'PhotoDNA returned an invalid JSON body for $1. Parse error: $2',
-			$result
+		$this->assertStatusNotOK( $result );
+		$message = $result->getMessages()[0];
+		$this->assertSame( 'rawmessage', $message->getKey() );
+		$this->assertSame(
+			"PhotoDNA returned an invalid JSON body for {$testFile->getName()}. Parse error: Syntax error",
+			$message->getParams()[0]
 		);
 	}
 

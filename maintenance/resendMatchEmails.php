@@ -7,7 +7,7 @@ use Maintenance;
 use MediaWiki\Context\RequestContext;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationEmailer;
-use MediaWiki\Status\StatusFormatter;
+use MessageLocalizer;
 use StatusValue;
 use Wikimedia\Rdbms\SelectQueryBuilder;
 use Wikimedia\Timestamp\ConvertibleTimestamp;
@@ -27,7 +27,7 @@ class ResendMatchEmails extends Maintenance {
 
 	private MediaModerationEmailer $mediaModerationEmailer;
 	private MediaModerationDatabaseLookup $mediaModerationDatabaseLookup;
-	private StatusFormatter $statusFormatter;
+	private MessageLocalizer $messageLocalizer;
 
 	private string $scannedSince;
 	private ?string $uploadedSince;
@@ -100,11 +100,11 @@ class ResendMatchEmails extends Maintenance {
 			}
 		} else {
 			$this->error( "Email for SHA-1 $sha1 failed to send.\n" );
-			if ( count( $emailerStatus->getErrors() ) === 1 ) {
-				$this->error( '* ' . $this->statusFormatter->getWikiText( $emailerStatus ) . "\n" );
-			} elseif ( count( $emailerStatus->getErrors() ) > 1 ) {
-				$this->error( $this->statusFormatter->getWikiText( $emailerStatus ) );
+			$errorOutput = '';
+			foreach ( $emailerStatus->getMessages() as $message ) {
+				$errorOutput .= '* ' . $this->messageLocalizer->msg( $message ) . "\n";
 			}
+			$this->error( $errorOutput );
 		}
 	}
 
@@ -140,7 +140,7 @@ class ResendMatchEmails extends Maintenance {
 		$services = $this->getServiceContainer();
 		$this->mediaModerationDatabaseLookup = $services->get( 'MediaModerationDatabaseLookup' );
 		$this->mediaModerationEmailer = $services->get( 'MediaModerationEmailer' );
-		$this->statusFormatter = $services->getFormatterFactory()->getStatusFormatter( RequestContext::getMain() );
+		$this->messageLocalizer = RequestContext::getMain();
 	}
 
 	/**
