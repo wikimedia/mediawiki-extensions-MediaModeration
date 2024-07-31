@@ -133,8 +133,6 @@ class ScanFilesInScanTableTest extends MediaWikiUnitTestCase {
 	}
 
 	public static function provideParseLastCheckedTimestamp() {
-		// Fix the current time as the method under test calls ConvertibleTimestamp::time.
-		ConvertibleTimestamp::setFakeTime( '20230504030201' );
 		return [
 			"Last checked as 'never'" => [ "never", null ],
 			'Last checked not defined' => [ null, '20230503000000' ],
