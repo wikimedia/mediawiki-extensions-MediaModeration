@@ -5,7 +5,6 @@ namespace MediaWiki\Extension\MediaModeration\Maintenance\Dev;
 use Error;
 use LocalFile;
 use Maintenance;
-use MediaWiki\MediaWikiServices;
 use MediaWiki\Title\Title;
 use MediaWiki\User\User;
 use UploadFromUrl;
@@ -50,7 +49,7 @@ class PopulateImageTables extends Maintenance {
 		// TODO: Allow for continuation if the user wants e.g. 1000 images imported.
 
 		$uploadedImages = [];
-		$fileRepo = MediaWikiServices::getInstance()->getRepoGroup()->getLocalRepo();
+		$fileRepo = $this->getServiceContainer()->getRepoGroup()->getLocalRepo();
 
 		foreach ( $this->getImages( $count ) as $image ) {
 			$this->output( "Importing image {$image['title']}\n" );
@@ -131,7 +130,7 @@ class PopulateImageTables extends Maintenance {
 			'gsrlimit' => $count,
 			'formatversion' => 2
 		] );
-		$request = MediaWikiServices::getInstance()->getHttpRequestFactory()->create( $url );
+		$request = $this->getServiceContainer()->getHttpRequestFactory()->create( $url );
 		$result = $request->execute();
 		if ( !$result->isOK() ) {
 			return [];
