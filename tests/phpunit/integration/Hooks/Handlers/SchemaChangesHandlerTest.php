@@ -23,6 +23,7 @@ namespace MediaWiki\Extension\MediaModeration\Tests\Integration\Hooks\Handlers;
 use MediaWiki\Config\ConfigException;
 use MediaWiki\Extension\MediaModeration\Hooks\Handlers\SchemaChangesHandler;
 use MediaWiki\Installer\DatabaseUpdater;
+use MediaWiki\MainConfigNames;
 use MediaWikiIntegrationTestCase;
 use Wikimedia\Rdbms\IDatabase;
 
@@ -38,7 +39,7 @@ class SchemaChangesHandlerTest extends MediaWikiIntegrationTestCase {
 
 	/** @dataProvider provideMappingConfigCausingNoDBUpdates */
 	public function testNoUpdates( $configValue, $shouldPerformOutput = true ) {
-		$this->setMwGlobals( 'wgVirtualDomainsMapping', $configValue );
+		$this->overrideConfigValue( MainConfigNames::VirtualDomainsMapping, $configValue );
 		$objectUnderTest = new SchemaChangesHandler();
 		$mockUpdater = $this->createMock( DatabaseUpdater::class );
 		// ::getDB method is called to get the type of the DB. This should
@@ -70,7 +71,7 @@ class SchemaChangesHandlerTest extends MediaWikiIntegrationTestCase {
 
 	/** @dataProvider provideMappingConfigCausingDBUpdates */
 	public function testUpdates( $configValue ) {
-		$this->setMwGlobals( 'wgVirtualDomainsMapping', $configValue );
+		$this->overrideConfigValue( MainConfigNames::VirtualDomainsMapping, $configValue );
 		$objectUnderTest = new SchemaChangesHandler();
 		$mockUpdater = $this->createMock( DatabaseUpdater::class );
 		// ::getDB method is called to get the type of the DB. This should
