@@ -18,16 +18,10 @@ class MediaModerationScanFileJobTest extends MediaWikiIntegrationTestCase {
 		$mockMediaModerationFileScanner->expects( $this->once() )
 			->method( 'scanSha1' )
 			->with( $expectedSha1 );
-		// Install the mock MediaModerationFileScanner service
-		$this->setService(
-			'MediaModerationFileScanner',
-			static function () use ( $mockMediaModerationFileScanner ) {
-				return $mockMediaModerationFileScanner;
-			}
-		);
 		// Get the object under test
 		$objectUnderTest = new MediaModerationScanFileJob(
-			[ 'sha1' => $expectedSha1 ]
+			[ 'sha1' => $expectedSha1 ],
+			$mockMediaModerationFileScanner
 		);
 		// Call ::run and expect that it returns true.
 		$this->assertTrue(

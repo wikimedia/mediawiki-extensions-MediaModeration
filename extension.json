@@ -41,7 +41,13 @@
 		}
 	},
 	"JobClasses": {
-		"mediaModerationScanFileJob": "MediaWiki\\Extension\\MediaModeration\\Job\\MediaModerationScanFileJob"
+		"mediaModerationScanFileJob": {
+			"class": "MediaWiki\\Extension\\MediaModeration\\Job\\MediaModerationScanFileJob",
+			"services": [
+				"MediaModerationFileScanner"
+			],
+			"needsPage": false
+		}
 	},
 	"ServiceWiringFiles": [
 		"src/ServiceWiring.php"
