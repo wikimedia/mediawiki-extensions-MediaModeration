@@ -10,7 +10,7 @@
 	"license-name": "GPL-2.0-or-later",
 	"type": "other",
 	"requires": {
-		"MediaWiki": ">= 1.42"
+		"MediaWiki": ">= 1.43"
 	},
 	"AutoloadClasses": {
 		"MediaWiki\\Extension\\MediaModeration\\Maintenance\\ImportExistingFilesToScanTable": "maintenance/importExistingFilesToScanTable.php",
@@ -70,7 +70,10 @@
 			"description": "If MediaModeration will add to the mediamoderation_scan table on upload. Useful to set to false when bulk adding files in local environment."
 		},
 		"MediaModerationPhotoDNAMockServiceFiles": {
-			"value": { "FilesToIsMatchMap": [], "FilesToStatusCodeMap": [] },
+			"value": {
+				"FilesToIsMatchMap": [],
+				"FilesToStatusCodeMap": []
+			},
 			"description": "For CI and development setups. Two arrays of files names, FilesToIsMatchMap should contain a list of file names that the mock service says are a match to PhotoDNA's database; FilesToStatusCodeMap should contain a list of files mapped to PhotoDNA status codes. Files not in these maps will return STATUS_OK and IsMatch=false."
 		},
 		"MediaModerationPhotoDNAUrl": {
