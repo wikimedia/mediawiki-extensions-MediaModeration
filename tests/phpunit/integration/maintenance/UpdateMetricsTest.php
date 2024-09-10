@@ -67,15 +67,26 @@ class UpdateMetricsTest extends MaintenanceBaseTestCase {
 		$this->getDb()->newInsertQueryBuilder()
 			->insertInto( 'mediamoderation_scan' )
 			->rows( [
-				[ 'mms_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j80yu' ],
-				[ 'mms_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j80ru' ],
-				[ 'mms_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j70ru' ],
-				[ 'mms_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j800u' ]
-			] )
-			->execute();
-		$this->getDb()->newInsertQueryBuilder()
-			->insertInto( 'mediamoderation_scan' )
-			->rows( [
+				[
+					'mms_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j80yu',
+					'mms_last_checked' => null,
+					'mms_is_match' => null,
+				],
+				[
+					'mms_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j80ru',
+					'mms_last_checked' => null,
+					'mms_is_match' => null,
+				],
+				[
+					'mms_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j70ru',
+					'mms_last_checked' => null,
+					'mms_is_match' => null,
+				],
+				[
+					'mms_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j800u',
+					'mms_last_checked' => null,
+					'mms_is_match' => null,
+				],
 				[
 					'mms_sha1' => 'sy02psim0bgdh0st4vdltuzoh7j70ru',
 					'mms_last_checked' => '20231211',
