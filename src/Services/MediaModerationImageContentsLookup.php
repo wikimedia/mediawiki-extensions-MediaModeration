@@ -182,7 +182,9 @@ class MediaModerationImageContentsLookup {
 			// which should result in the thumbnail being generated on disk
 			// @see wfProxyThumbnailRequest()
 			$req = $this->httpRequestFactory->create(
-				$thumbProxyUrl . $file->getThumbRel( $thumbName )
+				$thumbProxyUrl . $file->getThumbRel( $thumbName ),
+				[],
+				__METHOD__
 			);
 			$req->setHeader( 'X-Swift-Secret', $secret );
 			$result = $req->execute();

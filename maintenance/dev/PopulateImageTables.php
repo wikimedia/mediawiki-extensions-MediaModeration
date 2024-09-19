@@ -130,7 +130,7 @@ class PopulateImageTables extends Maintenance {
 			'gsrlimit' => $count,
 			'formatversion' => 2
 		] );
-		$request = $this->getServiceContainer()->getHttpRequestFactory()->create( $url );
+		$request = $this->getServiceContainer()->getHttpRequestFactory()->create( $url, [], __METHOD__ );
 		$result = $request->execute();
 		if ( !$result->isOK() ) {
 			return [];

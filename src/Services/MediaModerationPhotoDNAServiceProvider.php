@@ -140,7 +140,8 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 		}
 		$request = $this->httpRequestFactory->create(
 			$this->photoDNAUrl,
-			$options
+			$options,
+			__METHOD__
 		);
 		$request->setHeader( 'Content-Type', $imageContentsStatus->getMimeType() );
 		$request->setHeader( 'Ocp-Apim-Subscription-Key', $this->photoDNASubscriptionKey );
