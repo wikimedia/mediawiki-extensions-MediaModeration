@@ -4,13 +4,13 @@ namespace MediaWiki\Extension\MediaModeration\Services;
 
 use ArchivedFile;
 use File;
-use FormatJson;
 use Liuggio\StatsdClient\Factory\StatsdDataFactoryInterface;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Extension\MediaModeration\PhotoDNA\IMediaModerationPhotoDNAServiceProvider;
 use MediaWiki\Extension\MediaModeration\PhotoDNA\MediaModerationPhotoDNAResponseHandler;
 use MediaWiki\Extension\MediaModeration\PhotoDNA\Response;
 use MediaWiki\Http\HttpRequestFactory;
+use MediaWiki\Json\FormatJson;
 use MediaWiki\Language\RawMessage;
 use MediaWiki\Status\StatusFormatter;
 use MWHttpRequest;

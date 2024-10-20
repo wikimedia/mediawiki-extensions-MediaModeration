@@ -4,11 +4,11 @@ namespace MediaWiki\Extension\MediaModeration\Services;
 
 use ArchivedFile;
 use File;
-use Language;
 use LocalFile;
 use MailAddress;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Html\Html;
+use MediaWiki\Language\Language;
 use MediaWiki\Mail\IEmailer;
 use MediaWiki\MainConfigNames;
 use MessageLocalizer;

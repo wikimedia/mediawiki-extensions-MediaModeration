@@ -2,11 +2,11 @@
 
 namespace MediaWiki\Extension\MediaModeration\Maintenance;
 
-use FormatJson;
-use Maintenance;
 use MediaWiki\Context\RequestContext;
 use MediaWiki\Extension\MediaModeration\PhotoDNA\Response;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationPhotoDNAServiceProvider;
+use MediaWiki\Json\FormatJson;
+use MediaWiki\Maintenance\Maintenance;
 use MediaWiki\Title\Title;
 
 // This is a developer script, no need to count it in code coverage metrics.

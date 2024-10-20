@@ -2,10 +2,10 @@
 
 namespace MediaWiki\Extension\MediaModeration\Tests\Integration\Services;
 
-use ApiRawMessage;
 use File;
-use FormatJson;
+use MediaWiki\Api\ApiRawMessage;
 use MediaWiki\Extension\MediaModeration\PhotoDNA\IMediaModerationPhotoDNAServiceProvider;
+use MediaWiki\Json\FormatJson;
 use MediaWiki\Status\Status;
 use MediaWiki\User\User;
 use MediaWikiIntegrationTestCase;

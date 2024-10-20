@@ -2,16 +2,16 @@
 
 namespace MediaWiki\Extension\MediaModeration\Maintenance;
 
-use IDBAccessObject;
 use JobQueueError;
 use JobQueueGroup;
 use JobSpecification;
-use Maintenance;
 use MediaWiki\Context\RequestContext;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileScanner;
+use MediaWiki\Maintenance\Maintenance;
 use MediaWiki\Status\StatusFormatter;
 use StatusValue;
+use Wikimedia\Rdbms\IDBAccessObject;
 use Wikimedia\Rdbms\SelectQueryBuilder;
 use Wikimedia\Timestamp\ConvertibleTimestamp;
 

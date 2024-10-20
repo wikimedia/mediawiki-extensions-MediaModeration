@@ -2,10 +2,10 @@
 
 namespace MediaWiki\Extension\MediaModeration\Services;
 
-use FormatJson;
 use MediaWiki\Extension\MediaModeration\PhotoDNA\IMediaModerationPhotoDNAServiceProvider;
 use MediaWiki\Extension\MediaModeration\PhotoDNA\MediaModerationPhotoDNAResponseHandler;
 use MediaWiki\Extension\MediaModeration\PhotoDNA\Response;
+use MediaWiki\Json\FormatJson;
 use StatusValue;
 
 /**

@@ -4,8 +4,8 @@ namespace MediaWiki\Extension\MediaModeration\Services;
 
 use ArchivedFile;
 use File;
-use IDBAccessObject;
 use Wikimedia\Rdbms\IConnectionProvider;
+use Wikimedia\Rdbms\IDBAccessObject;
 use Wikimedia\Rdbms\IReadableDatabase;
 use Wikimedia\Rdbms\SelectQueryBuilder;
 use Wikimedia\Timestamp\ConvertibleTimestamp;

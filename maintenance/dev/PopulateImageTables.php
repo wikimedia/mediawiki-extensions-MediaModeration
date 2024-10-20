@@ -4,7 +4,7 @@ namespace MediaWiki\Extension\MediaModeration\Maintenance\Dev;
 
 use Error;
 use LocalFile;
-use Maintenance;
+use MediaWiki\Maintenance\Maintenance;
 use MediaWiki\Title\Title;
 use MediaWiki\User\User;
 use UploadFromUrl;

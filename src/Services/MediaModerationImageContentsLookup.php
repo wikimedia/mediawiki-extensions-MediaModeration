@@ -4,7 +4,6 @@ namespace MediaWiki\Extension\MediaModeration\Services;
 
 use ArchivedFile;
 use File;
-use FileBackend;
 use Liuggio\StatsdClient\Factory\StatsdDataFactoryInterface;
 use LocalRepo;
 use MediaTransformError;
@@ -13,9 +12,10 @@ use MediaWiki\Extension\MediaModeration\Media\ThumborThumbnailImage;
 use MediaWiki\Extension\MediaModeration\Status\ImageContentsLookupStatus;
 use MediaWiki\Http\HttpRequestFactory;
 use MediaWiki\Language\RawMessage;
-use MimeAnalyzer;
 use StatusValue;
 use ThumbnailImage;
+use Wikimedia\FileBackend\FileBackend;
+use Wikimedia\Mime\MimeAnalyzer;
 
 /**
  * This service looks up the contents of the given $file, either by getting a thumbnail

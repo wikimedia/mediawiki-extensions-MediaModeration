@@ -4,8 +4,8 @@ namespace MediaWiki\Extension\MediaModeration\Services;
 
 use ArchivedFile;
 use File;
-use IDBAccessObject;
 use Wikimedia\Rdbms\IDatabase;
+use Wikimedia\Rdbms\IDBAccessObject;
 use Wikimedia\Timestamp\ConvertibleTimestamp;
 
 class MediaModerationDatabaseManager {

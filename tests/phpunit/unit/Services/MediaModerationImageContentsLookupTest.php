@@ -4,7 +4,6 @@ namespace MediaWiki\Extension\MediaModeration\Tests\Unit\Services;
 
 use ArchivedFile;
 use File;
-use FileBackend;
 use Liuggio\StatsdClient\Factory\StatsdDataFactoryInterface;
 use LocalRepo;
 use MediaTransformError;
@@ -17,11 +16,12 @@ use MediaWiki\Http\HttpRequestFactory;
 use MediaWiki\Language\RawMessage;
 use MediaWiki\Tests\Unit\MockServiceDependenciesTrait;
 use MediaWikiUnitTestCase;
-use MimeAnalyzer;
 use MWHttpRequest;
 use PHPUnit\Framework\MockObject\MockObject;
 use StatusValue;
 use ThumbnailImage;
+use Wikimedia\FileBackend\FileBackend;
+use Wikimedia\Mime\MimeAnalyzer;
 use Wikimedia\TestingAccessWrapper;
 
 /**
@@ -196,7 +196,7 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 			->willReturn( $this->createMock( File::class ) );
 		// Create a mock MimeAnalyzer that has the ::getMimeTypeFromExtensionOrNull and ::guessMimeType methods
 		// mocked to return the values in $fromExtensionResult and $guessFromContentsResult respectively.
-		$mockMimeAnalyzer = $this->createMock( \MimeAnalyzer::class );
+		$mockMimeAnalyzer = $this->createMock( MimeAnalyzer::class );
 		$mockMimeAnalyzer->method( 'getMimeTypeFromExtensionOrNull' )
 			->with( 'mock-extension' )
 			->willReturn( $fromExtensionResult );

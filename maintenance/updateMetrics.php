@@ -4,9 +4,9 @@ namespace MediaWiki\Extension\MediaModeration\Maintenance;
 
 use InvalidArgumentException;
 use Liuggio\StatsdClient\Factory\StatsdDataFactoryInterface;
-use Maintenance;
 use MediaWiki\Extension\MediaModeration\PeriodicMetrics\MediaModerationMetricsFactory;
 use MediaWiki\Logger\LoggerFactory;
+use MediaWiki\Maintenance\Maintenance;
 use Psr\Log\LoggerInterface;
 
 $IP = getenv( 'MW_INSTALL_PATH' );
