@@ -315,23 +315,28 @@ class ScanFilesInScanTable extends Maintenance {
 	}
 
 	protected function pollSha1ValuesForScanCompletion(): array {
+		// If there are no SHA-1 values being processed, then we cannot poll the DB for their status as there
+		// is nothing to check.
+		if ( !count( $this->sha1ValuesBeingProcessed ) ) {
+			return [];
+		}
 		$dbr = $this->mediaModerationDatabaseLookup->getDb( IDBAccessObject::READ_NORMAL );
 		// Wait for replication to occur to avoid polling a out-of-date replica DB.
 		$this->waitForReplication();
 		$queryBuilder = $dbr->newSelectQueryBuilder()
 			->select( 'mms_sha1' )
 			->from( 'mediamoderation_scan' )
-			->where( [
-				$dbr->expr(
-					'mms_last_checked',
-					'>',
-					$this->mediaModerationDatabaseLookup->getDateFromTimestamp( $this->lastChecked )
-				),
-			] );
-		if ( count( $this->sha1ValuesBeingProcessed ) ) {
-			$queryBuilder->andWhere( [
-				'mms_sha1' => $this->sha1ValuesBeingProcessed
-			] );
+			->where( [ 'mms_sha1' => $this->sha1ValuesBeingProcessed ] );
+		if ( $this->lastChecked === null ) {
+			$queryBuilder->andWhere( $dbr->expr(
+				'mms_last_checked', '!=', null
+			) );
+		} else {
+			$queryBuilder->andWhere( $dbr->expr(
+				'mms_last_checked',
+				'>',
+				$this->mediaModerationDatabaseLookup->getDateFromTimestamp( $this->lastChecked )
+			) );
 		}
 		return $queryBuilder->caller( __METHOD__ )->fetchFieldValues();
 	}

@@ -25,7 +25,8 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 
 	/** @dataProvider provideExecute */
 	public function testExecute(
-		$mockResponsesConfig, $useJobQueue, $expectedPositiveMatches, $expectedNegativeMatches, $expectedNullMatches
+		$mockResponsesConfig, $useJobQueue, $options, $expectedPositiveMatches,
+		$expectedNegativeMatches, $expectedNullMatches
 	) {
 		// Cause the mock response endpoint to be used and define mock responses
 		$this->overrideConfigValues( [
@@ -39,6 +40,9 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 		// Set the --use-jobqueue option if $useJobQueue is true
 		if ( $useJobQueue ) {
 			$this->maintenance->setOption( 'use-jobqueue', 1 );
+		}
+		foreach ( $options as $name => $value ) {
+			$this->maintenance->setOption( $name, $value );
 		}
 		// Run the maintenance script
 		$this->maintenance->execute();
@@ -89,7 +93,7 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 					'FilesToIsMatchMap' => [],
 					'FilesToStatusCodeMap' => [],
 				],
-				false,
+				false, [],
 				// One file was already scanned as a match so isn't rescanned.
 				[ 'sy02psim0bgdh0st4vdltuzoh7j60ru' ],
 				[
@@ -108,7 +112,7 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 					'FilesToIsMatchMap' => [],
 					'FilesToStatusCodeMap' => [],
 				],
-				true,
+				true, [],
 				// One file was already scanned as a match so isn't rescanned.
 				[ 'sy02psim0bgdh0st4vdltuzoh7j60ru' ],
 				[
@@ -131,7 +135,7 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 						'Random-112m.png' => Response::STATUS_IMAGE_PIXEL_SIZE_NOT_IN_RANGE
 					],
 				],
-				false,
+				false, [],
 				// One file was already scanned as a match so isn't rescanned plus the
 				// one that now matches.
 				[
@@ -160,7 +164,7 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 						'Random-15m.png' => Response::STATUS_COULD_NOT_VERIFY_FILE_AS_IMAGE,
 					],
 				],
-				true,
+				true, [],
 				// One file was already scanned as a match so isn't rescanned plus the
 				// one that now matches.
 				[
@@ -177,6 +181,56 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 				[
 					'sy02psim0bgdh0jt4vdltuzoh7j80au',
 					'sy02psim0bgdh0jt4vdltuzoh7j80ru',
+				],
+			],
+			'When last-checked="never" then script only scans never before scanned files' => [
+				[
+					'FilesToIsMatchMap' => [
+						'Random-13m.png' => true,
+					],
+				],
+				false, [ 'last-checked' => 'never' ],
+				// One file was already scanned as a match so isn't rescanned.
+				[
+					'sy02psim0bgdh0jt4vdltuzoh7j80yu',
+					'sy02psim0bgdh0st4vdltuzoh7j60ru'
+				],
+				[
+					'sy02psim0bgdh0jt4vdltuzoh7j70ru',
+					'sy02psim0bgdh0jt4vdltuzoh7j80ru',
+					'sy02psim0bgdh0st4vdlguzoh7j60ru',
+					'sy02psim0bgdh0st4vdltuzoh7j70ru',
+				],
+				// One file is unscannable (.ogg file) and the other was previously attempted to be scanned, so wasn't
+				// repeated as last-checked is never.
+				[
+					'sy02psim0bgdh0jt4vdltuzoh7j80au',
+					'sy02psim0bgdh0jt4vdltuzoh7j800u',
+				],
+			],
+			'When last-checked="never" then script only scans never before scanned files and uses job queue' => [
+				[
+					'FilesToIsMatchMap' => [
+						'Random-13m.png' => true,
+					],
+				],
+				true, [ 'last-checked' => 'never' ],
+				// One file was already scanned as a match so isn't rescanned.
+				[
+					'sy02psim0bgdh0jt4vdltuzoh7j80yu',
+					'sy02psim0bgdh0st4vdltuzoh7j60ru'
+				],
+				[
+					'sy02psim0bgdh0jt4vdltuzoh7j70ru',
+					'sy02psim0bgdh0jt4vdltuzoh7j80ru',
+					'sy02psim0bgdh0st4vdlguzoh7j60ru',
+					'sy02psim0bgdh0st4vdltuzoh7j70ru',
+				],
+				// One file is unscannable (.ogg file) and the other was previously attempted to be scanned, so wasn't
+				// repeated as last-checked is never.
+				[
+					'sy02psim0bgdh0jt4vdltuzoh7j80au',
+					'sy02psim0bgdh0jt4vdltuzoh7j800u',
 				],
 			],
 		];
