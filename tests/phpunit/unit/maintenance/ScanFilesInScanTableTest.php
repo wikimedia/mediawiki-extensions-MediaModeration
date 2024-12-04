@@ -508,6 +508,17 @@ class ScanFilesInScanTableTest extends MediaWikiUnitTestCase {
 		];
 	}
 
+	public function testPollSha1ValuesForScanCompletionWhenNoSha1ValuesBeingProcessed() {
+		// The internal array of SHA-1 values being processed is initially set to an empty array. When
+		// ::pollSha1ValuesForScanCompletion with the internal array being empty, it should return an empty
+		// array without attempting to perform DB queries.
+		$objectUnderTest = TestingAccessWrapper::newFromObject( new ScanFilesInScanTable() );
+		$this->assertArrayEquals(
+			[], $objectUnderTest->pollSha1ValuesForScanCompletion(),
+			'::pollSha1ValuesForScanCompletion did not return the expected array.'
+		);
+	}
+
 	public function testPollSha1ValuesForScanCompletion() {
 		$dbrMock = $this->createMock( IReadableDatabase::class );
 		$mockExpression = $this->createMock( Expression::class );
@@ -556,7 +567,7 @@ class ScanFilesInScanTableTest extends MediaWikiUnitTestCase {
 			'The fields used in a poll were not as expected'
 		);
 		$this->assertArrayEquals(
-			[ $mockExpression, 'mms_sha1' => [ 'test', 'testabc' ] ],
+			[ 'mms_sha1' => [ 'test', 'testabc' ], $mockExpression ],
 			$mockSelectQueryBuilder->getQueryInfo()['conds'],
 			'The conditions used in a poll were not as expected'
 		);
