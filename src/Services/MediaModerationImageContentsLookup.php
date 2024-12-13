@@ -229,35 +229,29 @@ class MediaModerationImageContentsLookup {
 			'MediaModeration.PhotoDNAServiceProviderThumbnailTransform',
 			1000 * $delay
 		);
+
+		$returnStatus = StatusValue::newGood();
 		if ( !$thumbnail ) {
-			$this->perDbNameStatsdDataFactory->increment(
-				'MediaModeration.ImageContentsLookup.Thumbnail.Transform.Failed'
-			);
-			return StatusValue::newFatal( new RawMessage( $genericErrorMessage ) );
-		}
-		if ( $thumbnail instanceof MediaTransformError ) {
-			$this->perDbNameStatsdDataFactory->increment(
-				'MediaModeration.ImageContentsLookup.Thumbnail.Transform.Failed'
-			);
-			return StatusValue::newFatal( new RawMessage( $genericErrorMessage . ': ' . $thumbnail->toText() ) );
-		}
-		if ( !( $thumbnail instanceof ThumbnailImage ) ) {
-			$this->perDbNameStatsdDataFactory->increment(
-				'MediaModeration.ImageContentsLookup.Thumbnail.Transform.Failed'
-			);
-			return StatusValue::newFatal( new RawMessage(
+			$returnStatus->fatal( new RawMessage( $genericErrorMessage ) );
+		} elseif ( $thumbnail instanceof MediaTransformError ) {
+			$returnStatus->fatal( new RawMessage( $genericErrorMessage . ': ' . $thumbnail->toText() ) );
+		} elseif ( !( $thumbnail instanceof ThumbnailImage ) ) {
+			$returnStatus->fatal( new RawMessage(
 				$genericErrorMessage . ': not an instance of ThumbnailImage, got ' . get_class( $thumbnail )
 			) );
+		} elseif ( !$thumbnail->hasFile() ) {
+			$returnStatus->fatal( new RawMessage(
+				$genericErrorMessage . ', got a ' . get_class( $thumbnail ) . ' but ::hasFile() returns false.'
+			) );
+		} else {
+			$returnStatus = $returnStatus->setResult( true, $thumbnail );
 		}
-		if ( !$thumbnail->hasFile() ) {
+		if ( !$returnStatus->isGood() ) {
 			$this->perDbNameStatsdDataFactory->increment(
 				'MediaModeration.ImageContentsLookup.Thumbnail.Transform.Failed'
 			);
-			return StatusValue::newFatal( new RawMessage(
-				$genericErrorMessage . ', got a ' . get_class( $thumbnail ) . ' but ::hasFile() returns false.'
-			) );
 		}
-		return StatusValue::newGood( $thumbnail );
+		return $returnStatus;
 	}
 
 	protected function getThumbnailContents( ThumbnailImage $thumbnail ): StatusValue {
