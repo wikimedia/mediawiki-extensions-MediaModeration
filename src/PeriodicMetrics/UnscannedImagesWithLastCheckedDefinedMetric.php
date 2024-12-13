@@ -34,6 +34,11 @@ class UnscannedImagesWithLastCheckedDefinedMetric implements IMetric {
 	}
 
 	/** @inheritDoc */
+	public function getName(): string {
+		return 'scan_table_unscanned_with_last_checked_defined_total';
+	}
+
+	/** @inheritDoc */
 	public function getStatsdKey(): string {
 		return 'MediaModeration.ScanTable.UnscannedWithLastCheckedDefined';
 	}
