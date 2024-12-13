@@ -22,6 +22,9 @@
 	"AutoloadNamespaces": {
 		"MediaWiki\\Extension\\MediaModeration\\": "src/"
 	},
+	"TestAutoloadClasses": {
+		"MediaWiki\\Extension\\MediaModeration\\Tests\\Integration\\Services\\MediaModerationStatsFactoryHelperTestTrait": "tests/phpunit/integration/Services/MediaModerationStatsFactoryHelperTestTrait.php"
+	},
 	"Hooks": {
 		"UploadComplete": "UploadCompleteHandler",
 		"LoadExtensionSchemaUpdates": "SchemaChangesHandler"

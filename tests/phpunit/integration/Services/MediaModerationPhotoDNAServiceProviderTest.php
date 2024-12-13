@@ -24,6 +24,7 @@ class MediaModerationPhotoDNAServiceProviderTest extends MediaWikiIntegrationTes
 	private ?File $file = null;
 
 	use MockHttpTrait;
+	use MediaModerationStatsFactoryHelperTestTrait;
 
 	public function testCheck() {
 		$this->overrideConfigValue( 'MediaModerationPhotoDNASubscriptionKey', '' );
@@ -35,6 +36,8 @@ class MediaModerationPhotoDNAServiceProviderTest extends MediaWikiIntegrationTes
 		$mwHttpRequest->expects( $this->atLeast( 1 ) )
 			->method( 'setHeader' )
 			->willReturnMap( [ [ 'Content-Type', 'image/jpeg', null ] ] );
+		$mwHttpRequest->method( 'getStatus' )
+			->willReturn( 200 );
 		$this->installMockHttp( $mwHttpRequest );
 
 		/** @var IMediaModerationPhotoDNAServiceProvider $serviceProvider */
@@ -42,6 +45,12 @@ class MediaModerationPhotoDNAServiceProviderTest extends MediaWikiIntegrationTes
 		$result = $serviceProvider->check( $this->getTestFile() );
 		$this->assertStatusGood( $result );
 		$this->assertEquals( 3000, $result->getValue()->getStatusCode() );
+
+		// Check that the metrics were incremented as expected
+		$this->assertTimingObserved( 'photo_dna_request_time' );
+		$this->assertCounterIncremented( 'photo_dna_http_status_code_total', [ 'status_code' => '200' ] );
+		$this->assertCounterIncremented( 'photo_dna_status_code_total', [ 'status_code' => '3000' ] );
+		$this->assertCounterNotIncremented( 'photo_dna_response_parse_error_total' );
 	}
 
 	public function testCheckWithHttpError() {
@@ -62,6 +71,12 @@ class MediaModerationPhotoDNAServiceProviderTest extends MediaWikiIntegrationTes
 		$message = $result->getMessages()[0];
 		$this->assertSame( 'rawmessage', $message->getKey() );
 		$this->assertSame( 'PhotoDNA returned HTTP 401 error: Access denied', $message->getParams()[0] );
+
+		// Check that the metrics were incremented as expected
+		$this->assertTimingObserved( 'photo_dna_request_time' );
+		$this->assertCounterIncremented( 'photo_dna_http_status_code_total', [ 'status_code' => '401' ] );
+		$this->assertCounterNotIncremented( 'photo_dna_status_code_total' );
+		$this->assertCounterIncremented( 'photo_dna_response_parse_error_total' );
 	}
 
 	public function testCheckWithHttpErrorNoJson() {
@@ -85,6 +100,12 @@ class MediaModerationPhotoDNAServiceProviderTest extends MediaWikiIntegrationTes
 			'PhotoDNA returned HTTP 500 error: Unable to get JSON in response from PhotoDNA',
 			$message->getParams()[0]
 		);
+
+		// Check that the metrics were incremented as expected
+		$this->assertTimingObserved( 'photo_dna_request_time' );
+		$this->assertCounterIncremented( 'photo_dna_http_status_code_total', [ 'status_code' => '500' ] );
+		$this->assertCounterNotIncremented( 'photo_dna_status_code_total' );
+		$this->assertCounterIncremented( 'photo_dna_response_parse_error_total' );
 	}
 
 	public function testCheckWithHttpErrorInvalidJson() {
@@ -109,6 +130,12 @@ class MediaModerationPhotoDNAServiceProviderTest extends MediaWikiIntegrationTes
 			"PhotoDNA returned an invalid JSON body for {$testFile->getName()}. Parse error: Syntax error",
 			$message->getParams()[0]
 		);
+
+		// Check that the metrics were incremented as expected
+		$this->assertTimingObserved( 'photo_dna_request_time' );
+		$this->assertCounterIncremented( 'photo_dna_http_status_code_total', [ 'status_code' => '200' ] );
+		$this->assertCounterNotIncremented( 'photo_dna_status_code_total' );
+		$this->assertCounterIncremented( 'photo_dna_response_parse_error_total' );
 	}
 
 	private function getTestFile(): File {
