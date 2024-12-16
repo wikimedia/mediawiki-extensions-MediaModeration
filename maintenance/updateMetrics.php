@@ -3,25 +3,28 @@
 namespace MediaWiki\Extension\MediaModeration\Maintenance;
 
 use InvalidArgumentException;
-use Liuggio\StatsdClient\Factory\StatsdDataFactoryInterface;
 use MediaWiki\Extension\MediaModeration\PeriodicMetrics\MediaModerationMetricsFactory;
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\Maintenance\Maintenance;
+use MediaWiki\WikiMap\WikiMap;
 use Psr\Log\LoggerInterface;
+use Wikimedia\Stats\StatsFactory;
 
+// @codeCoverageIgnoreStart
 $IP = getenv( 'MW_INSTALL_PATH' );
 if ( $IP === false ) {
 	$IP = __DIR__ . '/../../..';
 }
 require_once "$IP/maintenance/Maintenance.php";
+// @codeCoverageIgnoreEnd
 
 /**
- * Pushes information about the status of scanning to statsd.
+ * Pushes information about the status of scanning to prometheus.
  * Copied, with modification, from GrowthExperiments maintenance/updateMetrics.php
  */
 class UpdateMetrics extends Maintenance {
 
-	private StatsdDataFactoryInterface $statsDataFactory;
+	private StatsFactory $statsFactory;
 	private MediaModerationMetricsFactory $mediaModerationMetricsFactory;
 	private LoggerInterface $logger;
 
@@ -29,7 +32,7 @@ class UpdateMetrics extends Maintenance {
 		parent::__construct();
 		$this->requireExtension( 'MediaModeration' );
 
-		$this->addDescription( 'Push calculated metrics to StatsD' );
+		$this->addDescription( 'Push calculated metrics to Prometheus' );
 		$this->addOption( 'verbose', 'Output values of metrics calculated. Default is to not output.' );
 	}
 
@@ -38,7 +41,7 @@ class UpdateMetrics extends Maintenance {
 	 * This method is protected to allow mocking.
 	 */
 	protected function initServices(): void {
-		$this->statsDataFactory = $this->getServiceContainer()->getPerDbNameStatsdDataFactory();
+		$this->statsFactory = $this->getServiceContainer()->getStatsFactory();
 		$this->mediaModerationMetricsFactory = $this->getServiceContainer()->get( 'MediaModerationMetricsFactory' );
 		$this->logger = LoggerFactory::getInstance( 'mediamoderation' );
 	}
@@ -46,6 +49,7 @@ class UpdateMetrics extends Maintenance {
 	/** @inheritDoc */
 	public function execute() {
 		$this->initServices();
+		$wiki = WikiMap::getCurrentWikiId();
 
 		foreach ( MediaModerationMetricsFactory::METRICS as $metricName ) {
 			try {
@@ -59,17 +63,20 @@ class UpdateMetrics extends Maintenance {
 			}
 
 			$metricValue = $metric->calculate();
-			$this->statsDataFactory->gauge(
-				$metric->getStatsdKey(),
-				$metricValue
-			);
+			$this->statsFactory->withComponent( 'MediaModeration' )
+				->getGauge( $metric->getName() )
+				->setLabel( 'wiki', $wiki )
+				->copyToStatsdAt( "$wiki." . $metric->getStatsdKey() )
+				->set( $metricValue );
 
 			if ( $this->hasOption( 'verbose' ) ) {
-				$this->output( $metric->getStatsdKey() . ' is ' . $metricValue . '.' . PHP_EOL );
+				$this->output( $metric->getName() . ' is ' . $metricValue . '.' . PHP_EOL );
 			}
 		}
 	}
 }
 
+// @codeCoverageIgnoreStart
 $maintClass = UpdateMetrics::class;
 require_once RUN_MAINTENANCE_IF_MAIN;
+// @codeCoverageIgnoreEnd

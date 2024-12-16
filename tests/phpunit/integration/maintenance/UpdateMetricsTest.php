@@ -2,9 +2,10 @@
 
 namespace MediaWiki\Extension\MediaModeration\Tests\Integration\Maintenance;
 
-use Liuggio\StatsdClient\Factory\StatsdDataFactoryInterface;
 use MediaWiki\Extension\MediaModeration\Maintenance\UpdateMetrics;
 use MediaWiki\Tests\Maintenance\MaintenanceBaseTestCase;
+use MediaWiki\WikiMap\WikiMap;
+use Wikimedia\Stats\Metrics\GaugeMetric;
 
 /**
  * Test class for the updateMetrics.php maintenance script.
@@ -28,25 +29,28 @@ class UpdateMetricsTest extends MaintenanceBaseTestCase {
 
 	/** @dataProvider provideExecute */
 	public function testExecute( $expectedGaugeReturnMap ) {
-		// Mock the StatsdDataFactoryInterface so we can verify that the correct values are being stored.
-		$mockStatsDataFactory = $this->createMock( StatsdDataFactoryInterface::class );
-		$mockStatsDataFactory->expects( $this->exactly( count( $expectedGaugeReturnMap ) ) )
-			->method( 'gauge' )
-			->willReturnMap( $expectedGaugeReturnMap );
-		// Re-define the PerDbNameStatsdDataFactory service to return our mock statsd interface
-		$this->overrideMwServices(
-			null,
-			[
-				'PerDbNameStatsdDataFactory' => static function () use ( $mockStatsDataFactory ) {
-					return $mockStatsDataFactory;
-				}
-			]
-		);
 		$this->maintenance->setOption( 'verbose', 1 );
 		$this->maintenance->execute();
 		$expectedOutput = '';
-		foreach ( $expectedGaugeReturnMap as $metric ) {
-			$expectedOutput .= $metric[0] . ' is ' . $metric[1] . '.' . PHP_EOL;
+		foreach ( $expectedGaugeReturnMap as $expectedMetricData ) {
+			// Check that the StatsFactory gauge was set correctly.
+			$metric = $this->getServiceContainer()
+				->getStatsFactory()
+				->withComponent( 'MediaModeration' )
+				->getGauge( $expectedMetricData[0] );
+
+			$samples = $metric->getSamples();
+
+			$this->assertInstanceOf( GaugeMetric::class, $metric );
+			$this->assertSame( 1, $metric->getSampleCount() );
+			$this->assertSame( floatval( $expectedMetricData[1] ), $samples[0]->getValue() );
+			$actualLabels = array_combine( $metric->getLabelKeys(), $samples[0]->getLabelValues() );
+			$this->assertSame(
+				[ 'wiki' => rtrim( strtr( WikiMap::getCurrentWikiId(), [ '-' => '_' ] ), '_' ) ],
+				$actualLabels
+			);
+
+			$expectedOutput .= $expectedMetricData[0] . ' is ' . $expectedMetricData[1] . '.' . PHP_EOL;
 		}
 		$this->expectOutputString( $expectedOutput );
 	}
@@ -54,10 +58,10 @@ class UpdateMetricsTest extends MaintenanceBaseTestCase {
 	public static function provideExecute() {
 		return [
 			'Expected execute behaviour based on test data' => [ [
-				[ 'MediaModeration.ScanTable.TotalCount', 8, null ],
-				[ 'MediaModeration.ScanTable.Scanned', 3, null ],
-				[ 'MediaModeration.ScanTable.Unscanned', 5, null ],
-				[ 'MediaModeration.ScanTable.UnscannedWithLastCheckedDefined', 1, null ],
+				[ 'scan_table_total', 8, null ],
+				[ 'scan_table_scanned_total', 3, null ],
+				[ 'scan_table_unscanned_total', 5, null ],
+				[ 'scan_table_unscanned_with_last_checked_defined_total', 1, null ],
 			] ],
 		];
 	}

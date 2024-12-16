@@ -29,6 +29,11 @@ class TotalTableCountMetric implements IMetric {
 	}
 
 	/** @inheritDoc */
+	public function getName(): string {
+		return 'scan_table_total';
+	}
+
+	/** @inheritDoc */
 	public function getStatsdKey(): string {
 		return 'MediaModeration.ScanTable.TotalCount';
 	}
