@@ -4,7 +4,6 @@ namespace MediaWiki\Extension\MediaModeration\Services;
 
 use ArchivedFile;
 use File;
-use Liuggio\StatsdClient\Factory\StatsdDataFactoryInterface;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Extension\MediaModeration\PhotoDNA\IMediaModerationPhotoDNAServiceProvider;
 use MediaWiki\Extension\MediaModeration\PhotoDNA\MediaModerationPhotoDNAResponseHandler;
@@ -13,8 +12,10 @@ use MediaWiki\Http\HttpRequestFactory;
 use MediaWiki\Json\FormatJson;
 use MediaWiki\Language\RawMessage;
 use MediaWiki\Status\StatusFormatter;
+use MediaWiki\WikiMap\WikiMap;
 use MWHttpRequest;
 use StatusValue;
+use Wikimedia\Stats\StatsFactory;
 
 /**
  * Service for interacting with Microsoft PhotoDNA API.
@@ -32,24 +33,17 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 	];
 
 	private HttpRequestFactory $httpRequestFactory;
-	private StatsdDataFactoryInterface $perDbNameStatsdDataFactory;
+	private StatsFactory $statsFactory;
 	private MediaModerationImageContentsLookup $mediaModerationImageContentsLookup;
 	private StatusFormatter $statusFormatter;
 	private string $photoDNAUrl;
 	private ?string $httpProxy;
 	private string $photoDNASubscriptionKey;
 
-	/**
-	 * @param ServiceOptions $options
-	 * @param HttpRequestFactory $httpRequestFactory
-	 * @param StatsdDataFactoryInterface $perDbNameStatsdDataFactory
-	 * @param MediaModerationImageContentsLookup $mediaModerationImageContentsLookup
-	 * @param StatusFormatter $statusFormatter
-	 */
 	public function __construct(
 		ServiceOptions $options,
 		HttpRequestFactory $httpRequestFactory,
-		StatsdDataFactoryInterface $perDbNameStatsdDataFactory,
+		StatsFactory $statsFactory,
 		MediaModerationImageContentsLookup $mediaModerationImageContentsLookup,
 		StatusFormatter $statusFormatter
 	) {
@@ -58,7 +52,7 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 		$this->photoDNAUrl = $options->get( 'MediaModerationPhotoDNAUrl' );
 		$this->photoDNASubscriptionKey = $options->get( 'MediaModerationPhotoDNASubscriptionKey' );
 		$this->httpProxy = $options->get( 'MediaModerationHttpProxy' );
-		$this->perDbNameStatsdDataFactory = $perDbNameStatsdDataFactory;
+		$this->statsFactory = $statsFactory;
 		$this->mediaModerationImageContentsLookup = $mediaModerationImageContentsLookup;
 		$this->statusFormatter = $statusFormatter;
 	}
@@ -74,16 +68,28 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 		$start = microtime( true );
 		$status = $request->execute();
 		$delay = microtime( true ) - $start;
-		$this->perDbNameStatsdDataFactory->timing(
-			'MediaModeration.PhotoDNAServiceProviderRequestTime',
-			1000 * $delay
-		);
+		$wiki = WikiMap::getCurrentWikiId();
+		$this->statsFactory->withComponent( 'MediaModeration' )
+			->getTiming( 'photo_dna_request_time' )
+			->setLabel( 'wiki', $wiki )
+			->copyToStatsdAt( "$wiki.MediaModeration.PhotoDNAServiceProviderRequestTime" )
+			->observeSeconds( $delay );
 		if ( $status->isOK() ) {
-			$this->perDbNameStatsdDataFactory->increment( 'MediaModeration.PhotoDNAServiceProvider.Execute.OK' );
+			$this->statsFactory->withComponent( 'MediaModeration' )
+				->getCounter( 'photo_dna_http_status_code_total' )
+				->setLabel( 'wiki', $wiki )
+				->setLabel( 'status_code', strval( $request->getStatus() ) )
+				->copyToStatsdAt( "$wiki.MediaModeration.PhotoDNAServiceProvider.Execute.OK" )
+				->increment();
 		} else {
-			$this->perDbNameStatsdDataFactory->increment(
-				'MediaModeration.PhotoDNAServiceProvider.Execute.Error.' . $request->getStatus()
-			);
+			$this->statsFactory->withComponent( 'MediaModeration' )
+				->getCounter( 'photo_dna_http_status_code_total' )
+				->setLabel( 'wiki', $wiki )
+				->setLabel( 'status_code', strval( $request->getStatus() ) )
+				->copyToStatsdAt(
+					"$wiki.MediaModeration.PhotoDNAServiceProvider.Execute.Error." . $request->getStatus()
+				)
+				->increment();
 		}
 		if ( !$status->isOK() ) {
 			// Something went badly wrong.
@@ -93,6 +99,11 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 			} else {
 				$errorMessage = 'Unable to get JSON in response from PhotoDNA';
 			}
+			$this->statsFactory->withComponent( 'MediaModeration' )
+				->getCounter( 'photo_dna_response_parse_error_total' )
+				->setLabel( 'wiki', $wiki )
+				->copyToStatsdAt( "$wiki.MediaModeration.PhotoDNAServiceProvider.Execute.InvalidJsonResponse" )
+				->increment();
 
 			return StatusValue::newFatal(
 				new RawMessage(
@@ -104,18 +115,25 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 		$jsonParseStatus = FormatJson::parse( $rawResponse, FormatJson::FORCE_ASSOC );
 		$responseJson = $jsonParseStatus->getValue();
 		if ( !$jsonParseStatus->isOK() || !is_array( $responseJson ) ) {
-			$this->perDbNameStatsdDataFactory->increment(
-				'MediaModeration.PhotoDNAServiceProvider.Execute.InvalidJsonResponse'
-			);
+			$this->statsFactory->withComponent( 'MediaModeration' )
+				->getCounter( 'photo_dna_response_parse_error_total' )
+				->setLabel( 'wiki', $wiki )
+				->copyToStatsdAt( "$wiki.MediaModeration.PhotoDNAServiceProvider.Execute.InvalidJsonResponse" )
+				->increment();
 			return StatusValue::newFatal( new RawMessage(
 				'PhotoDNA returned an invalid JSON body for ' . $file->getName() . '. Parse error: ' .
 				$this->statusFormatter->getWikiText( $jsonParseStatus )
 			) );
 		}
 		$response = Response::newFromArray( $responseJson, $rawResponse );
-		$this->perDbNameStatsdDataFactory->increment(
-			'MediaModeration.PhotoDNAServiceProvider.Execute.StatusCode' . $response->getStatusCode()
-		);
+		$this->statsFactory->withComponent( 'MediaModeration' )
+			->getCounter( 'photo_dna_status_code_total' )
+			->setLabel( 'wiki', $wiki )
+			->setLabel( 'status_code', strval( $response->getStatusCode() ) )
+			->copyToStatsdAt(
+				"$wiki.'MediaModeration.PhotoDNAServiceProvider.Execute.StatusCode" . $response->getStatusCode()
+			)
+			->increment();
 		return $this->createStatusFromResponse( $response );
 	}
 

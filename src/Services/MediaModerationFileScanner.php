@@ -2,13 +2,14 @@
 
 namespace MediaWiki\Extension\MediaModeration\Services;
 
-use Liuggio\StatsdClient\Factory\StatsdDataFactoryInterface;
 use MediaWiki\Extension\MediaModeration\PhotoDNA\IMediaModerationPhotoDNAServiceProvider;
 use MediaWiki\Extension\MediaModeration\PhotoDNA\Response;
 use MediaWiki\Language\RawMessage;
 use MediaWiki\Status\StatusFormatter;
+use MediaWiki\WikiMap\WikiMap;
 use Psr\Log\LoggerInterface;
 use StatusValue;
+use Wikimedia\Stats\StatsFactory;
 
 /**
  * Scans SHA-1 values in batches to reduce the effect that slow requests to
@@ -22,7 +23,7 @@ class MediaModerationFileScanner {
 	private MediaModerationFileProcessor $mediaModerationFileProcessor;
 	private IMediaModerationPhotoDNAServiceProvider $mediaModerationPhotoDNAServiceProvider;
 	private MediaModerationEmailer $mediaModerationEmailer;
-	private StatsdDataFactoryInterface $perDbNameStatsdDataFactory;
+	private StatsFactory $statsFactory;
 	private StatusFormatter $statusFormatter;
 	private LoggerInterface $logger;
 
@@ -34,7 +35,7 @@ class MediaModerationFileScanner {
 		IMediaModerationPhotoDNAServiceProvider $mediaModerationPhotoDNAServiceProvider,
 		MediaModerationEmailer $mediaModerationEmailer,
 		StatusFormatter $statusFormatter,
-		StatsdDataFactoryInterface $perDbNameStatsdDataFactory,
+		StatsFactory $statsFactory,
 		LoggerInterface $logger
 	) {
 		$this->mediaModerationDatabaseLookup = $mediaModerationDatabaseLookup;
@@ -44,7 +45,7 @@ class MediaModerationFileScanner {
 		$this->mediaModerationPhotoDNAServiceProvider = $mediaModerationPhotoDNAServiceProvider;
 		$this->mediaModerationEmailer = $mediaModerationEmailer;
 		$this->statusFormatter = $statusFormatter;
-		$this->perDbNameStatsdDataFactory = $perDbNameStatsdDataFactory;
+		$this->statsFactory = $statsFactory;
 		$this->logger = $logger;
 	}
 
@@ -55,6 +56,7 @@ class MediaModerationFileScanner {
 	 * @return StatusValue
 	 */
 	public function scanSha1( string $sha1 ): StatusValue {
+		$wiki = WikiMap::getCurrentWikiId();
 		$returnStatus = new StatusValue();
 		// Until a match is got from PhotoDNA, the return status should be not okay as the operation has not completed.
 		$returnStatus->setOK( false );
@@ -66,7 +68,11 @@ class MediaModerationFileScanner {
 			if ( !$this->mediaModerationFileProcessor->canScanFile( $file ) ) {
 				// If this $file cannot be scanned, then try the next file with this SHA-1
 				// and if in verbose mode output to the console about this.
-				$this->perDbNameStatsdDataFactory->increment( 'MediaModeration.FileScanner.CanScanFileReturnedFalse' );
+				$this->statsFactory->withComponent( 'MediaModeration' )
+					->getCounter( 'file_scanner_found_unscannable_file_total' )
+					->setLabel( 'wiki', $wiki )
+					->copyToStatsdAt( "$wiki.MediaModeration.FileScanner.CanScanFileReturnedFalse" )
+					->increment();
 				$returnStatus->fatal( new RawMessage( "The file {$file->getName()} cannot be scanned." ) );
 				continue;
 			}

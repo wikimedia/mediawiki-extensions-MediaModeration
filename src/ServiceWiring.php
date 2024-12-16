@@ -124,7 +124,7 @@ return [
 				$services->getMainConfig(),
 			),
 			$services->getHttpRequestFactory(),
-			$services->getPerDbNameStatsdDataFactory(),
+			$services->getStatsFactory(),
 			$services->get( 'MediaModerationImageContentsLookup' ),
 			$services->getFormatterFactory()->getStatusFormatter( RequestContext::getMain() )
 		);
@@ -138,7 +138,7 @@ return [
 				$services->getMainConfig(),
 			),
 			$services->getRepoGroup()->getLocalRepo()->getBackend(),
-			$services->getPerDbNameStatsdDataFactory(),
+			$services->getStatsFactory(),
 			$services->getMimeAnalyzer(),
 			$services->getRepoGroup()->getLocalRepo(),
 			$services->getHttpRequestFactory()
@@ -155,7 +155,7 @@ return [
 			$services->get( 'MediaModerationPhotoDNAServiceProvider' ),
 			$services->get( 'MediaModerationEmailer' ),
 			$services->getFormatterFactory()->getStatusFormatter( RequestContext::getMain() ),
-			$services->getPerDbNameStatsdDataFactory(),
+			$services->getStatsFactory(),
 			LoggerFactory::getInstance( 'mediamoderation' )
 		);
 	},

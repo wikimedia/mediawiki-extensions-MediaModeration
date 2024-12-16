@@ -4,7 +4,6 @@ namespace MediaWiki\Extension\MediaModeration\Services;
 
 use ArchivedFile;
 use File;
-use Liuggio\StatsdClient\Factory\StatsdDataFactoryInterface;
 use LocalRepo;
 use MediaTransformError;
 use MediaWiki\Config\ServiceOptions;
@@ -12,10 +11,12 @@ use MediaWiki\Extension\MediaModeration\Media\ThumborThumbnailImage;
 use MediaWiki\Extension\MediaModeration\Status\ImageContentsLookupStatus;
 use MediaWiki\Http\HttpRequestFactory;
 use MediaWiki\Language\RawMessage;
+use MediaWiki\WikiMap\WikiMap;
 use StatusValue;
 use ThumbnailImage;
 use Wikimedia\FileBackend\FileBackend;
 use Wikimedia\Mime\MimeAnalyzer;
+use Wikimedia\Stats\StatsFactory;
 
 /**
  * This service looks up the contents of the given $file, either by getting a thumbnail
@@ -29,7 +30,7 @@ class MediaModerationImageContentsLookup {
 	];
 
 	private FileBackend $fileBackend;
-	private StatsdDataFactoryInterface $perDbNameStatsdDataFactory;
+	private StatsFactory $statsFactory;
 	private MimeAnalyzer $mimeAnalyzer;
 	private LocalRepo $localRepo;
 
@@ -40,14 +41,14 @@ class MediaModerationImageContentsLookup {
 	public function __construct(
 		ServiceOptions $options,
 		FileBackend $fileBackend,
-		StatsdDataFactoryInterface $perDbNameStatsdDataFactory,
+		StatsFactory $statsFactory,
 		MimeAnalyzer $mimeAnalyzer,
 		LocalRepo $localRepo,
 		HttpRequestFactory $httpRequestFactory
 	) {
 		$options->assertRequiredOptions( self::CONSTRUCTOR_OPTIONS );
 		$this->fileBackend = $fileBackend;
-		$this->perDbNameStatsdDataFactory = $perDbNameStatsdDataFactory;
+		$this->statsFactory = $statsFactory;
 		$this->mimeAnalyzer = $mimeAnalyzer;
 		$this->localRepo = $localRepo;
 		$this->thumbnailWidth = $options->get( 'MediaModerationThumbnailWidth' );
@@ -65,6 +66,7 @@ class MediaModerationImageContentsLookup {
 	 * @return ImageContentsLookupStatus
 	 */
 	public function getImageContents( $file ): ImageContentsLookupStatus {
+		$wiki = WikiMap::getCurrentWikiId();
 		// Create a status that will be returned, and if it is good will contain the
 		// thumbnail/original file contents and mime type.
 		$returnStatus = new ImageContentsLookupStatus();
@@ -101,9 +103,13 @@ class MediaModerationImageContentsLookup {
 				if ( $file instanceof File ) {
 					// Add to the RuntimeException count if $file was a File, as we should
 					// have been able to generate a thumbnail for it.
-					$this->perDbNameStatsdDataFactory->increment(
-						'MediaModeration.PhotoDNAServiceProvider.Execute.SourceFileUsedForFileObject'
-					);
+					$this->statsFactory->withComponent( 'MediaModeration' )
+						->getCounter( 'image_contents_lookup_used_source_file_total' )
+						->setLabel( 'wiki', $wiki )
+						->copyToStatsdAt(
+							"$wiki.MediaModeration.PhotoDNAServiceProvider.Execute.SourceFileUsedForFileObject"
+						)
+						->increment();
 				}
 				// Set the result as OK as we got the original file, but still include the
 				// errors from the thumbnail generation for tracking.
@@ -124,9 +130,11 @@ class MediaModerationImageContentsLookup {
 		}
 		// Increment the RuntimeException statsd counter, as we have reached a point where
 		// we could not generate a thumbnail where we should have been able to.
-		$this->perDbNameStatsdDataFactory->increment(
-			'MediaModeration.PhotoDNAServiceProvider.Execute.RuntimeException'
-		);
+		$this->statsFactory->withComponent( 'MediaModeration' )
+			->getCounter( 'image_contents_lookup_failure_total' )
+			->setLabel( 'wiki', $wiki )
+			->copyToStatsdAt( "$wiki.MediaModeration.PhotoDNAServiceProvider.Execute.RuntimeException" )
+			->increment();
 		return $returnStatus;
 	}
 
@@ -147,7 +155,8 @@ class MediaModerationImageContentsLookup {
 		}
 		if ( !$thumbnailMimeType ) {
 			// We cannot send a request to PhotoDNA without knowing what the mime type is.
-			$this->perDbNameStatsdDataFactory->increment(
+			$this->incrementImageContentsLookupErrorTotal(
+				'thumbnail', 'mime', 'lookup_failed',
 				'MediaModeration.ImageContentsLookup.Thumbnail.MimeType.LookupFailed'
 			);
 			return StatusValue::newFatal( new RawMessage(
@@ -156,7 +165,8 @@ class MediaModerationImageContentsLookup {
 		}
 		if ( !in_array( $thumbnailMimeType, MediaModerationFileProcessor::ALLOWED_MIME_TYPES, true ) ) {
 			// We cannot send a request to PhotoDNA with a thumbnail type that is unsupported by the API.
-			$this->perDbNameStatsdDataFactory->increment(
+			$this->incrementImageContentsLookupErrorTotal(
+				'thumbnail', 'mime', 'unsupported',
 				'MediaModeration.ImageContentsLookup.Thumbnail.MimeType.Unsupported'
 			);
 			return StatusValue::newFatal( new RawMessage(
@@ -172,6 +182,7 @@ class MediaModerationImageContentsLookup {
 	 *   if it is a good status.
 	 */
 	protected function getThumbnailForFile( File $file ): StatusValue {
+		$wiki = WikiMap::getCurrentWikiId();
 		$genericErrorMessage = 'Could not transform file ' . $file->getName();
 		$start = microtime( true );
 		$thumbName = $file->thumbName( [ 'width' => $this->thumbnailWidth ] );
@@ -206,16 +217,21 @@ class MediaModerationImageContentsLookup {
 						$imageContent,
 						$req->getResponseHeader( 'content-type' )
 					);
-					$this->perDbNameStatsdDataFactory->timing(
-						'MediaModeration.PhotoDNAServiceProviderThumbnailTransformThumborRequest',
-						1000 * ( microtime( true ) - $start )
-					);
+					$this->statsFactory->withComponent( 'MediaModeration' )
+						->getTiming( 'image_contents_lookup_thumbnail_transform_time' )
+						->setLabel( 'wiki', $wiki )
+						->setLabel( 'method', 'thumbor' )
+						->copyToStatsdAt(
+							"$wiki.MediaModeration.PhotoDNAServiceProviderThumbnailTransformThumborRequest"
+						)
+						->observeSeconds( microtime( true ) - $start );
 					return StatusValue::newGood( $thumbnail );
 				}
 			}
 			// The request failed, so increment the failure counter and use regular ::transform
 			// for checks done farther on.
-			$this->perDbNameStatsdDataFactory->increment(
+			$this->incrementImageContentsLookupErrorTotal(
+				'thumbnail', 'thumbor_transform', 'failed',
 				'MediaModeration.ImageContentsLookup.Thumbnail.ThumborTransform.Failed'
 			);
 			$thumbnail = $file->transform( [ 'width' => $this->thumbnailWidth ] );
@@ -225,10 +241,12 @@ class MediaModerationImageContentsLookup {
 			$thumbnail = $file->transform( [ 'width' => $this->thumbnailWidth ], File::RENDER_NOW );
 		}
 		$delay = microtime( true ) - $start;
-		$this->perDbNameStatsdDataFactory->timing(
-			'MediaModeration.PhotoDNAServiceProviderThumbnailTransform',
-			1000 * $delay
-		);
+		$this->statsFactory->withComponent( 'MediaModeration' )
+			->getTiming( 'image_contents_lookup_thumbnail_transform_time' )
+			->setLabel( 'wiki', $wiki )
+			->setLabel( 'method', 'php' )
+			->copyToStatsdAt( "$wiki.MediaModeration.PhotoDNAServiceProviderThumbnailTransform" )
+			->observeSeconds( $delay );
 
 		$returnStatus = StatusValue::newGood();
 		if ( !$thumbnail ) {
@@ -246,8 +264,10 @@ class MediaModerationImageContentsLookup {
 		} else {
 			$returnStatus = $returnStatus->setResult( true, $thumbnail );
 		}
+
 		if ( !$returnStatus->isGood() ) {
-			$this->perDbNameStatsdDataFactory->increment(
+			$this->incrementImageContentsLookupErrorTotal(
+				'thumbnail', 'transform', 'failed',
 				'MediaModeration.ImageContentsLookup.Thumbnail.Transform.Failed'
 			);
 		}
@@ -256,7 +276,8 @@ class MediaModerationImageContentsLookup {
 
 	protected function getThumbnailContents( ThumbnailImage $thumbnail ): StatusValue {
 		if ( $thumbnail->getHeight() < 160 || $thumbnail->getWidth() < 160 ) {
-			$this->perDbNameStatsdDataFactory->increment(
+			$this->incrementImageContentsLookupErrorTotal(
+				'thumbnail', 'contents', 'too_small',
 				'MediaModeration.ImageContentsLookup.Thumbnail.Contents.TooSmall'
 			);
 			// PhotoDNA requires that images be at least 160px by 160px, so don't use the
@@ -266,7 +287,8 @@ class MediaModerationImageContentsLookup {
 			) );
 		}
 		if ( !( $thumbnail instanceof ThumborThumbnailImage ) && !$thumbnail->getStoragePath() ) {
-			$this->perDbNameStatsdDataFactory->increment(
+			$this->incrementImageContentsLookupErrorTotal(
+				'thumbnail', 'contents', 'lookup_failed',
 				'MediaModeration.ImageContentsLookup.Thumbnail.Contents.LookupFailed'
 			);
 			return StatusValue::newFatal( new RawMessage(
@@ -277,7 +299,8 @@ class MediaModerationImageContentsLookup {
 			$thumbnail->getContent() :
 			$this->fileBackend->getFileContents( [ 'src' => $thumbnail->getStoragePath() ] );
 		if ( !$fileContents ) {
-			$this->perDbNameStatsdDataFactory->increment(
+			$this->incrementImageContentsLookupErrorTotal(
+				'thumbnail', 'contents', 'lookup_failed',
 				'MediaModeration.ImageContentsLookup.Thumbnail.Contents.LookupFailed'
 			);
 			return StatusValue::newFatal( new RawMessage(
@@ -285,7 +308,8 @@ class MediaModerationImageContentsLookup {
 			) );
 		}
 		if ( strlen( $fileContents ) > 4000000 ) {
-			$this->perDbNameStatsdDataFactory->increment(
+			$this->incrementImageContentsLookupErrorTotal(
+				'thumbnail', 'contents', 'too_large',
 				'MediaModeration.ImageContentsLookup.Thumbnail.Contents.TooLarge'
 			);
 			// Check that the size of the file does not exceed 4MB, as PhotoDNA returns an
@@ -306,7 +330,8 @@ class MediaModerationImageContentsLookup {
 	 */
 	protected function getFileContents( $file ): StatusValue {
 		if ( $file->getSize() && $file->getSize() > 4000000 ) {
-			$this->perDbNameStatsdDataFactory->increment(
+			$this->incrementImageContentsLookupErrorTotal(
+				'source_file', 'contents', 'too_large',
 				'MediaModeration.ImageContentsLookup.File.Contents.TooLarge'
 			);
 			// Check that the size of the file does not exceed 4MB, as PhotoDNA returns an
@@ -319,7 +344,8 @@ class MediaModerationImageContentsLookup {
 			( $file->getHeight() && $file->getHeight() < 160 ) ||
 			( $file->getWidth() && $file->getWidth() < 160 )
 		) {
-			$this->perDbNameStatsdDataFactory->increment(
+			$this->incrementImageContentsLookupErrorTotal(
+				'source_file', 'contents', 'too_small',
 				'MediaModeration.ImageContentsLookup.File.Contents.TooSmall'
 			);
 			// Check that the height and width is at least 160px by 160px
@@ -338,7 +364,8 @@ class MediaModerationImageContentsLookup {
 			$filePath = $file->getPath();
 		}
 		if ( !$filePath ) {
-			$this->perDbNameStatsdDataFactory->increment(
+			$this->incrementImageContentsLookupErrorTotal(
+				'source_file', 'contents', 'lookup_failed',
 				'MediaModeration.ImageContentsLookup.File.Contents.LookupFailed'
 			);
 			return StatusValue::newFatal( new RawMessage(
@@ -347,7 +374,8 @@ class MediaModerationImageContentsLookup {
 		}
 		$fileContents = $this->fileBackend->getFileContents( [ 'src' => $filePath ] );
 		if ( !$fileContents ) {
-			$this->perDbNameStatsdDataFactory->increment(
+			$this->incrementImageContentsLookupErrorTotal(
+				'source_file', 'contents', 'lookup_failed',
 				'MediaModeration.ImageContentsLookup.File.Contents.LookupFailed'
 			);
 			return StatusValue::newFatal( new RawMessage(
@@ -355,5 +383,29 @@ class MediaModerationImageContentsLookup {
 			) );
 		}
 		return StatusValue::newGood( $fileContents );
+	}
+
+	/**
+	 * Increments the 'image_contents_lookup_error_total' Prometheus metric with the given label values
+	 * to describe the error.
+	 *
+	 * @param string $imageType Either 'thumbnail' or 'source_file'
+	 * @param string $errorType The type of error. Used to group errors into a common group, such as all errors related
+	 *   to looking up the contents of an image being 'contents'
+	 * @param string $error The error that occurred (for example 'lookup_failed')
+	 * @param string $statsDBucket Used to copy data to the old StatsD metric
+	 */
+	private function incrementImageContentsLookupErrorTotal(
+		string $imageType, string $errorType, string $error, string $statsDBucket
+	): void {
+		$wiki = WikiMap::getCurrentWikiId();
+		$this->statsFactory->withComponent( 'MediaModeration' )
+			->getCounter( 'image_contents_lookup_error_total' )
+			->setLabel( 'wiki', $wiki )
+			->setLabel( 'image_type', $imageType )
+			->setLabel( 'error_type', $errorType )
+			->setLabel( 'error', $error )
+			->copyToStatsdAt( "$wiki.$statsDBucket" )
+			->increment();
 	}
 }

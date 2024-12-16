@@ -24,6 +24,7 @@ use StatusValue;
 class MediaModerationFileScannerTest extends MediaWikiIntegrationTestCase {
 
 	use MockServiceDependenciesTrait;
+	use MediaModerationStatsFactoryHelperTestTrait;
 
 	private function getMockMediaModerationFileLookup( string $sha1, int $numberOfFileObjects ) {
 		$mockMediaModerationFileLookup = $this->createMock( MediaModerationFileLookup::class );
@@ -185,6 +186,12 @@ class MediaModerationFileScannerTest extends MediaWikiIntegrationTestCase {
 			$actualStatus,
 			'The StatusValue returned by ::scanSha1 did not have the expected value.'
 		);
+		// Check that if $canScanFileResults includes false that the StatsFactory metric was incremented.
+		if ( count( array_filter( $canScanFileResults ) ) === count( $canScanFileResults ) ) {
+			$this->assertCounterNotIncremented( 'file_scanner_found_unscannable_file_total' );
+		} else {
+			$this->assertCounterIncremented( 'file_scanner_found_unscannable_file_total' );
+		}
 	}
 
 	public static function provideScanSha1() {

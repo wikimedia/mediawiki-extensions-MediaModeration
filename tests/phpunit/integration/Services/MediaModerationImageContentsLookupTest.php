@@ -1,10 +1,9 @@
 <?php
 
-namespace MediaWiki\Extension\MediaModeration\Tests\Unit\Services;
+namespace MediaWiki\Extension\MediaModeration\Tests\Integration\Services;
 
 use ArchivedFile;
 use File;
-use Liuggio\StatsdClient\Factory\StatsdDataFactoryInterface;
 use LocalRepo;
 use MediaTransformError;
 use MediaWiki\Config\HashConfig;
@@ -15,7 +14,8 @@ use MediaWiki\Extension\MediaModeration\Services\MediaModerationImageContentsLoo
 use MediaWiki\Http\HttpRequestFactory;
 use MediaWiki\Language\RawMessage;
 use MediaWiki\Tests\Unit\MockServiceDependenciesTrait;
-use MediaWikiUnitTestCase;
+use MediaWikiIntegrationTestCase;
+use MockHttpTrait;
 use MWHttpRequest;
 use PHPUnit\Framework\MockObject\MockObject;
 use StatusValue;
@@ -28,8 +28,10 @@ use Wikimedia\TestingAccessWrapper;
  * @covers \MediaWiki\Extension\MediaModeration\Services\MediaModerationImageContentsLookup
  * @group MediaModeration
  */
-class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
+class MediaModerationImageContentsLookupTest extends MediaWikiIntegrationTestCase {
 	use MockServiceDependenciesTrait;
+	use MockHttpTrait;
+	use MediaModerationStatsFactoryHelperTestTrait;
 
 	private const CONSTRUCTOR_OPTIONS_DEFAULTS = [
 		'MediaModerationThumbnailWidth' => 320,
@@ -58,14 +60,16 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 					MediaModerationImageContentsLookup::CONSTRUCTOR_OPTIONS,
 					new HashConfig( self::CONSTRUCTOR_OPTIONS_DEFAULTS )
 				),
-				'fileBackend' => $fileBackendMock
+				'fileBackend' => $fileBackendMock,
+				'statsFactory' => $this->getServiceContainer()->getStatsFactory(),
 			]
 		);
 		$checkStatus = $objectUnderTest->getImageContents( $mockFile );
 		$this->assertStatusNotOK(
 			$checkStatus,
-			'::check should return a fatal status on a thrown RuntimeException.'
+			'::check should return a fatal status on a RuntimeException.'
 		);
+		$this->assertCounterIncremented( 'image_contents_lookup_failure_total' );
 	}
 
 	/** @dataProvider provideGetThumbnailForFile */
@@ -98,10 +102,6 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 			->willReturn( $this->createMock( LocalRepo::class ) );
 		$mockFile->expects( $this->once() )->method( 'transform' )
 			->with( [ 'width' => 320 ] );
-		// Define a mock StatsdDataFactoryInterface that expects a call to ::increment.
-		$mockPerDbNameStatsdDataFactory = $this->createMock( StatsdDataFactoryInterface::class );
-		$mockPerDbNameStatsdDataFactory->expects( $this->once() )
-			->method( 'increment' );
 		// Call the method under test
 		/** @var MediaModerationImageContentsLookup $objectUnderTest */
 		$objectUnderTest = $this->newServiceInstance(
@@ -111,13 +111,21 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 					MediaModerationImageContentsLookup::CONSTRUCTOR_OPTIONS,
 					new HashConfig( self::CONSTRUCTOR_OPTIONS_DEFAULTS )
 				),
-				'perDbNameStatsdDataFactory' => $mockPerDbNameStatsdDataFactory,
-				'httpRequestFactory' => $this->createMock( HttpRequestFactory::class )
+				'statsFactory' => $this->getServiceContainer()->getStatsFactory(),
 			]
 		);
 		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
 		$actualStatus = $objectUnderTest->getThumbnailForFile( $mockFile );
 		$this->assertStatusNotOK( $actualStatus );
+		// Check that the warning was sent to Prometheus
+		$this->assertCounterIncremented(
+			'image_contents_lookup_error_total',
+			[ 'image_type' => 'thumbnail', 'error_type' => 'transform', 'error' => 'failed' ]
+		);
+		$this->assertTimingObserved(
+			'image_contents_lookup_thumbnail_transform_time',
+			[ 'method' => 'php' ]
+		);
 	}
 
 	public static function provideGetThumbnailForFile() {
@@ -141,14 +149,7 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 		$mockLocalRepo->method( 'getThumbProxyUrl' )->willReturn( 'http://foo' );
 		$mockLocalRepo->method( 'getThumbProxySecret' )->willReturn( 'secret' );
 		$mockFile->method( 'getRepo' )->willReturn( $mockLocalRepo );
-		// Define a mock StatsdDataFactoryInterface that expects a call to ::increment.
-		$mockPerDbNameStatsdDataFactory = $this->createMock( StatsdDataFactoryInterface::class );
-		$mockPerDbNameStatsdDataFactory->expects( $this->never() )
-			->method( 'increment' );
-		$mockPerDbNameStatsdDataFactory->expects( $this->once() )
-			->method( 'timing' )
-			->with( 'MediaModeration.PhotoDNAServiceProviderThumbnailTransformThumborRequest' );
-		$mockHttpRequestFactory = $this->createMock( HttpRequestFactory::class );
+
 		$mockRequest = $this->createMock( MWHttpRequest::class );
 		$mockRequest->method( 'execute' )->willReturn(
 			StatusValue::newGood()
@@ -158,9 +159,8 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 		$mockRequest->method( 'getResponseHeader' )->with( 'content-type' )->willReturn( 'image/jpeg' );
 		$mockRequest->expects( $this->once() )->method( 'execute' );
 		$mockRequest->expects( $this->once() )->method( 'setHeader' );
+		$this->installMockHttp( $mockRequest );
 
-		$mockHttpRequestFactory->method( 'create' )->willReturn( $mockRequest );
-		$mockHttpRequestFactory->expects( $this->once() )->method( 'create' );
 		// Call the method under test
 		/** @var MediaModerationImageContentsLookup $objectUnderTest */
 		$objectUnderTest = $this->newServiceInstance(
@@ -170,8 +170,8 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 					MediaModerationImageContentsLookup::CONSTRUCTOR_OPTIONS,
 					new HashConfig( self::CONSTRUCTOR_OPTIONS_DEFAULTS )
 				),
-				'perDbNameStatsdDataFactory' => $mockPerDbNameStatsdDataFactory,
-				'httpRequestFactory' => $mockHttpRequestFactory
+				'httpRequestFactory' => $this->getServiceContainer()->getHttpRequestFactory(),
+				'statsFactory' => $this->getServiceContainer()->getStatsFactory(),
 			]
 		);
 		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
@@ -182,10 +182,18 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 		$this->assertEquals( 480, $thumbnail->getHeight() );
 		$this->assertEquals( 489, $thumbnail->getWidth() );
 		$this->assertEquals( $imageContents, $thumbnail->getContent() );
+
+		$this->assertCounterNotIncremented( 'image_contents_lookup_error_total' );
+		$this->assertTimingObserved(
+			'image_contents_lookup_thumbnail_transform_time',
+			[ 'method' => 'thumbor' ]
+		);
 	}
 
 	/** @dataProvider provideGetThumbnailMimeType */
-	public function testGetThumbnailMimeType( $fromExtensionResult, $guessFromContentsResult, $expectedReturnValue ) {
+	public function testGetThumbnailMimeType(
+		$fromExtensionResult, $guessFromContentsResult, $expectedReturnValue, $expectedPrometheusErrorLabel
+	) {
 		// Create a mock ThumbnailImage that has a mocked file extension and path
 		$mockThumbnailImage = $this->createMock( ThumbnailImage::class );
 		$mockThumbnailImage->method( 'getExtension' )
@@ -203,15 +211,7 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 		$mockMimeAnalyzer->method( 'guessMimeType' )
 			->with( 'mock-path' )
 			->willReturn( $guessFromContentsResult );
-		// Define a mock StatsdDataFactoryInterface that expects a call to ::increment if $expectedReturnValue is null.
-		$mockPerDbNameStatsdDataFactory = $this->createMock( StatsdDataFactoryInterface::class );
-		if ( $expectedReturnValue === null ) {
-			$mockPerDbNameStatsdDataFactory->expects( $this->once() )
-				->method( 'increment' );
-		} else {
-			$mockPerDbNameStatsdDataFactory->expects( $this->never() )
-				->method( 'increment' );
-		}
+
 		// Get the object under test
 		$objectUnderTest = $this->newServiceInstance(
 			MediaModerationImageContentsLookup::class,
@@ -221,16 +221,22 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 					new HashConfig( self::CONSTRUCTOR_OPTIONS_DEFAULTS )
 				),
 				'mimeAnalyzer' => $mockMimeAnalyzer,
-				'perDbNameStatsdDataFactory' => $mockPerDbNameStatsdDataFactory,
+				'statsFactory' => $this->getServiceContainer()->getStatsFactory(),
 			]
 		);
 		// Call the method under test
 		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
 		$actualStatus = $objectUnderTest->getThumbnailMimeType( $mockThumbnailImage );
+
 		if ( $expectedReturnValue === null ) {
 			$this->assertStatusNotOK( $actualStatus );
+			$this->assertCounterIncremented(
+				'image_contents_lookup_error_total',
+				[ 'image_type' => 'thumbnail', 'error_type' => 'mime', 'error' => $expectedPrometheusErrorLabel ]
+			);
 		} else {
 			$this->assertStatusGood( $actualStatus );
+			$this->assertCounterNotIncremented( 'image_contents_lookup_error_total' );
 		}
 		$this->assertSame(
 			$expectedReturnValue,
@@ -241,17 +247,18 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 
 	public static function provideGetThumbnailMimeType() {
 		return [
-			'Thumbnail type is got from thumbnail extension' => [ 'image/jpeg', '', 'image/jpeg' ],
-			'Thumbnail type is got from guessing using the file contents' => [ null, 'image/png', 'image/png' ],
-			'No mime type from either methods' => [ null, '', null ],
-			'Unsupported mime type from extension method' => [ 'image/svg', '', null ],
-			'Unsupported mime type from guess method' => [ null, 'image/svg', null ],
+			'Thumbnail type is got from thumbnail extension' => [ 'image/jpeg', '', 'image/jpeg', null ],
+			'Thumbnail type is got from guessing using the file contents' => [ null, 'image/png', 'image/png', null ],
+			'No mime type from either methods' => [ null, '', null, 'lookup_failed' ],
+			'Unsupported mime type from extension method' => [ 'image/svg', '', null, 'unsupported' ],
+			'Unsupported mime type from guess method' => [ null, 'image/svg', null, 'unsupported' ],
 		];
 	}
 
 	/** @dataProvider provideGetThumbnailContents */
 	public function testGetThumbnailContents(
-		$mockThumbnailHeight, $mockThumbnailWidth, $mockStoragePathValue, $mockFileContentsValue, $expectedReturnValue
+		$mockThumbnailHeight, $mockThumbnailWidth, $mockStoragePathValue, $mockFileContentsValue, $expectedReturnValue,
+		$expectedPrometheusErrorLabel
 	) {
 		// Create a mock ThumbnailImage that is mocked to return a given height, width, and storage
 		// path value.
@@ -277,15 +284,7 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 				->method( 'getFileContentsMulti' )
 				->willReturn( [ $mockStoragePathValue => $mockFileContentsValue ] );
 		}
-		// Define a mock StatsdDataFactoryInterface that expects a call to ::increment if $expectedReturnValue is null.
-		$mockPerDbNameStatsdDataFactory = $this->createMock( StatsdDataFactoryInterface::class );
-		if ( $expectedReturnValue === null ) {
-			$mockPerDbNameStatsdDataFactory->expects( $this->once() )
-				->method( 'increment' );
-		} else {
-			$mockPerDbNameStatsdDataFactory->expects( $this->never() )
-				->method( 'increment' );
-		}
+
 		// Get the object under test with the FileBackend as $mockFileBackend.
 		$objectUnderTest = $this->newServiceInstance(
 			MediaModerationImageContentsLookup::class,
@@ -295,16 +294,22 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 					new HashConfig( self::CONSTRUCTOR_OPTIONS_DEFAULTS )
 				),
 				'fileBackend' => $mockFileBackend,
-				'perDbNameStatsdDataFactory' => $mockPerDbNameStatsdDataFactory,
+				'statsFactory' => $this->getServiceContainer()->getStatsFactory(),
 			]
 		);
 		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
 		// Call the method under test and expect that the return value is $expectedReturnValue
 		$actualStatus = $objectUnderTest->getThumbnailContents( $mockThumbnailImage );
+
 		if ( $expectedReturnValue === null ) {
 			$this->assertStatusNotOK( $actualStatus );
+			$this->assertCounterIncremented(
+				'image_contents_lookup_error_total',
+				[ 'image_type' => 'thumbnail', 'error_type' => 'contents', 'error' => $expectedPrometheusErrorLabel ]
+			);
 		} else {
 			$this->assertStatusGood( $actualStatus );
+			$this->assertCounterNotIncremented( 'image_contents_lookup_error_total' );
 		}
 		$this->assertSame(
 			$expectedReturnValue,
@@ -326,21 +331,26 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 				// The mock thumbnail contents as returned by FileBackend::getFileContents
 				'abcdef1234',
 				// The expected return value of the method under test
-				'abcdef1234'
+				'abcdef1234',
+				// If the return value is null, then what is the value for the error label on the Prometheus event
+				null,
 			],
-			'Valid storage path, but invalid thumbnail contents' => [ 200, 200, 'test/test.png', false, null ],
+			'Valid storage path, but invalid thumbnail contents' => [
+				200, 200, 'test/test.png', false, null, 'lookup_failed',
+			],
 			'Thumbnail contents are too large' => [
-				200, 200, 'test/test.png', str_repeat( '1', 4000001 ), null
+				200, 200, 'test/test.png', str_repeat( '1', 4000001 ), null, 'too_large',
 			],
-			'Invalid storage path' => [ 200, 200, false, false, null ],
-			'Thumbnail is not tall enough' => [ 100, 200, false, false, null ],
-			'Thumbnail is not wide enough' => [ 200, 100, false, false, null ],
+			'Invalid storage path' => [ 200, 200, false, false, null, 'lookup_failed' ],
+			'Thumbnail is not tall enough' => [ 100, 200, false, false, null, 'too_small' ],
+			'Thumbnail is not wide enough' => [ 200, 100, false, false, null, 'too_small' ],
 		];
 	}
 
 	/** @dataProvider provideGetFileContents */
 	public function testGetFileContents(
-		$mockFileSize, $mockFileHeight, $mockFileWidth, $mockStoragePathValue, $expectedReturnValue
+		$mockFileSize, $mockFileHeight, $mockFileWidth, $mockStoragePathValue, $expectedReturnValue,
+		$expectedPrometheusErrorLabel
 	) {
 		// Create a mock File that returns the values set for the test.
 		$mockFile = $this->createMock( File::class );
@@ -365,15 +375,7 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 				->method( 'getFileContentsMulti' )
 				->willReturn( [ $mockStoragePathValue => $expectedReturnValue ?? false ] );
 		}
-		// Define a mock StatsdDataFactoryInterface that expects a call to ::increment if $expectedReturnValue is null.
-		$mockPerDbNameStatsdDataFactory = $this->createMock( StatsdDataFactoryInterface::class );
-		if ( $expectedReturnValue === null ) {
-			$mockPerDbNameStatsdDataFactory->expects( $this->once() )
-				->method( 'increment' );
-		} else {
-			$mockPerDbNameStatsdDataFactory->expects( $this->never() )
-				->method( 'increment' );
-		}
+
 		// Get the object under test with the FileBackend as $mockFileBackend.
 		$objectUnderTest = $this->newServiceInstance(
 			MediaModerationImageContentsLookup::class,
@@ -383,16 +385,22 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 					new HashConfig( self::CONSTRUCTOR_OPTIONS_DEFAULTS )
 				),
 				'fileBackend' => $mockFileBackend,
-				'perDbNameStatsdDataFactory' => $mockPerDbNameStatsdDataFactory,
+				'statsFactory' => $this->getServiceContainer()->getStatsFactory(),
 			]
 		);
 		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
 		// Call the method under test and expect that the return value is $expectedReturnValue
 		$actualStatus = $objectUnderTest->getFileContents( $mockFile );
+
 		if ( $expectedReturnValue === null ) {
 			$this->assertStatusNotOK( $actualStatus );
+			$this->assertCounterIncremented(
+				'image_contents_lookup_error_total',
+				[ 'image_type' => 'source_file', 'error_type' => 'contents', 'error' => $expectedPrometheusErrorLabel ]
+			);
 		} else {
 			$this->assertStatusGood( $actualStatus );
+			$this->assertCounterNotIncremented( 'image_contents_lookup_error_total' );
 		}
 		$this->assertSame(
 			$expectedReturnValue,
@@ -415,28 +423,27 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 				'test/test.png',
 				// The mock file contents which should be returned by the method.
 				// Null indicates that the file contents should not be got because of a failure.
-				'abcdef1234'
+				'abcdef1234',
+				// If the return value is null, then what is the value for the error label on the Prometheus event
+				null,
 			],
-			'Valid storage path, but invalid thumbnail contents' => [ 150, 300, 300, 'test/test.png', null ],
-			'Invalid storage path' => [ 150, 300, 300, false, null ],
-			'File size is too large' => [ 4000001, 300, 300, false, null ],
-			'File size is false but height is too small' => [ false, 150, 300, false, null ],
-			'File size width is too small' => [ 300, 300, 150, false, null ],
-			'File size height is too small' => [ 300, 150, 300, false, null ],
+			'Valid storage path, but invalid thumbnail contents' => [
+				150, 300, 300, 'test/test.png', null, 'lookup_failed',
+			],
+			'Invalid storage path' => [ 150, 300, 300, false, null, 'lookup_failed' ],
+			'File size is too large' => [ 4000001, 300, 300, false, null, 'too_large' ],
+			'File size is false but height is too small' => [ false, 150, 300, false, null, 'too_small' ],
+			'File size width is too small' => [ 300, 300, 150, false, null, 'too_small' ],
+			'File size height is too small' => [ 300, 150, 300, false, null, 'too_small' ],
 		];
 	}
 
 	/** @dataProvider provideGetImageContents */
 	public function testGetImageContents(
 		$fileContentsStatusGood, $thumbnailStatusGood, $thumbnailContentsStatusGood, $thumbnailMimeTypeStatusGood,
-		$fileObjectClassName, $fileMimeType, $statsdBucketName, $expectStatusIsGood, $expectStatusIsOkay
+		$fileObjectClassName, $fileMimeType, $expectSourceFileUsedMetricToBeIncremented, $expectStatusIsGood,
+		$expectStatusIsOkay
 	) {
-		// Expect that the StatsdDataFactoryInterface::increment is called or not called
-		// depending on $shouldIncrementStatsd
-		$mockStatsdInterface = $this->createMock( StatsdDataFactoryInterface::class );
-		$mockStatsdInterface->expects( $this->exactly( intval( strlen( $statsdBucketName ) !== 0 ) ) )
-			->method( 'increment' )
-			->with( $statsdBucketName );
 		// Get the object under test, with several protected methods mocked.
 		$objectUnderTest = $this->getMockBuilder( MediaModerationImageContentsLookup::class )
 			->onlyMethods( [
@@ -451,7 +458,7 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 					new HashConfig( self::CONSTRUCTOR_OPTIONS_DEFAULTS )
 				),
 				$this->createMock( FileBackend::class ),
-				$mockStatsdInterface,
+				$this->getServiceContainer()->getStatsFactory(),
 				$this->createMock( MimeAnalyzer::class ),
 				$this->createMock( LocalRepo::class ),
 				$this->createMock( HttpRequestFactory::class )
@@ -485,6 +492,7 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 				$actualStatus->getMimeType(),
 				'The status is good, but no mime type is specified for the image'
 			);
+			$this->assertCounterNotIncremented( 'image_contents_lookup_failure_total' );
 		} elseif ( $expectStatusIsOkay ) {
 			$this->assertStatusOK( $actualStatus );
 			$this->assertSame(
@@ -492,8 +500,16 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 				$actualStatus->getMimeType(),
 				'The status is okay, but no mime type is specified for the image'
 			);
+			$this->assertCounterNotIncremented( 'image_contents_lookup_failure_total' );
 		} else {
 			$this->assertStatusNotOK( $actualStatus );
+			$this->assertCounterIncremented( 'image_contents_lookup_failure_total' );
+		}
+		// Check if the source file used metric was incremented, and compare this to whether this was expected.
+		if ( $expectSourceFileUsedMetricToBeIncremented ) {
+			$this->assertCounterIncremented( 'image_contents_lookup_used_source_file_total' );
+		} else {
+			$this->assertCounterNotIncremented( 'image_contents_lookup_used_source_file_total' );
 		}
 	}
 
@@ -513,36 +529,30 @@ class MediaModerationImageContentsLookupTest extends MediaWikiUnitTestCase {
 				ArchivedFile::class,
 				// The mime type for the source file
 				'image/jpeg',
-				// The expected bucket name provided to the StatsdDataFactoryInterface::increment call. Specify an
-				// empty string to expect no call.
-				'',
+				// Should the image_contents_lookup_used_source_file_total counter metric be incremented?
+				false,
 				// Should the status returned by ::getImageContents be good (::isGood returns true)?
 				true,
 				// Should the status returned by ::getImageContents be okay (::isOK returns true)?
 				false,
 			],
 			'ArchivedFile where source file contents collection failed' => [
-				false, null, null, null, ArchivedFile::class, 'image/jpeg',
-				'MediaModeration.PhotoDNAServiceProvider.Execute.RuntimeException', false, false,
+				false, null, null, null, ArchivedFile::class, 'image/jpeg', false, false, false,
 			],
 			'ArchivedFile where source file is not supported' => [
-				false, null, null, null, ArchivedFile::class, 'image/svg',
-				'MediaModeration.PhotoDNAServiceProvider.Execute.RuntimeException', false, false,
+				false, null, null, null, ArchivedFile::class, 'image/svg', false, false, false,
 			],
 			'File where no ThumbnailImage was generated but has file contents' => [
-				true, false, null, null, File::class, 'image/jpeg',
-				'MediaModeration.PhotoDNAServiceProvider.Execute.SourceFileUsedForFileObject', false, true,
+				true, false, null, null, File::class, 'image/jpeg', true, false, true,
 			],
 			'File where no ThumbnailImage was generated and no file contents' => [
-				false, false, null, null, File::class, 'image/jpeg',
-				'MediaModeration.PhotoDNAServiceProvider.Execute.RuntimeException', false, false,
+				false, false, null, null, File::class, 'image/jpeg', false, false, false,
 			],
 			'File where thumbnail contents failed but has file contents' => [
-				true, true, false, false, File::class, 'image/jpeg',
-				'MediaModeration.PhotoDNAServiceProvider.Execute.SourceFileUsedForFileObject', false, true,
+				true, true, false, false, File::class, 'image/jpeg', true, false, true,
 			],
 			'File where thumbnail contents succeeds' => [
-				null, true, true, true, File::class, 'image/jpeg', '', true, true,
+				null, true, true, true, File::class, 'image/jpeg', false, true, true,
 			],
 		];
 	}
