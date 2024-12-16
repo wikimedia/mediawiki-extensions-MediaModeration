@@ -1,6 +1,6 @@
 <?php
 
-namespace MediaWiki\Extension\MediaModeration\Tests\Unit\Services;
+namespace MediaWiki\Extension\MediaModeration\Tests\Integration\Services;
 
 use File;
 use MediaWiki\Extension\MediaModeration\PhotoDNA\Response;
@@ -13,7 +13,7 @@ use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileScanner;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationPhotoDNAServiceProvider;
 use MediaWiki\Status\StatusFormatter;
 use MediaWiki\Tests\Unit\MockServiceDependenciesTrait;
-use MediaWikiUnitTestCase;
+use MediaWikiIntegrationTestCase;
 use Psr\Log\LoggerInterface;
 use StatusValue;
 
@@ -21,24 +21,11 @@ use StatusValue;
  * @covers \MediaWiki\Extension\MediaModeration\Services\MediaModerationFileScanner
  * @group MediaModeration
  */
-class MediaModerationFileScannerTest extends MediaWikiUnitTestCase {
+class MediaModerationFileScannerTest extends MediaWikiIntegrationTestCase {
 
 	use MockServiceDependenciesTrait;
 
-	/** @dataProvider provideScanSha1 */
-	public function testScanSha1(
-		$mockOldMatchStatus, $numberOfFileObjects, array $canScanFileResults, array $mockPhotoDNAResponses,
-		$expectStatusToBeGood, $expectStatusToBeOkay, $expectedNewMatchStatus, $expectCallToEmailer
-	) {
-		$sha1 = 'testing1234';
-		// Define a mock MediaModerationDatabaseLookup that expects to be called and will return $mockOldMatchStatus
-		$mockMediaModerationDatabaseLookup = $this->createMock( MediaModerationDatabaseLookup::class );
-		$mockMediaModerationDatabaseLookup->expects( $this->once() )
-			->method( 'getMatchStatusForSha1' )
-			->with( $sha1 )
-			->willReturn( $mockOldMatchStatus );
-		// Define a mock MediaModerationFileLookup service that will yield
-		// mock File objects from ::getFileObjectsForSha1
+	private function getMockMediaModerationFileLookup( string $sha1, int $numberOfFileObjects ) {
 		$mockMediaModerationFileLookup = $this->createMock( MediaModerationFileLookup::class );
 		$mockMediaModerationFileLookup->expects( $this->once() )
 			->method( 'getFileObjectsForSha1' )
@@ -51,6 +38,79 @@ class MediaModerationFileScannerTest extends MediaWikiUnitTestCase {
 					yield $mockFile;
 				}
 			} );
+		return $mockMediaModerationFileLookup;
+	}
+
+	private function getMockLogger( bool $expectStatusToBeGood, bool $expectStatusToBeOkay, string $sha1 ) {
+		$mockLogger = $this->createMock( LoggerInterface::class );
+		if ( $expectStatusToBeGood ) {
+			// No logging should occur if there were no errors or warnings in the status.
+			$mockLogger->expects( $this->never() )
+				->method( 'debug' );
+			$mockLogger->expects( $this->never() )
+				->method( 'info' );
+		} elseif ( $expectStatusToBeOkay ) {
+			// A debug log should occur if there were warnings in the status.
+			$mockLogger->expects( $this->never() )
+				->method( 'log' );
+			$mockLogger->expects( $this->once() )
+				->method( 'debug' )
+				->with(
+					'Scan of SHA-1 {sha1} succeeded with warnings. MediaModerationFileScanner::scanSha1 ' .
+					'returned this: {return-message}',
+					[
+						'sha1' => $sha1,
+						'return-message' => 'mock-info-message',
+					]
+				);
+		} else {
+			// A info log should occur if there were errors and no scan could be completed.
+			$mockLogger->expects( $this->once() )
+				->method( 'info' )
+				->with(
+					'Unable to scan SHA-1 {sha1}. MediaModerationFileScanner::scanSha1 returned this: {return-message}',
+					[
+						'sha1' => $sha1,
+						'return-message' => 'mock-warning-message',
+					]
+				);
+			$mockLogger->expects( $this->never() )
+				->method( 'debug' );
+		}
+		return $mockLogger;
+	}
+
+	private function getMockStatusFormatter( bool $expectStatusToBeGood, bool $expectStatusToBeOkay ) {
+		$mockStatusFormatter = $this->createMock( StatusFormatter::class );
+		if ( $expectStatusToBeGood ) {
+			// No need to call the StatusFormatter if there are no errors to describe.
+			$mockStatusFormatter->expects( $this->never() )
+				->method( 'getMessage' );
+		} elseif ( $expectStatusToBeOkay ) {
+			// If the status is okay, then we will need to format a status.
+			$mockStatusFormatter->expects( $this->once() )
+				->method( 'getMessage' )
+				->willReturn( 'mock-info-message' );
+		} else {
+			// If the status is not okay, then we will need to format a status.
+			$mockStatusFormatter->expects( $this->once() )
+				->method( 'getMessage' )
+				->willReturn( 'mock-warning-message' );
+		}
+		return $mockStatusFormatter;
+	}
+
+	private function getObjectUnderTest(
+		string $sha1, $mockOldMatchStatus, int $numberOfFileObjects, array $canScanFileResults,
+		array $mockPhotoDNAResponses, bool $expectStatusToBeGood, bool $expectStatusToBeOkay,
+		$expectedNewMatchStatus, bool $expectCallToEmailer
+	): MediaModerationFileScanner {
+		// Define a mock MediaModerationDatabaseLookup that expects to be called and will return $mockOldMatchStatus
+		$mockMediaModerationDatabaseLookup = $this->createMock( MediaModerationDatabaseLookup::class );
+		$mockMediaModerationDatabaseLookup->expects( $this->once() )
+			->method( 'getMatchStatusForSha1' )
+			->with( $sha1 )
+			->willReturn( $mockOldMatchStatus );
 		// Create a mock MediaModerationFileProcessor that will return the values from $canScanFileResults in order
 		$mockMediaModerationFileProcessor = $this->createMock( MediaModerationFileProcessor::class );
 		$mockMediaModerationFileProcessor->expects( $this->exactly( count( $canScanFileResults ) ) )
@@ -75,66 +135,32 @@ class MediaModerationFileScannerTest extends MediaWikiUnitTestCase {
 		$mockMediaModerationEmailer->expects( $expectCallToEmailer ? $this->once() : $this->never() )
 			->method( 'sendEmailForSha1' )
 			->with( $sha1 );
-		// Get a mock LoggerInterface and StatusFormatter. Expect calls to the mock logger depending
-		// on the expected state of the returned status.
-		$mockLogger = $this->createMock( LoggerInterface::class );
-		$mockStatusFormatter = $this->createMock( StatusFormatter::class );
-		if ( $expectStatusToBeGood ) {
-			// No logging should occur if there were no errors or warnings in the status.
-			$mockLogger->expects( $this->never() )
-				->method( 'debug' );
-			$mockLogger->expects( $this->never() )
-				->method( 'info' );
-			$mockStatusFormatter->expects( $this->never() )
-				->method( 'getMessage' );
-		} elseif ( $expectStatusToBeOkay ) {
-			// A debug log should occur if there were warnings in the status.
-			$mockLogger->expects( $this->never() )
-				->method( 'log' );
-			$mockLogger->expects( $this->once() )
-				->method( 'debug' )
-				->with(
-					'Scan of SHA-1 {sha1} succeeded with warnings. MediaModerationFileScanner::scanSha1 ' .
-					'returned this: {return-message}',
-					[
-						'sha1' => $sha1,
-						'return-message' => 'mock-info-message',
-					]
-				);
-			$mockStatusFormatter->expects( $this->once() )
-				->method( 'getMessage' )
-				->willReturn( 'mock-info-message' );
-		} else {
-			// A info log should occur if there were errors and no scan could be completed.
-			$mockLogger->expects( $this->once() )
-				->method( 'info' )
-				->with(
-					'Unable to scan SHA-1 {sha1}. MediaModerationFileScanner::scanSha1 returned this: {return-message}',
-					[
-						'sha1' => $sha1,
-						'return-message' => 'mock-warning-message',
-					]
-				);
-			$mockLogger->expects( $this->never() )
-				->method( 'debug' );
-			$mockStatusFormatter->expects( $this->once() )
-				->method( 'getMessage' )
-				->willReturn( 'mock-warning-message' );
-		}
 		// Get the object under test
-		/** @var MediaModerationFileScanner $objectUnderTest */
-		$objectUnderTest = $this->newServiceInstance(
+		return $this->newServiceInstance(
 			MediaModerationFileScanner::class,
 			[
 				'mediaModerationDatabaseLookup' => $mockMediaModerationDatabaseLookup,
 				'mediaModerationDatabaseManager' => $mockMediaModerationDatabaseManager,
-				'mediaModerationFileLookup' => $mockMediaModerationFileLookup,
+				'mediaModerationFileLookup' => $this->getMockMediaModerationFileLookup( $sha1, $numberOfFileObjects ),
 				'mediaModerationFileProcessor' => $mockMediaModerationFileProcessor,
 				'mediaModerationPhotoDNAServiceProvider' => $mockMediaModerationPhotoDNAServiceProvider,
 				'mediaModerationEmailer' => $mockMediaModerationEmailer,
-				'statusFormatter' => $mockStatusFormatter,
-				'logger' => $mockLogger,
+				'statusFormatter' => $this->getMockStatusFormatter( $expectStatusToBeGood, $expectStatusToBeOkay ),
+				'statsFactory' => $this->getServiceContainer()->getStatsFactory(),
+				'logger' => $this->getMockLogger( $expectStatusToBeGood, $expectStatusToBeOkay, $sha1 ),
 			]
+		);
+	}
+
+	/** @dataProvider provideScanSha1 */
+	public function testScanSha1(
+		$mockOldMatchStatus, $numberOfFileObjects, array $canScanFileResults, array $mockPhotoDNAResponses,
+		$expectStatusToBeGood, $expectStatusToBeOkay, $expectedNewMatchStatus, $expectCallToEmailer
+	) {
+		$sha1 = 'testing1234';
+		$objectUnderTest = $this->getObjectUnderTest(
+			$sha1, $mockOldMatchStatus, $numberOfFileObjects, $canScanFileResults, $mockPhotoDNAResponses,
+			$expectStatusToBeGood, $expectStatusToBeOkay, $expectedNewMatchStatus, $expectCallToEmailer
 		);
 		// Call the method under test
 		$actualStatus = $objectUnderTest->scanSha1( $sha1 );
