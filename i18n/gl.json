@@ -1,0 +1,8 @@
+{
+	"@metadata": {
+		"authors": [
+			"Toliño"
+		]
+	},
+	"mediamoderation-desc": "Servizo para detectar coincidencias con conxuntos de datos hash de imaxes de explotación infantil coñecidas."
+}
