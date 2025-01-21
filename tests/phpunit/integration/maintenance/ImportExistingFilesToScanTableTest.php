@@ -93,22 +93,17 @@ class ImportExistingFilesToScanTableTest extends MaintenanceBaseTestCase {
 		);
 	}
 
-	public function testExecuteWithMarkCompleteSpecified() {
+	/** @dataProvider provideExecuteWithMarkCompleteSpecified */
+	public function testExecuteWithMarkCompleteSpecified( $forceArgumentSpecified, $expectedOutputString ) {
 		// Set sleep as 0, otherwise the tests will take ages.
 		$this->maintenance->setOption( 'sleep', 0 );
-		// Define that mark-complete is provided.
+		if ( $forceArgumentSpecified ) {
+			$this->maintenance->setOption( 'force', 1 );
+		}
 		$this->maintenance->setOption( 'mark-complete', 1 );
 		// Run the maintenance script
 		$this->maintenance->execute();
-		$this->expectOutputString(
-			"Now importing rows from the table 'image' in batches of 200.\n" .
-			"Batch 1 of ~1.\n" .
-			"Now importing rows from the table 'filearchive' in batches of 200.\n" .
-			"Batch 1 of ~1.\n" .
-			"Now importing rows from the table 'oldimage' in batches of 200.\n" .
-			"Batch 1 of ~1.\n" .
-			"Script marked as completed (added to updatelog).\n"
-		);
+		$this->expectOutputString( $expectedOutputString );
 		// Expect no rows in mediamoderation_scan, as the import should have added nothing.
 		$this->assertSame(
 			0,
@@ -130,5 +125,39 @@ class ImportExistingFilesToScanTableTest extends MaintenanceBaseTestCase {
 				->fetchField(),
 			'The updatelog table should have a entry as mark-complete was provided.'
 		);
+	}
+
+	public static function provideExecuteWithMarkCompleteSpecified() {
+		return [
+			'--mark-complete specified' => [
+				false,
+				"Now importing rows from the table 'image' in batches of 200.\n" .
+				"Batch 1 of ~1.\n" .
+				"Now importing rows from the table 'filearchive' in batches of 200.\n" .
+				"Batch 1 of ~1.\n" .
+				"Now importing rows from the table 'oldimage' in batches of 200.\n" .
+				"Batch 1 of ~1.\n" .
+				"Script marked as completed (added to updatelog).\n",
+			],
+			'--mark-complete and --force specified' => [
+				true,
+				"Now importing rows from the table 'image' in batches of 200.\n" .
+				"Batch 1 of ~1.\n" .
+				"Now importing rows from the table 'filearchive' in batches of 200.\n" .
+				"Batch 1 of ~1.\n" .
+				"Now importing rows from the table 'oldimage' in batches of 200.\n" .
+				"Batch 1 of ~1.\n",
+			],
+		];
+	}
+
+	public function testExecuteWhenInvalidTableProvided() {
+		// Set sleep as 0, otherwise the tests will take ages.
+		$this->maintenance->setOption( 'sleep', 0 );
+		// Execute the maintenance script with an empty tables list
+		$this->maintenance->setOption( 'table', [] );
+		$this->maintenance->execute();
+		// Expect that an error is displayed
+		$this->expectOutputRegex( "/The array of tables to have images imported from cannot be empty/" );
 	}
 }
