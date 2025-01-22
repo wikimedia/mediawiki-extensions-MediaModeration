@@ -2,11 +2,10 @@
 
 namespace MediaWiki\Extension\MediaModeration\Tests\Integration\Maintenance;
 
-use File;
 use MediaWiki\Extension\MediaModeration\Maintenance\ScanFilesInScanTable;
 use MediaWiki\Extension\MediaModeration\PhotoDNA\Response;
+use MediaWiki\Extension\MediaModeration\Tests\Integration\InsertMockFileDataTrait;
 use MediaWiki\Tests\Maintenance\MaintenanceBaseTestCase;
-use MediaWiki\Tests\Unit\Permissions\MockAuthorityTrait;
 
 /**
  * Test class for the scanFilesInScanTable.php maintenance script.
@@ -17,7 +16,7 @@ use MediaWiki\Tests\Unit\Permissions\MockAuthorityTrait;
  * @group Database
  */
 class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
-	use MockAuthorityTrait;
+	use InsertMockFileDataTrait;
 
 	protected function getMaintenanceClass() {
 		return ScanFilesInScanTable::class;
@@ -98,6 +97,7 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 				[ 'sy02psim0bgdh0st4vdltuzoh7j60ru' ],
 				[
 					'sy02psim0bgdh0jt4vdltuzoh7j80yu',
+					'sy02psim0bgdh0jt4vdltuzoh7j80ra',
 					'sy02psim0bgdh0jt4vdltuzoh7j80ru',
 					'sy02psim0bgdh0jt4vdltuzoh7j70ru',
 					'sy02psim0bgdh0jt4vdltuzoh7j800u',
@@ -117,6 +117,7 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 				[ 'sy02psim0bgdh0st4vdltuzoh7j60ru' ],
 				[
 					'sy02psim0bgdh0jt4vdltuzoh7j80yu',
+					'sy02psim0bgdh0jt4vdltuzoh7j80ra',
 					'sy02psim0bgdh0jt4vdltuzoh7j80ru',
 					'sy02psim0bgdh0jt4vdltuzoh7j70ru',
 					'sy02psim0bgdh0jt4vdltuzoh7j800u',
@@ -145,13 +146,14 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 				[
 					'sy02psim0bgdh0jt4vdltuzoh7j70ru',
 					'sy02psim0bgdh0jt4vdltuzoh7j800u',
+					'sy02psim0bgdh0jt4vdltuzoh7j80ru',
 					'sy02psim0bgdh0st4vdlguzoh7j60ru',
 					'sy02psim0bgdh0st4vdltuzoh7j70ru',
 				],
 				// One file was unscannable and the other failed to scan.
 				[
 					'sy02psim0bgdh0jt4vdltuzoh7j80au',
-					'sy02psim0bgdh0jt4vdltuzoh7j80ru',
+					'sy02psim0bgdh0jt4vdltuzoh7j80ra',
 				],
 			],
 			'Some files were positive matches and some failed to scan using job queue' => [
@@ -174,13 +176,14 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 				[
 					'sy02psim0bgdh0jt4vdltuzoh7j70ru',
 					'sy02psim0bgdh0jt4vdltuzoh7j800u',
+					'sy02psim0bgdh0jt4vdltuzoh7j80ru',
 					'sy02psim0bgdh0st4vdlguzoh7j60ru',
 					'sy02psim0bgdh0st4vdltuzoh7j70ru',
 				],
 				// One file was unscannable and the other failed to scan.
 				[
 					'sy02psim0bgdh0jt4vdltuzoh7j80au',
-					'sy02psim0bgdh0jt4vdltuzoh7j80ru',
+					'sy02psim0bgdh0jt4vdltuzoh7j80ra',
 				],
 			],
 			'When last-checked="never" then script only scans never before scanned files' => [
@@ -197,6 +200,7 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 				],
 				[
 					'sy02psim0bgdh0jt4vdltuzoh7j70ru',
+					'sy02psim0bgdh0jt4vdltuzoh7j80ra',
 					'sy02psim0bgdh0jt4vdltuzoh7j80ru',
 					'sy02psim0bgdh0st4vdlguzoh7j60ru',
 					'sy02psim0bgdh0st4vdltuzoh7j70ru',
@@ -222,6 +226,7 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 				],
 				[
 					'sy02psim0bgdh0jt4vdltuzoh7j70ru',
+					'sy02psim0bgdh0jt4vdltuzoh7j80ra',
 					'sy02psim0bgdh0jt4vdltuzoh7j80ru',
 					'sy02psim0bgdh0st4vdlguzoh7j60ru',
 					'sy02psim0bgdh0st4vdltuzoh7j70ru',
@@ -239,30 +244,18 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 	public function addDBData() {
 		parent::addDBData();
 
+		$this->insertMockFileData();
+
+		// Insert some additional testing data to the data provided for most tests
 		$actorId = $this->getServiceContainer()
 			->getActorStore()
-			->acquireActorId( $this->mockRegisteredUltimateAuthority()->getUser(), $this->db );
+			->acquireActorId( $this->mockRegisteredUltimateAuthority()->getUser(), $this->getDb() );
 		$commentId = $this->getServiceContainer()
 			->getCommentStore()
-			->createComment( $this->db, 'test' )->id;
+			->createComment( $this->getDb(), 'test' )->id;
 		$this->getDb()->newInsertQueryBuilder()
 			->insertInto( 'image' )
 			->rows( [
-				[
-					'img_name' => 'Random-13m.png',
-					'img_size' => 54321,
-					'img_width' => 1000,
-					'img_height' => 1800,
-					'img_metadata' => '',
-					'img_bits' => 16,
-					'img_media_type' => MEDIATYPE_BITMAP,
-					'img_major_mime' => 'image',
-					'img_minor_mime' => 'png',
-					'img_description_id' => $commentId,
-					'img_actor' => $actorId,
-					'img_timestamp' => $this->getDb()->timestamp( '20201105234242' ),
-					'img_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j80yu',
-				],
 				[
 					'img_name' => 'Random-112m.png',
 					'img_size' => 54321,
@@ -276,7 +269,7 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 					'img_description_id' => $commentId,
 					'img_actor' => $actorId,
 					'img_timestamp' => $this->getDb()->timestamp( '20201105235242' ),
-					'img_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j80ru',
+					'img_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j80ra',
 				],
 				[
 					'img_name' => 'Random-11m-not-supported.ogg',
@@ -295,110 +288,6 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 				]
 			] )
 			->execute();
-		$this->getDb()->newInsertQueryBuilder()
-			->insertInto( 'oldimage' )
-			->row( [
-				'oi_name' => 'Random-11m.png',
-				'oi_archive_name' => '20201105235241' . 'Random-11m.png',
-				'oi_size' => 12345,
-				'oi_width' => 1000,
-				'oi_height' => 1800,
-				'oi_metadata' => '',
-				'oi_bits' => 16,
-				'oi_media_type' => MEDIATYPE_BITMAP,
-				'oi_major_mime' => 'image',
-				'oi_minor_mime' => 'png',
-				'oi_description_id' => $commentId,
-				'oi_actor' => $actorId,
-				'oi_timestamp' => $this->getDb()->timestamp( '20201105235241' ),
-				'oi_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j800u',
-				'oi_deleted' => File::DELETED_FILE | File::DELETED_COMMENT | File::DELETED_USER,
-			] )
-			->execute();
-		$this->getDb()->newInsertQueryBuilder()
-			->insertInto( 'filearchive' )
-			->rows( [
-				[
-					'fa_name' => 'Random-11m.png',
-					'fa_archive_name' => '20201105235239' . 'Random-11m.png',
-					'fa_size' => 1234,
-					'fa_width' => 1000,
-					'fa_height' => 1800,
-					'fa_metadata' => '',
-					'fa_bits' => 16,
-					'fa_media_type' => MEDIATYPE_BITMAP,
-					'fa_major_mime' => 'image',
-					'fa_minor_mime' => 'png',
-					'fa_description_id' => $commentId,
-					'fa_actor' => $actorId,
-					'fa_timestamp' => $this->getDb()->timestamp( '20201105235239' ),
-					'fa_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j70ru',
-					'fa_deleted' => 0,
-					'fa_deleted_timestamp' => $this->getDb()->timestamp( '20210506070809' ),
-					'fa_deleted_reason_id' => $commentId,
-				],
-				// Has same timestamp as the above file, but different SHA-1
-				[
-					'fa_name' => 'Random-12m.png',
-					'fa_archive_name' => '20201105235239' . 'Random-12m.png',
-					'fa_size' => 1234,
-					'fa_width' => 1000,
-					'fa_height' => 1800,
-					'fa_metadata' => '',
-					'fa_bits' => 16,
-					'fa_media_type' => MEDIATYPE_BITMAP,
-					'fa_major_mime' => 'image',
-					'fa_minor_mime' => 'jpeg',
-					'fa_description_id' => $commentId,
-					'fa_actor' => $actorId,
-					'fa_timestamp' => $this->getDb()->timestamp( '20201105235239' ),
-					'fa_sha1' => 'sy02psim0bgdh0st4vdltuzoh7j70ru',
-					'fa_deleted' => 0,
-					'fa_deleted_timestamp' => $this->getDb()->timestamp( '20210506070810' ),
-					'fa_deleted_reason_id' => $commentId,
-				],
-				// Has same timestamp and SHA-1 as the above file
-				[
-					'fa_name' => 'Random-15m.png',
-					'fa_archive_name' => '20201105235239' . 'Random-15m.png',
-					'fa_size' => 1234,
-					'fa_width' => 1000,
-					'fa_height' => 1800,
-					'fa_metadata' => '',
-					'fa_bits' => 16,
-					'fa_media_type' => MEDIATYPE_BITMAP,
-					'fa_major_mime' => 'image',
-					'fa_minor_mime' => 'jpeg',
-					'fa_description_id' => $commentId,
-					'fa_actor' => $actorId,
-					'fa_timestamp' => $this->getDb()->timestamp( '20201105235239' ),
-					'fa_sha1' => 'sy02psim0bgdh0st4vdltuzoh7j70ru',
-					'fa_deleted' => 0,
-					'fa_deleted_timestamp' => $this->getDb()->timestamp( '20210506070808' ),
-					'fa_deleted_reason_id' => $commentId,
-				],
-				// Has a different SHA-1 and greater timestamp than any other filearchive row.
-				[
-					'fa_name' => 'Random-20m.png',
-					'fa_archive_name' => '20231105235239' . 'Random-20m.png',
-					'fa_size' => 1234,
-					'fa_width' => 1000,
-					'fa_height' => 1800,
-					'fa_metadata' => '',
-					'fa_bits' => 16,
-					'fa_media_type' => MEDIATYPE_BITMAP,
-					'fa_major_mime' => 'image',
-					'fa_minor_mime' => 'jpeg',
-					'fa_description_id' => $commentId,
-					'fa_actor' => $actorId,
-					'fa_timestamp' => $this->getDb()->timestamp( '20231105235239' ),
-					'fa_sha1' => 'sy02psim0bgdh0st4vdltuzoh7j60ru',
-					'fa_deleted' => 0,
-					'fa_deleted_timestamp' => $this->getDb()->timestamp( '20231205235239' ),
-					'fa_deleted_reason_id' => $commentId,
-				]
-			] )
-			->execute();
 
 		$this->getDb()->newInsertQueryBuilder()
 			->insertInto( 'mediamoderation_scan' )
@@ -410,6 +299,11 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 				],
 				[
 					'mms_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j80ru',
+					'mms_last_checked' => null,
+					'mms_is_match' => null,
+				],
+				[
+					'mms_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j80ra',
 					'mms_last_checked' => null,
 					'mms_is_match' => null,
 				],

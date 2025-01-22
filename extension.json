@@ -23,7 +23,8 @@
 		"MediaWiki\\Extension\\MediaModeration\\": "src/"
 	},
 	"TestAutoloadClasses": {
-		"MediaWiki\\Extension\\MediaModeration\\Tests\\Integration\\Services\\MediaModerationStatsFactoryHelperTestTrait": "tests/phpunit/integration/Services/MediaModerationStatsFactoryHelperTestTrait.php"
+		"MediaWiki\\Extension\\MediaModeration\\Tests\\Integration\\Services\\MediaModerationStatsFactoryHelperTestTrait": "tests/phpunit/integration/Services/MediaModerationStatsFactoryHelperTestTrait.php",
+		"MediaWiki\\Extension\\MediaModeration\\Tests\\Integration\\InsertMockFileDataTrait": "tests/phpunit/integration/InsertMockFileDataTrait.php"
 	},
 	"Hooks": {
 		"UploadComplete": "UploadCompleteHandler",
