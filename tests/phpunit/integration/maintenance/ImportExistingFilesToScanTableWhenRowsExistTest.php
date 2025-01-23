@@ -4,6 +4,7 @@ namespace MediaWiki\Extension\MediaModeration\Tests\Integration\Maintenance;
 
 use MediaWiki\Extension\MediaModeration\Maintenance\ImportExistingFilesToScanTable;
 use MediaWiki\Extension\MediaModeration\Tests\Integration\InsertMockFileDataTrait;
+use MediaWiki\MainConfigNames;
 use MediaWiki\Tests\Maintenance\MaintenanceBaseTestCase;
 use MediaWiki\Tests\Unit\Permissions\MockAuthorityTrait;
 use Wikimedia\TestingAccessWrapper;
@@ -23,8 +24,10 @@ class ImportExistingFilesToScanTableWhenRowsExistTest extends MaintenanceBaseTes
 
 	/** @dataProvider provideExecuteWithRowsToImport */
 	public function testExecuteWithRowsToImport(
-		$batchSize, $startTimestamp, $table, $expectedOutput, $expectedScanTableRowCount, $updateLogHasEntry
+		$batchSize, $startTimestamp, $table, $expectedOutput, $expectedScanTableRowCount, $updateLogHasEntry,
+		$fileSchemaMigrationStage
 	) {
+		$this->overrideConfigValue( MainConfigNames::FileSchemaMigrationStage, $fileSchemaMigrationStage );
 		/** @var TestingAccessWrapper $maintenance */
 		$maintenance = $this->maintenance;
 		// Set the batch size and start timestamp
@@ -58,8 +61,8 @@ class ImportExistingFilesToScanTableWhenRowsExistTest extends MaintenanceBaseTes
 		);
 	}
 
-	public function provideExecuteWithRowsToImport() {
-		return [
+	public static function provideExecuteWithRowsToImport() {
+		$testCases = [
 			'Default batch size, no start timestamp' => [
 				// Null means use the default of 200 as the batch size
 				null,
@@ -197,9 +200,16 @@ class ImportExistingFilesToScanTableWhenRowsExistTest extends MaintenanceBaseTes
 				false,
 			],
 		];
+
+		foreach ( $testCases as $testName => $testData ) {
+			foreach ( self::provideFileSchemaMigrationStageValues() as $name => $schemaStageValue ) {
+				yield $testName . ', ' . strtolower( $name ) => array_merge( $testData, $schemaStageValue );
+			}
+		}
 	}
 
-	public function testExecuteWithRowsAlreadyExistingInScanTable() {
+	/** @dataProvider provideFileSchemaMigrationStageValues */
+	public function testExecuteWithRowsAlreadyExistingInScanTable( $fileSchemaMigrationStage ) {
 		$this->getDb()->newInsertQueryBuilder()
 			->insertInto( 'mediamoderation_scan' )
 			->rows( [
@@ -220,7 +230,15 @@ class ImportExistingFilesToScanTableWhenRowsExistTest extends MaintenanceBaseTes
 			"Script marked as completed (added to updatelog).\n",
 			7,
 			true,
+			$fileSchemaMigrationStage
 		);
+	}
+
+	public static function provideFileSchemaMigrationStageValues() {
+		return [
+			'Reading new for file schema migration' => [ SCHEMA_COMPAT_NEW | SCHEMA_COMPAT_WRITE_OLD ],
+			'Reading old for file schema migration' => [ SCHEMA_COMPAT_OLD | SCHEMA_COMPAT_WRITE_NEW ],
+		];
 	}
 
 	public function addDBDataOnce() {

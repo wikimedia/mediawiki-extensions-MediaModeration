@@ -23,6 +23,7 @@ trait InsertMockFileDataTrait {
 		$commentId = $this->getServiceContainer()
 			->getCommentStore()
 			->createComment( $this->getDb(), 'test' )->id;
+
 		// Insert data using the old table structure
 		$this->getDb()->newInsertQueryBuilder()
 			->insertInto( 'image' )
@@ -162,6 +163,117 @@ trait InsertMockFileDataTrait {
 					'fa_deleted_reason_id' => $commentId,
 				]
 			] )
+			->execute();
+
+		// Now insert the test file data to the new file schema
+		$this->getDb()->newInsertQueryBuilder()
+			->insertInto( 'filetypes' )
+			->rows( [
+				[
+					'ft_id' => 1,
+					'ft_media_type' => MEDIATYPE_BITMAP,
+					'ft_major_mime' => 'image',
+					'ft_minor_mime' => 'png',
+				],
+				[
+					'ft_id' => 2,
+					'ft_media_type' => MEDIATYPE_BITMAP,
+					'ft_major_mime' => 'image',
+					'ft_minor_mime' => 'jpeg',
+				],
+			] )
+			->caller( __METHOD__ )
+			->execute();
+
+		$this->getDb()->newInsertQueryBuilder()
+			->insertInto( 'file' )
+			->rows( [
+				[
+					'file_id' => 1,
+					'file_name' => 'Random-13m.png',
+					'file_latest' => 1,
+					'file_type' => 1,
+					'file_deleted' => 0,
+				],
+				[
+					'file_id' => 2,
+					'file_name' => 'Random-11m.png',
+					'file_latest' => 2,
+					'file_type' => 1,
+					'file_deleted' => 0,
+				],
+				[
+					'file_id' => 3,
+					'file_name' => 'Random-12m.png',
+					'file_latest' => 0,
+					'file_type' => 2,
+					'file_deleted' => 1,
+				],
+				[
+					'file_id' => 4,
+					'file_name' => 'Random-15m.png',
+					'file_latest' => 0,
+					'file_type' => 2,
+					'file_deleted' => 1,
+				],
+				[
+					'file_id' => 5,
+					'file_name' => 'Random-20m.png',
+					'file_latest' => 0,
+					'file_type' => 2,
+					'file_deleted' => 1,
+				],
+			] )
+			->caller( __METHOD__ )
+			->execute();
+
+		$this->getDb()->newInsertQueryBuilder()
+			->insertInto( 'filerevision' )
+			->rows( [
+				[
+					'fr_file' => 1,
+					'fr_size' => 54321,
+					'fr_width' => 1000,
+					'fr_height' => 1800,
+					'fr_metadata' => '',
+					'fr_bits' => 16,
+					'fr_description_id' => $commentId,
+					'fr_actor' => $actorId,
+					'fr_timestamp' => $this->getDb()->timestamp( '20201105234242' ),
+					'fr_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j80yu',
+					'fr_archive_name' => '',
+					'fr_deleted' => 0,
+				],
+				[
+					'fr_file' => 2,
+					'fr_size' => 54321,
+					'fr_width' => 1000,
+					'fr_height' => 1800,
+					'fr_metadata' => '',
+					'fr_bits' => 16,
+					'fr_description_id' => $commentId,
+					'fr_actor' => $actorId,
+					'fr_timestamp' => $this->getDb()->timestamp( '20201105235242' ),
+					'fr_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j80ru',
+					'fr_archive_name' => '',
+					'fr_deleted' => 0,
+				],
+				[
+					'fr_file' => 2,
+					'fr_size' => 54321,
+					'fr_width' => 1000,
+					'fr_height' => 1800,
+					'fr_metadata' => '',
+					'fr_bits' => 16,
+					'fr_description_id' => $commentId,
+					'fr_actor' => $actorId,
+					'fr_timestamp' => $this->getDb()->timestamp( '20201105235241' ),
+					'fr_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j800u',
+					'fr_archive_name' => '20201105235241' . 'Random-11m.png',
+					'fr_deleted' => File::DELETED_FILE | File::DELETED_COMMENT | File::DELETED_USER,
+				],
+			] )
+			->caller( __METHOD__ )
 			->execute();
 	}
 
