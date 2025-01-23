@@ -4,6 +4,7 @@ namespace MediaWiki\Extension\MediaModeration\Tests\Integration\Hooks\Handlers;
 
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileLookup;
 use MediaWiki\Extension\MediaModeration\Tests\Integration\InsertMockFileDataTrait;
+use MediaWiki\MainConfigNames;
 use MediaWikiIntegrationTestCase;
 
 /**
@@ -16,7 +17,8 @@ class MediaModerationFileLookupTest extends MediaWikiIntegrationTestCase {
 	use InsertMockFileDataTrait;
 
 	/** @dataProvider provideGetFileObjectsForSha1 */
-	public function testGetFileObjectsForSha1( $sha1, $batchSize, $expectedReturnCount ) {
+	public function testGetFileObjectsForSha1( $sha1, $batchSize, $expectedReturnCount, $fileSchemaMigrationStage ) {
+		$this->overrideConfigValue( MainConfigNames::FileSchemaMigrationStage, $fileSchemaMigrationStage );
 		/** @var MediaModerationFileLookup $objectUnderTest */
 		$objectUnderTest = $this->getServiceContainer()->get( 'MediaModerationFileLookup' );
 		$returnedObjects = iterator_to_array( $objectUnderTest->getFileObjectsForSha1( $sha1, $batchSize ) );
@@ -28,7 +30,7 @@ class MediaModerationFileLookupTest extends MediaWikiIntegrationTestCase {
 	}
 
 	public static function provideGetFileObjectsForSha1() {
-		return [
+		$testCases = [
 			'One row from the image table' => [
 				// SHA-1 parameter
 				'sy02psim0bgdh0jt4vdltuzoh7j80ru',
@@ -63,18 +65,27 @@ class MediaModerationFileLookupTest extends MediaWikiIntegrationTestCase {
 				0,
 			]
 		];
+
+		foreach ( $testCases as $testName => $testData ) {
+			foreach ( self::provideFileSchemaMigrationStageValues() as $name => $schemaStageValue ) {
+				yield $testName . ', ' . strtolower( $name ) => array_merge( $testData, $schemaStageValue );
+			}
+		}
 	}
 
 	public function addDBDataOnce() {
 		$this->insertMockFileData();
 
-		// Add an additional oldimage row
+		// Add an additional file revision to both the oldimage (for read old) and file / filerevision tables
+		// (for read new)
 		$actorId = $this->getServiceContainer()
 			->getActorStore()
 			->acquireActorId( $this->mockRegisteredUltimateAuthority()->getUser(), $this->getDb() );
 		$commentId = $this->getServiceContainer()
 			->getCommentStore()
 			->createComment( $this->getDb(), 'test' )->id;
+
+		// Add the additional file revision to the old schema
 		$this->getDb()->newInsertQueryBuilder()
 			->insertInto( 'oldimage' )
 			->row( [
@@ -94,6 +105,39 @@ class MediaModerationFileLookupTest extends MediaWikiIntegrationTestCase {
 				'oi_sha1' => 'sy02psim0bgdh0st4vdltuzoh7j70ru',
 				'oi_deleted' => 0,
 			] )
+			->caller( __METHOD__ )
+			->execute();
+
+		// Add the additional file revision to the new schema
+		$this->getDb()->newInsertQueryBuilder()
+			->insertInto( 'file' )
+			->row( [
+				'file_name' => 'Randoma-11m.png',
+				'file_latest' => 0,
+				'file_type' => 1,
+				'file_deleted' => 0,
+			] )
+			->caller( __METHOD__ )
+			->execute();
+		$newlyInsertedFileId = $this->getDb()->insertId();
+
+		$this->getDb()->newInsertQueryBuilder()
+			->insertInto( 'filerevision' )
+			->row( [
+				'fr_file' => $newlyInsertedFileId,
+				'fr_size' => 12345,
+				'fr_width' => 1000,
+				'fr_height' => 1800,
+				'fr_metadata' => '',
+				'fr_bits' => 16,
+				'fr_description_id' => $commentId,
+				'fr_actor' => $actorId,
+				'fr_timestamp' => $this->getDb()->timestamp( '20201105234242' ),
+				'fr_sha1' => 'sy02psim0bgdh0st4vdltuzoh7j70ru',
+				'fr_archive_name' => '20201105235241' . 'Randoma-11m.png',
+				'fr_deleted' => 0,
+			] )
+			->caller( __METHOD__ )
 			->execute();
 	}
 }

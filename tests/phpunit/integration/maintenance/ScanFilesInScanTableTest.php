@@ -5,6 +5,7 @@ namespace MediaWiki\Extension\MediaModeration\Tests\Integration\Maintenance;
 use MediaWiki\Extension\MediaModeration\Maintenance\ScanFilesInScanTable;
 use MediaWiki\Extension\MediaModeration\PhotoDNA\Response;
 use MediaWiki\Extension\MediaModeration\Tests\Integration\InsertMockFileDataTrait;
+use MediaWiki\MainConfigNames;
 use MediaWiki\Tests\Maintenance\MaintenanceBaseTestCase;
 
 /**
@@ -25,13 +26,14 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 	/** @dataProvider provideExecute */
 	public function testExecute(
 		$mockResponsesConfig, $useJobQueue, $options, $expectedPositiveMatches,
-		$expectedNegativeMatches, $expectedNullMatches
+		$expectedNegativeMatches, $expectedNullMatches, $fileSchemaMigrationStage
 	) {
 		// Cause the mock response endpoint to be used and define mock responses
 		$this->overrideConfigValues( [
 			'MediaModerationDeveloperMode' => true,
 			'MediaModerationPhotoDNASubscriptionKey' => '',
-			'MediaModerationPhotoDNAMockServiceFiles' => $mockResponsesConfig
+			'MediaModerationPhotoDNAMockServiceFiles' => $mockResponsesConfig,
+			MainConfigNames::FileSchemaMigrationStage => $fileSchemaMigrationStage
 		] );
 		// Set 'sleep' and 'poll-sleep' to 0 to prevent the test taking too long.
 		$this->maintenance->setOption( 'sleep', 0 );
@@ -86,7 +88,7 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 	}
 
 	public static function provideExecute() {
-		return [
+		$testCases = [
 			'All files scanned that could be scanned are scanned as negative' => [
 				[
 					'FilesToIsMatchMap' => [],
@@ -239,6 +241,12 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 				],
 			],
 		];
+
+		foreach ( $testCases as $testName => $testData ) {
+			foreach ( self::provideFileSchemaMigrationStageValues() as $name => $schemaStageValue ) {
+				yield $testName . ', ' . strtolower( $name ) => array_merge( $testData, $schemaStageValue );
+			}
+		}
 	}
 
 	public function addDBData() {
@@ -310,6 +318,8 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 		$commentId = $this->getServiceContainer()
 			->getCommentStore()
 			->createComment( $this->getDb(), 'test' )->id;
+
+		// Insert this to the old file schema
 		$this->getDb()->newInsertQueryBuilder()
 			->insertInto( 'image' )
 			->rows( [
@@ -336,14 +346,104 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 					'img_metadata' => '',
 					'img_bits' => 16,
 					'img_media_type' => MEDIATYPE_AUDIO,
-					'img_major_mime' => 'image',
-					'img_minor_mime' => 'png',
+					'img_major_mime' => 'audio',
+					'img_minor_mime' => 'ogg',
 					'img_description_id' => $commentId,
 					'img_actor' => $actorId,
 					'img_timestamp' => $this->getDb()->timestamp( '20201105235242' ),
 					'img_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j80au',
 				]
 			] )
+			->caller( __METHOD__ )
+			->execute();
+
+		// Insert this test data to the new file schema
+		$this->getDb()->newInsertQueryBuilder()
+			->insertInto( 'file' )
+			->row( [
+				'file_name' => 'Random-112m.png',
+				'file_latest' => 0,
+				'file_type' => 1,
+				'file_deleted' => 0,
+			] )
+			->caller( __METHOD__ )
+			->execute();
+		$random112ImageFileId = $this->getDb()->insertId();
+
+		$this->getDb()->newInsertQueryBuilder()
+			->insertInto( 'filerevision' )
+			->row( [
+				'fr_file' => $random112ImageFileId,
+				'fr_size' => 54321,
+				'fr_width' => 1000,
+				'fr_height' => 1800,
+				'fr_metadata' => '',
+				'fr_bits' => 16,
+				'fr_description_id' => $commentId,
+				'fr_actor' => $actorId,
+				'fr_timestamp' => $this->getDb()->timestamp( '20201105235242' ),
+				'fr_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j80ra',
+				'fr_archive_name' => '',
+				'fr_deleted' => 0,
+			] )
+			->caller( __METHOD__ )
+			->execute();
+		$random112ImageFileRevisionId = $this->getDb()->insertId();
+
+		$this->getDb()->newUpdateQueryBuilder()
+			->update( 'file' )
+			->set( [ 'file_latest' => $random112ImageFileRevisionId ] )
+			->where( [ 'file_id' => $random112ImageFileId ] )
+			->caller( __METHOD__ )
+			->execute();
+
+		$this->getDb()->newInsertQueryBuilder()
+			->insertInto( 'filetypes' )
+			->row( [
+				'ft_media_type' => MEDIATYPE_AUDIO,
+				'ft_major_mime' => 'audio',
+				'ft_minor_mime' => 'ogg',
+			] )
+			->caller( __METHOD__ )
+			->execute();
+		$oggFileTypesId = $this->getDb()->insertId();
+
+		$this->getDb()->newInsertQueryBuilder()
+			->insertInto( 'file' )
+			->row( [
+				'file_name' => 'Random-11m-not-supported.ogg',
+				'file_latest' => 0,
+				'file_type' => $oggFileTypesId,
+				'file_deleted' => 0,
+			] )
+			->caller( __METHOD__ )
+			->execute();
+		$oggFileId = $this->getDb()->insertId();
+
+		$this->getDb()->newInsertQueryBuilder()
+			->insertInto( 'filerevision' )
+			->row( [
+				'fr_file' => $oggFileId,
+				'fr_size' => 54321,
+				'fr_width' => 1000,
+				'fr_height' => 1800,
+				'fr_metadata' => '',
+				'fr_bits' => 16,
+				'fr_description_id' => $commentId,
+				'fr_actor' => $actorId,
+				'fr_timestamp' => $this->getDb()->timestamp( '20201105235242' ),
+				'fr_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j80au',
+				'fr_archive_name' => '',
+				'fr_deleted' => 0,
+			] )
+			->caller( __METHOD__ )
+			->execute();
+		$oggFileRevisionId = $this->getDb()->insertId();
+
+		$this->getDb()->newUpdateQueryBuilder()
+			->update( 'file' )
+			->set( [ 'file_latest' => $oggFileRevisionId ] )
+			->where( [ 'file_id' => $oggFileId ] )
 			->caller( __METHOD__ )
 			->execute();
 	}
