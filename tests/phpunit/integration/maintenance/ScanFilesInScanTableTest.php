@@ -242,53 +242,6 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 	}
 
 	public function addDBData() {
-		parent::addDBData();
-
-		$this->insertMockFileData();
-
-		// Insert some additional testing data to the data provided for most tests
-		$actorId = $this->getServiceContainer()
-			->getActorStore()
-			->acquireActorId( $this->mockRegisteredUltimateAuthority()->getUser(), $this->getDb() );
-		$commentId = $this->getServiceContainer()
-			->getCommentStore()
-			->createComment( $this->getDb(), 'test' )->id;
-		$this->getDb()->newInsertQueryBuilder()
-			->insertInto( 'image' )
-			->rows( [
-				[
-					'img_name' => 'Random-112m.png',
-					'img_size' => 54321,
-					'img_width' => 1000,
-					'img_height' => 1800,
-					'img_metadata' => '',
-					'img_bits' => 16,
-					'img_media_type' => MEDIATYPE_BITMAP,
-					'img_major_mime' => 'image',
-					'img_minor_mime' => 'png',
-					'img_description_id' => $commentId,
-					'img_actor' => $actorId,
-					'img_timestamp' => $this->getDb()->timestamp( '20201105235242' ),
-					'img_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j80ra',
-				],
-				[
-					'img_name' => 'Random-11m-not-supported.ogg',
-					'img_size' => 54321,
-					'img_width' => 1000,
-					'img_height' => 1800,
-					'img_metadata' => '',
-					'img_bits' => 16,
-					'img_media_type' => MEDIATYPE_AUDIO,
-					'img_major_mime' => 'image',
-					'img_minor_mime' => 'png',
-					'img_description_id' => $commentId,
-					'img_actor' => $actorId,
-					'img_timestamp' => $this->getDb()->timestamp( '20201105235242' ),
-					'img_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j80au',
-				]
-			] )
-			->execute();
-
 		$this->getDb()->newInsertQueryBuilder()
 			->insertInto( 'mediamoderation_scan' )
 			->rows( [
@@ -343,6 +296,55 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 					'mms_is_match' => null,
 				]
 			] )
+			->caller( __METHOD__ )
+			->execute();
+	}
+
+	public function addDBDataOnce() {
+		$this->insertMockFileData();
+
+		// Insert some additional testing data to the data provided for most tests
+		$actorId = $this->getServiceContainer()
+			->getActorStore()
+			->acquireActorId( $this->mockRegisteredUltimateAuthority()->getUser(), $this->getDb() );
+		$commentId = $this->getServiceContainer()
+			->getCommentStore()
+			->createComment( $this->getDb(), 'test' )->id;
+		$this->getDb()->newInsertQueryBuilder()
+			->insertInto( 'image' )
+			->rows( [
+				[
+					'img_name' => 'Random-112m.png',
+					'img_size' => 54321,
+					'img_width' => 1000,
+					'img_height' => 1800,
+					'img_metadata' => '',
+					'img_bits' => 16,
+					'img_media_type' => MEDIATYPE_BITMAP,
+					'img_major_mime' => 'image',
+					'img_minor_mime' => 'png',
+					'img_description_id' => $commentId,
+					'img_actor' => $actorId,
+					'img_timestamp' => $this->getDb()->timestamp( '20201105235242' ),
+					'img_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j80ra',
+				],
+				[
+					'img_name' => 'Random-11m-not-supported.ogg',
+					'img_size' => 54321,
+					'img_width' => 1000,
+					'img_height' => 1800,
+					'img_metadata' => '',
+					'img_bits' => 16,
+					'img_media_type' => MEDIATYPE_AUDIO,
+					'img_major_mime' => 'image',
+					'img_minor_mime' => 'png',
+					'img_description_id' => $commentId,
+					'img_actor' => $actorId,
+					'img_timestamp' => $this->getDb()->timestamp( '20201105235242' ),
+					'img_sha1' => 'sy02psim0bgdh0jt4vdltuzoh7j80au',
+				]
+			] )
+			->caller( __METHOD__ )
 			->execute();
 	}
 }

@@ -223,7 +223,7 @@ class ImportExistingFilesToScanTableWhenRowsExistTest extends MaintenanceBaseTes
 		);
 	}
 
-	public function addDBData() {
+	public function addDBDataOnce() {
 		$this->insertMockFileData();
 	}
 }
