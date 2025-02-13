@@ -159,6 +159,7 @@ class MediaModerationImageContentsLookupTest extends MediaWikiIntegrationTestCas
 		$mockRequest->method( 'getResponseHeader' )->with( 'content-type' )->willReturn( 'image/jpeg' );
 		$mockRequest->expects( $this->once() )->method( 'execute' );
 		$mockRequest->expects( $this->once() )->method( 'setHeader' );
+		$mockRequest->method( 'getStatus' )->willReturn( 200 );
 		$this->installMockHttp( $mockRequest );
 
 		// Call the method under test
@@ -184,9 +185,80 @@ class MediaModerationImageContentsLookupTest extends MediaWikiIntegrationTestCas
 		$this->assertEquals( $imageContents, $thumbnail->getContent() );
 
 		$this->assertCounterNotIncremented( 'image_contents_lookup_error_total' );
+		$this->assertCounterIncremented(
+			'image_contents_lookup_thumbor_request_total',
+			[ 'status_code' => 200 ]
+		);
 		$this->assertTimingObserved(
 			'image_contents_lookup_thumbnail_transform_time',
 			[ 'method' => 'thumbor' ]
+		);
+	}
+
+	public function testGetThumbnailForFileWithThumborRequestThatFails() {
+		// Define a mock ThumbnailImage that says it has a valid thumbnail file
+		$thumbnail = $this->createMock( ThumbnailImage::class );
+		$thumbnail->method( 'hasFile' )
+			->willReturn( true );
+		// Define a mock File class that returns a pre-defined ::getName
+		$mockFile = $this->createMock( File::class );
+		$mockFile->method( 'getName' )
+			->willReturn( 'Test.png' );
+		$mockFile->method( 'getThumbUrl' )
+			->willReturn( 'http://thumb' );
+		$mockFile->expects( $this->once() )->method( 'transform' )
+			->with( [ 'width' => 320 ] )
+			->willReturn( $thumbnail );
+
+		// Mock that Thumbor can be used, so that it is tried first.
+		$mockLocalRepo = $this->createMock( LocalRepo::class );
+		$mockLocalRepo->method( 'getThumbProxyUrl' )->willReturn( 'http://foo' );
+		$mockLocalRepo->method( 'getThumbProxySecret' )->willReturn( 'secret' );
+		$mockFile->method( 'getRepo' )->willReturn( $mockLocalRepo );
+
+		// Expect a request to Thumbor, but pretend that the request fails.
+		$mockRequest = $this->createMock( MWHttpRequest::class );
+		$mockRequest->method( 'execute' )->willReturn(
+			StatusValue::newFatal( 'http-request-error' )
+		);
+		$mockRequest->expects( $this->never() )->method( 'getContent' );
+		$mockRequest->method( 'getResponseHeader' )->with( 'content-type' )->willReturn( 'image/jpeg' );
+		$mockRequest->expects( $this->once() )->method( 'execute' );
+		$mockRequest->expects( $this->once() )->method( 'setHeader' );
+		$mockRequest->method( 'getStatus' )->willReturn( 500 );
+		$this->installMockHttp( $mockRequest );
+
+		// Call the method under test
+		/** @var MediaModerationImageContentsLookup $objectUnderTest */
+		$objectUnderTest = $this->newServiceInstance(
+			MediaModerationImageContentsLookup::class,
+			[
+				'options' => new ServiceOptions(
+					MediaModerationImageContentsLookup::CONSTRUCTOR_OPTIONS,
+					new HashConfig( self::CONSTRUCTOR_OPTIONS_DEFAULTS )
+				),
+				'httpRequestFactory' => $this->getServiceContainer()->getHttpRequestFactory(),
+				'statsFactory' => $this->getServiceContainer()->getStatsFactory(),
+			]
+		);
+		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
+		$actualStatus = $objectUnderTest->getThumbnailForFile( $mockFile );
+		$this->assertStatusOK( $actualStatus );
+		/** @var ThumborThumbnailImage $thumbnail */
+		$actualThumbnail = $actualStatus->getValue();
+		$this->assertSame( $thumbnail, $actualThumbnail );
+
+		$this->assertCounterIncremented(
+			'image_contents_lookup_error_total',
+			[ 'image_type' => 'thumbnail', 'error_type' => 'thumbor_transform', 'error' => 'failed' ]
+		);
+		$this->assertCounterIncremented(
+			'image_contents_lookup_thumbor_request_total',
+			[ 'status_code' => 500 ]
+		);
+		$this->assertTimingObserved(
+			'image_contents_lookup_thumbnail_transform_time',
+			[ 'method' => 'php' ]
 		);
 	}
 

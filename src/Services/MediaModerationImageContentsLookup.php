@@ -199,6 +199,12 @@ class MediaModerationImageContentsLookup {
 			);
 			$req->setHeader( 'X-Swift-Secret', $secret );
 			$result = $req->execute();
+			// Log the HTTP status code from Thumbor (T385448)
+			$this->statsFactory->withComponent( 'MediaModeration' )
+				->getCounter( 'image_contents_lookup_thumbor_request_total' )
+				->setLabel( 'wiki', $wiki )
+				->setLabel( 'status_code', strval( $req->getStatus() ) )
+				->increment();
 			if ( $result->isGood() ) {
 				$imageContent = $req->getContent();
 				// getimagesizefromstring() can return a PHP Notice if
@@ -229,7 +235,7 @@ class MediaModerationImageContentsLookup {
 				}
 			}
 			// The request failed, so increment the failure counter and use regular ::transform
-			// for checks done farther on.
+			// for checks done further on.
 			$this->incrementImageContentsLookupErrorTotal(
 				'thumbnail', 'thumbor_transform', 'failed',
 				'MediaModeration.ImageContentsLookup.Thumbnail.ThumborTransform.Failed'
