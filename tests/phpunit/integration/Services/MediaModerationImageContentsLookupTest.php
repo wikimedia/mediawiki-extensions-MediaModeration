@@ -35,6 +35,7 @@ class MediaModerationImageContentsLookupTest extends MediaWikiIntegrationTestCas
 
 	private const CONSTRUCTOR_OPTIONS_DEFAULTS = [
 		'MediaModerationThumbnailWidth' => 320,
+		'MediaModerationThumborRequestTimeout' => 60,
 	];
 
 	public function testCheckOnThumbnailContentsInvalid() {

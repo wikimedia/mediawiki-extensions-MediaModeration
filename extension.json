@@ -88,6 +88,10 @@
 			"value": 320,
 			"description": "Width, in pixels, that MediaModeration will use when transforming files to a thumbnail to send to PhotoDNA. Default is 320, which should already exist as a pre-rendered thumbnail per $wgUploadThumbnailRenderMap in production."
 		},
+		"MediaModerationThumborRequestTimeout": {
+			"value": 60,
+			"description": "Timeout for HTTP requests to the Thumbor service, in seconds."
+		},
 		"MediaModerationPhotoDNASubscriptionKey": {
 			"value": "",
 			"description": "Key for access to PhotoDNA service endpoint."

@@ -27,8 +27,10 @@ class MediaModerationImageContentsLookup {
 
 	public const CONSTRUCTOR_OPTIONS = [
 		'MediaModerationThumbnailWidth',
+		'MediaModerationThumborRequestTimeout',
 	];
 
+	private ServiceOptions $options;
 	private FileBackend $fileBackend;
 	private StatsFactory $statsFactory;
 	private MimeAnalyzer $mimeAnalyzer;
@@ -47,6 +49,7 @@ class MediaModerationImageContentsLookup {
 		HttpRequestFactory $httpRequestFactory
 	) {
 		$options->assertRequiredOptions( self::CONSTRUCTOR_OPTIONS );
+		$this->options = $options;
 		$this->fileBackend = $fileBackend;
 		$this->statsFactory = $statsFactory;
 		$this->mimeAnalyzer = $mimeAnalyzer;
@@ -194,7 +197,9 @@ class MediaModerationImageContentsLookup {
 			// @see wfProxyThumbnailRequest()
 			$req = $this->httpRequestFactory->create(
 				$thumbProxyUrl . $file->getThumbRel( $thumbName ),
-				[],
+				[
+					'timeout' => $this->options->get( 'MediaModerationThumborRequestTimeout' )
+				],
 				__METHOD__
 			);
 			$req->setHeader( 'X-Swift-Secret', $secret );
