@@ -85,8 +85,15 @@
 			"description": "URL to PhotoDNA service endpoint."
 		},
 		"MediaModerationThumbnailWidth": {
-			"value": 320,
-			"description": "Width, in pixels, that MediaModeration will use when transforming files to a thumbnail to send to PhotoDNA. Default is 320, which should already exist as a pre-rendered thumbnail per $wgUploadThumbnailRenderMap in production."
+			"value": 330,
+			"description": "Width, in pixels, that MediaModeration will prefer to use when transforming files to a thumbnail to send to PhotoDNA. Default is 330, which is listed in $wgThumbnailSteps on WMF production wikis. A different width may be chosen if the thumbnail width would result in a height that is less than $wgMediaModerationThumbnailMinimumSize['height']."
+		},
+		"MediaModerationThumbnailMinimumSize": {
+			"value": {
+				"height": 160,
+				"width": 160
+			},
+			"description": "Minimum width and height that thumbnails need to be to used over the source image. Dictionary with a 'height' and 'width' key which should be integers."
 		},
 		"MediaModerationThumborRequestTimeout": {
 			"value": 60,

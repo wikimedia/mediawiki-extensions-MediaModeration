@@ -13,6 +13,7 @@ use MediaWiki\FileRepo\File\File;
 use MediaWiki\FileRepo\LocalRepo;
 use MediaWiki\Http\HttpRequestFactory;
 use MediaWiki\Language\RawMessage;
+use MediaWiki\MainConfigNames;
 use MediaWiki\Tests\Unit\MockServiceDependenciesTrait;
 use MediaWikiIntegrationTestCase;
 use MockHttpTrait;
@@ -34,8 +35,10 @@ class MediaModerationImageContentsLookupTest extends MediaWikiIntegrationTestCas
 	use MediaModerationStatsFactoryHelperTestTrait;
 
 	private const CONSTRUCTOR_OPTIONS_DEFAULTS = [
-		'MediaModerationThumbnailWidth' => 320,
+		'MediaModerationThumbnailWidth' => 330,
 		'MediaModerationThumborRequestTimeout' => 60,
+		MainConfigNames::ThumbnailSteps => null,
+		'MediaModerationThumbnailMinimumSize' => [ 'width' => 160, 'height' => 160 ],
 	];
 
 	public function testCheckOnThumbnailContentsInvalid() {
@@ -73,8 +76,8 @@ class MediaModerationImageContentsLookupTest extends MediaWikiIntegrationTestCas
 		$this->assertCounterIncremented( 'image_contents_lookup_failure_total' );
 	}
 
-	/** @dataProvider provideGetThumbnailForFile */
-	public function testGetThumbnailForFile( $thumbnailClassName ) {
+	/** @dataProvider provideGetThumbnailForFileOnFailure */
+	public function testGetThumbnailForFileOnFailure( $thumbnailClassName ) {
 		// If $thumbnail is false, then return false from ::transform.
 		// Otherwise return a mock of that class.
 		if ( $thumbnailClassName ) {
@@ -102,7 +105,7 @@ class MediaModerationImageContentsLookupTest extends MediaWikiIntegrationTestCas
 		$mockFile->method( 'getRepo' )
 			->willReturn( $this->createMock( LocalRepo::class ) );
 		$mockFile->expects( $this->once() )->method( 'transform' )
-			->with( [ 'width' => 320 ] );
+			->with( [ 'width' => 330 ] );
 		// Call the method under test
 		/** @var MediaModerationImageContentsLookup $objectUnderTest */
 		$objectUnderTest = $this->newServiceInstance(
@@ -129,12 +132,93 @@ class MediaModerationImageContentsLookupTest extends MediaWikiIntegrationTestCas
 		);
 	}
 
-	public static function provideGetThumbnailForFile() {
+	public static function provideGetThumbnailForFileOnFailure() {
 		return [
 			'::transform returns false' => [ false ],
 			'::transform returns MediaTransformError' => [ MediaTransformError::class ],
 			'::transform returns an unexpected class' => [ RuntimeException::class ],
 			'::transform returns ThumbnailImage with ::hasFile as false' => [ ThumbnailImage::class ],
+		];
+	}
+
+	/** @dataProvider provideGetThumbnailForFileForDifferentExpectedThumbnailWidths */
+	public function testGetThumbnailForFileForDifferentExpectedThumbnailWidths(
+		$fileWidth, $fileHeight, $expectedThumbnailWidth, $configOverrides = []
+	) {
+		// Mock that the attempt to get the thumbnail fails. We don't need to test beyond the point where
+		// File::transform is called.
+		$thumbnail = $this->createMock( ThumbnailImage::class );
+		$thumbnail->method( 'hasFile' )
+			->willReturn( false );
+
+		// Define a mock File class that returns a pre-defined name, height, width. This also expects
+		// that a call to ::transform occurs with the expected width.
+		$mockFile = $this->createMock( File::class );
+		$mockFile->method( 'getName' )
+			->willReturn( 'Test.png' );
+		$mockFile->method( 'getRepo' )
+			->willReturn( $this->createMock( LocalRepo::class ) );
+		$mockFile->method( 'getWidth' )
+			->willReturn( $fileWidth );
+		$mockFile->method( 'getHeight' )
+			->willReturn( $fileHeight );
+		$mockFile->expects( $this->once() )
+			->method( 'transform' )
+			->willReturnCallback( function ( $params ) use ( $expectedThumbnailWidth, $thumbnail ) {
+				$this->assertSame( $expectedThumbnailWidth, $params['width'] );
+				return $thumbnail;
+			} );
+
+		// Call the method under test
+		/** @var MediaModerationImageContentsLookup $objectUnderTest */
+		$objectUnderTest = $this->newServiceInstance(
+			MediaModerationImageContentsLookup::class,
+			[
+				'options' => new ServiceOptions(
+					MediaModerationImageContentsLookup::CONSTRUCTOR_OPTIONS,
+					new HashConfig( array_merge( self::CONSTRUCTOR_OPTIONS_DEFAULTS, $configOverrides ) )
+				),
+				'statsFactory' => $this->getServiceContainer()->getStatsFactory(),
+			]
+		);
+		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
+		$actualStatus = $objectUnderTest->getThumbnailForFile( $mockFile );
+
+		// PHPUnit expectations will check that the call to ::transform was made with the expected width.
+		// Just check that the return status is not okay, given that we mocked the thumbnail to be invalid.
+		$this->assertStatusNotOK( $actualStatus );
+	}
+
+	public static function provideGetThumbnailForFileForDifferentExpectedThumbnailWidths() {
+		return [
+			'File width and height are undefined' => [ 0, 0, 330 ],
+			'File width is undefined' => [ 0, 123, 330 ],
+			'File height is undefined' => [ 123, 0, 330 ],
+			'Default width meets requirements' => [
+				340, 340, 160, [ 'MediaModerationThumbnailWidth' => 160 ],
+			],
+			'Thumbnail step meets requirements' => [
+				340, 300, 190,
+				[
+					'MediaModerationThumbnailWidth' => 160,
+					MainConfigNames::ThumbnailSteps => [ 30, 200, 170, 190 ],
+				],
+			],
+			'Cannot use pre-defined widths when width and height equal' => [
+				123, 123, 160, [ MainConfigNames::ThumbnailSteps => [ 1 ], 'MediaModerationThumbnailWidth' => 1 ],
+			],
+			'Cannot use pre-defined widths when file wider than tall' => [
+				502, 454, 177, [ MainConfigNames::ThumbnailSteps => [ 1 ], 'MediaModerationThumbnailWidth' => 1 ],
+			],
+			'Cannot use pre-defined widths when file taller than wide' => [
+				400, 584, 160, [ MainConfigNames::ThumbnailSteps => [ 1 ], 'MediaModerationThumbnailWidth' => 1 ],
+			],
+			'Cannot use pre-defined widths when file wider than tall, and smaller than allowed thumbnail' => [
+				30, 18, 267, [ MainConfigNames::ThumbnailSteps => [ 1 ], 'MediaModerationThumbnailWidth' => 1 ],
+			],
+			'Cannot use pre-defined widths when file taller than wide, and smaller than allowed thumbnail' => [
+				18, 30, 160, [ MainConfigNames::ThumbnailSteps => [ 1 ], 'MediaModerationThumbnailWidth' => 1 ],
+			],
 		];
 	}
 
@@ -208,7 +292,7 @@ class MediaModerationImageContentsLookupTest extends MediaWikiIntegrationTestCas
 		$mockFile->method( 'getThumbUrl' )
 			->willReturn( 'http://thumb' );
 		$mockFile->expects( $this->once() )->method( 'transform' )
-			->with( [ 'width' => 320 ] )
+			->with( [ 'width' => 330 ] )
 			->willReturn( $thumbnail );
 
 		// Mock that Thumbor can be used, so that it is tried first.
