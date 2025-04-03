@@ -277,7 +277,7 @@ trait InsertMockFileDataTrait {
 			->execute();
 	}
 
-	public static function provideFileSchemaMigrationStageValues() {
+	public static function provideFileSchemaMigrationStageValues(): array {
 		return [
 			'Reading new for file schema migration' => [ SCHEMA_COMPAT_NEW | SCHEMA_COMPAT_WRITE_OLD ],
 			'Reading old for file schema migration' => [ SCHEMA_COMPAT_OLD | SCHEMA_COMPAT_WRITE_NEW ],
