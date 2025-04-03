@@ -2,13 +2,13 @@
 
 namespace MediaWiki\Extension\MediaModeration\Services;
 
-use ArchivedFile;
-use File;
-use LocalRepo;
 use MediaTransformError;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Extension\MediaModeration\Media\ThumborThumbnailImage;
 use MediaWiki\Extension\MediaModeration\Status\ImageContentsLookupStatus;
+use MediaWiki\FileRepo\File\ArchivedFile;
+use MediaWiki\FileRepo\File\File;
+use MediaWiki\FileRepo\LocalRepo;
 use MediaWiki\Http\HttpRequestFactory;
 use MediaWiki\Language\RawMessage;
 use MediaWiki\WikiMap\WikiMap;

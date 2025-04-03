@@ -2,8 +2,8 @@
 
 namespace MediaWiki\Extension\MediaModeration\Services;
 
-use ArchivedFile;
-use File;
+use MediaWiki\FileRepo\File\ArchivedFile;
+use MediaWiki\FileRepo\File\File;
 use MediaWiki\Tests\Unit\MockServiceDependenciesTrait;
 use MediaWikiUnitTestCase;
 use Wikimedia\Rdbms\IDatabase;

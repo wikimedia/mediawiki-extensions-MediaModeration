@@ -2,12 +2,12 @@
 
 namespace MediaWiki\Extension\MediaModeration\Tests\Unit\Services;
 
-use File;
 use MediaWiki\Config\HashConfig;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationImageContentsLookup;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationPhotoDNAServiceProvider;
 use MediaWiki\Extension\MediaModeration\Status\ImageContentsLookupStatus;
+use MediaWiki\FileRepo\File\File;
 use MediaWiki\Http\HttpRequestFactory;
 use MediaWiki\Language\RawMessage;
 use MediaWiki\Tests\Unit\MockServiceDependenciesTrait;

@@ -2,11 +2,11 @@
 
 namespace MediaWiki\Extension\MediaModeration\Tests\Unit\Services;
 
-use File;
 use MediaWiki\Config\HashConfig;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationEmailer;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileLookup;
+use MediaWiki\FileRepo\File\File;
 use MediaWiki\Language\RawMessage;
 use MediaWiki\Mail\IEmailer;
 use MediaWiki\MainConfigNames;

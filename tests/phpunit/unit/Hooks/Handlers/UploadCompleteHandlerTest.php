@@ -20,13 +20,13 @@
 
 namespace MediaWiki\Extension\MediaModeration\Tests\Unit;
 
-use File;
 use MediaWiki\Config\HashConfig;
 use MediaWiki\Deferred\DeferredUpdates;
 use MediaWiki\Extension\MediaModeration\Hooks\Handlers\UploadCompleteHandler;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationEmailer;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileProcessor;
+use MediaWiki\FileRepo\File\File;
 use MediaWiki\Tests\Unit\MockServiceDependenciesTrait;
 use MediaWikiUnitTestCase;
 use Psr\Log\LoggerInterface;

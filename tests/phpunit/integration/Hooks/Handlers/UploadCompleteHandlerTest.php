@@ -2,11 +2,11 @@
 
 namespace MediaWiki\Extension\MediaModeration\Tests\Integration\Hooks\Handlers;
 
-use File;
 use MediaWiki\Config\HashConfig;
 use MediaWiki\Deferred\DeferredUpdates;
 use MediaWiki\Extension\MediaModeration\Hooks\Handlers\UploadCompleteHandler;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
+use MediaWiki\FileRepo\File\File;
 use MediaWikiIntegrationTestCase;
 use UploadBase;
 

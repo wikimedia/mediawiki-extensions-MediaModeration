@@ -2,8 +2,8 @@
 
 namespace MediaWiki\Extension\MediaModeration\Tests\Unit\Media;
 
-use File;
 use MediaWiki\Extension\MediaModeration\Media\ThumborThumbnailImage;
+use MediaWiki\FileRepo\File\File;
 use MediaWikiUnitTestCase;
 
 /**

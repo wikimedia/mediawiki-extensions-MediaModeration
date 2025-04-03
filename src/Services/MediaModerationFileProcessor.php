@@ -2,10 +2,10 @@
 
 namespace MediaWiki\Extension\MediaModeration\Services;
 
-use ArchivedFile;
 use Error;
-use File;
 use MediaHandlerFactory;
+use MediaWiki\FileRepo\File\ArchivedFile;
+use MediaWiki\FileRepo\File\File;
 use Psr\Log\LoggerInterface;
 
 class MediaModerationFileProcessor {

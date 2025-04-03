@@ -2,7 +2,7 @@
 
 namespace MediaWiki\Extension\MediaModeration\Tests\Integration;
 
-use File;
+use MediaWiki\FileRepo\File\File;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Tests\Unit\Permissions\MockAuthorityTrait;
 use Wikimedia\Rdbms\IDatabase;

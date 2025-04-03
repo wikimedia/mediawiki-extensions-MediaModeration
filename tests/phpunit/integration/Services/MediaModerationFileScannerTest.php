@@ -2,7 +2,6 @@
 
 namespace MediaWiki\Extension\MediaModeration\Tests\Integration\Services;
 
-use File;
 use MediaWiki\Extension\MediaModeration\PhotoDNA\Response;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseManager;
@@ -11,6 +10,7 @@ use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileLookup;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileProcessor;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileScanner;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationPhotoDNAServiceProvider;
+use MediaWiki\FileRepo\File\File;
 use MediaWiki\Status\StatusFormatter;
 use MediaWiki\Tests\Unit\MockServiceDependenciesTrait;
 use MediaWikiIntegrationTestCase;
