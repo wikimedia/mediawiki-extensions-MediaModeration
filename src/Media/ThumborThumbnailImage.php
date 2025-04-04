@@ -2,7 +2,7 @@
 
 namespace MediaWiki\Extension\MediaModeration\Media;
 
-use File;
+use MediaWiki\FileRepo\File\File;
 use ThumbnailImage;
 
 /**

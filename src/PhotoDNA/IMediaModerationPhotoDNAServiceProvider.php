@@ -2,8 +2,8 @@
 
 namespace MediaWiki\Extension\MediaModeration\PhotoDNA;
 
-use ArchivedFile;
-use File;
+use MediaWiki\FileRepo\File\ArchivedFile;
+use MediaWiki\FileRepo\File\File;
 use StatusValue;
 
 interface IMediaModerationPhotoDNAServiceProvider {

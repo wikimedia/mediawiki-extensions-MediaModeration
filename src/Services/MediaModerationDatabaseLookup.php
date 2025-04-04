@@ -2,8 +2,8 @@
 
 namespace MediaWiki\Extension\MediaModeration\Services;
 
-use ArchivedFile;
-use File;
+use MediaWiki\FileRepo\File\ArchivedFile;
+use MediaWiki\FileRepo\File\File;
 use Wikimedia\Rdbms\IConnectionProvider;
 use Wikimedia\Rdbms\IDBAccessObject;
 use Wikimedia\Rdbms\IReadableDatabase;

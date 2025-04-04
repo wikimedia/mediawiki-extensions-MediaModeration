@@ -2,11 +2,11 @@
 
 namespace MediaWiki\Extension\MediaModeration\Services;
 
-use ArchivedFile;
-use File;
-use LocalFile;
 use MailAddress;
 use MediaWiki\Config\ServiceOptions;
+use MediaWiki\FileRepo\File\ArchivedFile;
+use MediaWiki\FileRepo\File\File;
+use MediaWiki\FileRepo\File\LocalFile;
 use MediaWiki\Html\Html;
 use MediaWiki\Language\Language;
 use MediaWiki\Mail\IEmailer;

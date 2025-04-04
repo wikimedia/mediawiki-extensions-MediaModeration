@@ -2,9 +2,9 @@
 
 namespace MediaWiki\Extension\MediaModeration\Tests\Integration\Services;
 
-use File;
 use MediaWiki\Api\ApiRawMessage;
 use MediaWiki\Extension\MediaModeration\PhotoDNA\IMediaModerationPhotoDNAServiceProvider;
+use MediaWiki\FileRepo\File\File;
 use MediaWiki\Json\FormatJson;
 use MediaWiki\Status\Status;
 use MediaWiki\User\User;

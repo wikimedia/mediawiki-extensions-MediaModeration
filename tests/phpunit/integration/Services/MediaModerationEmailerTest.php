@@ -2,8 +2,8 @@
 
 namespace MediaWiki\Extension\MediaModeration\Tests\Integration\Services;
 
-use File;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileLookup;
+use MediaWiki\FileRepo\File\File;
 use MediaWiki\MainConfigNames;
 use MediaWikiIntegrationTestCase;
 use Wikimedia\TestingAccessWrapper;

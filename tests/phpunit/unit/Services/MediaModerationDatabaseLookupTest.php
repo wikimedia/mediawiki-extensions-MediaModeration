@@ -2,9 +2,9 @@
 
 namespace MediaWiki\Extension\MediaModeration\Tests\Unit\Services;
 
-use ArchivedFile;
-use File;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
+use MediaWiki\FileRepo\File\ArchivedFile;
+use MediaWiki\FileRepo\File\File;
 use MediaWiki\Tests\Unit\MockServiceDependenciesTrait;
 use MediaWikiUnitTestCase;
 use Wikimedia\Rdbms\Expression;

@@ -2,15 +2,15 @@
 
 namespace MediaWiki\Extension\MediaModeration\Tests\Integration\Services;
 
-use ArchivedFile;
-use File;
-use LocalRepo;
 use MediaTransformError;
 use MediaWiki\Config\HashConfig;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Extension\MediaModeration\Exception\RuntimeException;
 use MediaWiki\Extension\MediaModeration\Media\ThumborThumbnailImage;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationImageContentsLookup;
+use MediaWiki\FileRepo\File\ArchivedFile;
+use MediaWiki\FileRepo\File\File;
+use MediaWiki\FileRepo\LocalRepo;
 use MediaWiki\Http\HttpRequestFactory;
 use MediaWiki\Language\RawMessage;
 use MediaWiki\Tests\Unit\MockServiceDependenciesTrait;
