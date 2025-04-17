@@ -3,9 +3,9 @@
 namespace MediaWiki\Extension\MediaModeration\Tests\Integration\Maintenance;
 
 use MediaWiki\Extension\MediaModeration\Maintenance\UpdateMetrics;
+use MediaWiki\MainConfigNames;
 use MediaWiki\Tests\Maintenance\MaintenanceBaseTestCase;
-use MediaWiki\WikiMap\WikiMap;
-use Wikimedia\Stats\Metrics\GaugeMetric;
+use Wikimedia\Stats\StatsFactory;
 
 /**
  * Test class for the updateMetrics.php maintenance script.
@@ -27,43 +27,35 @@ class UpdateMetricsTest extends MaintenanceBaseTestCase {
 		return UpdateMetrics::class;
 	}
 
-	/** @dataProvider provideExecute */
-	public function testExecute( $expectedGaugeReturnMap ) {
+	public function testExecute() {
+		$statsHelper = StatsFactory::newUnitTestingHelper();
+		$this->setService( 'StatsFactory', $statsHelper->getStatsFactory() );
+		$this->overrideConfigValues( [
+			MainConfigNames::DBname => 'example',
+			MainConfigNames::DBmwschema => null,
+			MainConfigNames::DBprefix => ''
+		] );
+
 		$this->maintenance->setOption( 'verbose', 1 );
 		$this->maintenance->execute();
-		$expectedOutput = '';
-		foreach ( $expectedGaugeReturnMap as $expectedMetricData ) {
-			// Check that the StatsFactory gauge was set correctly.
-			$metric = $this->getServiceContainer()
-				->getStatsFactory()
-				->withComponent( 'MediaModeration' )
-				->getGauge( $expectedMetricData[0] );
 
-			$samples = $metric->getSamples();
+		$this->expectOutputString( <<<TEXT
+			scan_table_total is 8.
+			scan_table_scanned_total is 3.
+			scan_table_unscanned_total is 5.
+			scan_table_unscanned_with_last_checked_defined_total is 1.
 
-			$this->assertInstanceOf( GaugeMetric::class, $metric );
-			$this->assertSame( 1, $metric->getSampleCount() );
-			$this->assertSame( floatval( $expectedMetricData[1] ), $samples[0]->getValue() );
-			$actualLabels = array_combine( $metric->getLabelKeys(), $samples[0]->getLabelValues() );
-			$this->assertSame(
-				[ 'wiki' => rtrim( strtr( WikiMap::getCurrentWikiId(), [ '-' => '_' ] ), '_' ) ],
-				$actualLabels
-			);
-
-			$expectedOutput .= $expectedMetricData[0] . ' is ' . $expectedMetricData[1] . '.' . PHP_EOL;
-		}
-		$this->expectOutputString( $expectedOutput );
-	}
-
-	public static function provideExecute() {
-		return [
-			'Expected execute behaviour based on test data' => [ [
-				[ 'scan_table_total', 8, null ],
-				[ 'scan_table_scanned_total', 3, null ],
-				[ 'scan_table_unscanned_total', 5, null ],
-				[ 'scan_table_unscanned_with_last_checked_defined_total', 1, null ],
-			] ],
-		];
+			TEXT
+		);
+		$this->assertSame(
+			[
+				'mediawiki.MediaModeration.scan_table_total:8|g|#wiki:example',
+				'mediawiki.MediaModeration.scan_table_scanned_total:3|g|#wiki:example',
+				'mediawiki.MediaModeration.scan_table_unscanned_total:5|g|#wiki:example',
+				'mediawiki.MediaModeration.scan_table_unscanned_with_last_checked_defined_total:1|g|#wiki:example',
+			],
+			$statsHelper->consumeAllFormatted()
+		);
 	}
 
 	public function addDBData() {
