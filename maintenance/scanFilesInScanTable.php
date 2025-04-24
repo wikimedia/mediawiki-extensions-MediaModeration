@@ -2,12 +2,12 @@
 
 namespace MediaWiki\Extension\MediaModeration\Maintenance;
 
-use JobQueueError;
-use JobQueueGroup;
-use JobSpecification;
 use MediaWiki\Context\RequestContext;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileScanner;
+use MediaWiki\JobQueue\Exceptions\JobQueueError;
+use MediaWiki\JobQueue\JobQueueGroup;
+use MediaWiki\JobQueue\JobSpecification;
 use MediaWiki\Maintenance\Maintenance;
 use MediaWiki\Status\StatusFormatter;
 use StatusValue;

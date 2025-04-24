@@ -2,10 +2,10 @@
 
 namespace MediaWiki\Extension\MediaModeration\Services;
 
-use ArchivedFile;
 use InvalidArgumentException;
-use LocalFile;
-use LocalRepo;
+use MediaWiki\FileRepo\File\ArchivedFile;
+use MediaWiki\FileRepo\File\LocalFile;
+use MediaWiki\FileRepo\LocalRepo;
 
 /**
  * A service that allows creating File or ArchivedFile objects

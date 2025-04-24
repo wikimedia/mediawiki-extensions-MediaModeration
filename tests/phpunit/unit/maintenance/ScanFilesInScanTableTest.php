@@ -3,12 +3,12 @@
 namespace MediaWiki\Extension\MediaModeration\Tests\Unit\Maintenance;
 
 use Generator;
-use IJobSpecification;
-use JobQueueError;
-use JobQueueGroup;
 use MediaWiki\Extension\MediaModeration\Maintenance\ScanFilesInScanTable;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileScanner;
+use MediaWiki\JobQueue\Exceptions\JobQueueError;
+use MediaWiki\JobQueue\IJobSpecification;
+use MediaWiki\JobQueue\JobQueueGroup;
 use MediaWiki\Language\RawMessage;
 use MediaWiki\Status\StatusFormatter;
 use MediaWiki\Tests\Unit\MockServiceDependenciesTrait;

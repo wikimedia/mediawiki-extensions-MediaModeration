@@ -2,8 +2,8 @@
 
 namespace MediaWiki\Extension\MediaModeration\Job;
 
-use Job;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileScanner;
+use MediaWiki\JobQueue\Job;
 
 class MediaModerationScanFileJob extends Job {
 	private MediaModerationFileScanner $mediaModerationFileScanner;

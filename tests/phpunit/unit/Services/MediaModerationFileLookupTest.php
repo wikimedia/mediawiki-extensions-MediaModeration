@@ -3,10 +3,10 @@
 namespace MediaWiki\Extension\MediaModeration\Tests\Unit\Services;
 
 use InvalidArgumentException;
-use LocalFile;
-use LocalRepo;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileFactory;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileLookup;
+use MediaWiki\FileRepo\File\LocalFile;
+use MediaWiki\FileRepo\LocalRepo;
 use MediaWiki\Tests\Unit\MockServiceDependenciesTrait;
 use MediaWikiUnitTestCase;
 use Wikimedia\Rdbms\FakeResultWrapper;

@@ -3,9 +3,9 @@
 namespace MediaWiki\Extension\MediaModeration\Tests\Unit\Services;
 
 use InvalidArgumentException;
-use LocalFile;
-use LocalRepo;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileFactory;
+use MediaWiki\FileRepo\File\LocalFile;
+use MediaWiki\FileRepo\LocalRepo;
 use MediaWiki\Tests\Unit\MockServiceDependenciesTrait;
 use MediaWikiUnitTestCase;
 
