@@ -77,24 +77,24 @@ class MediaModerationImageContentsLookupTest extends MediaWikiIntegrationTestCas
 	}
 
 	/** @dataProvider provideGetThumbnailForFileOnFailure */
-	public function testGetThumbnailForFileOnFailure( $thumbnailClassName ) {
+	public function testGetThumbnailForFileOnFailure( $thumbnailOrThumbnailClassName ) {
 		// If $thumbnail is false, then return false from ::transform.
 		// Otherwise return a mock of that class.
-		if ( $thumbnailClassName ) {
-			$thumbnail = $this->createMock( $thumbnailClassName );
-			if ( $thumbnailClassName === MediaTransformError::class ) {
+		if ( is_string( $thumbnailOrThumbnailClassName ) ) {
+			$thumbnail = $this->createMock( $thumbnailOrThumbnailClassName );
+			if ( $thumbnailOrThumbnailClassName === MediaTransformError::class ) {
 				// If the class name is MediaTransformError, then define
 				// ::toText as it is called when getting the exception message.
 				$thumbnail->method( 'toText' )
 					->willReturn( 'test' );
-			} elseif ( $thumbnailClassName === ThumbnailImage::class ) {
+			} elseif ( $thumbnailOrThumbnailClassName === ThumbnailImage::class ) {
 				// If the class name is ThumbnailImage, then get hasFile
 				// to return false to cause an exception.
 				$thumbnail->method( 'hasFile' )
 					->willReturn( false );
 			}
 		} else {
-			$thumbnail = $thumbnailClassName;
+			$thumbnail = $thumbnailOrThumbnailClassName;
 		}
 		// Define a mock File class that returns a pre-defined ::getName
 		$mockFile = $this->createMock( File::class );
@@ -139,6 +139,15 @@ class MediaModerationImageContentsLookupTest extends MediaWikiIntegrationTestCas
 			'::transform returns an unexpected class' => [ RuntimeException::class ],
 			'::transform returns ThumbnailImage with ::hasFile as false' => [ ThumbnailImage::class ],
 		];
+	}
+
+	public function testGetThumbnailForFileWhenLocalCopyPathReturnsFalse() {
+		$thumbnail = $this->createMock( ThumbnailImage::class );
+		$thumbnail->method( 'hasFile' )
+			->willReturn( true );
+		$thumbnail->method( 'getLocalCopyPath' )
+			->willReturn( false );
+		$this->testGetThumbnailForFileOnFailure( $thumbnail );
 	}
 
 	/** @dataProvider provideGetThumbnailForFileForDifferentExpectedThumbnailWidths */
@@ -285,6 +294,8 @@ class MediaModerationImageContentsLookupTest extends MediaWikiIntegrationTestCas
 		$thumbnail = $this->createMock( ThumbnailImage::class );
 		$thumbnail->method( 'hasFile' )
 			->willReturn( true );
+		$thumbnail->method( 'getLocalCopyPath' )
+			->willReturn( 'abc' );
 		// Define a mock File class that returns a pre-defined ::getName
 		$mockFile = $this->createMock( File::class );
 		$mockFile->method( 'getName' )

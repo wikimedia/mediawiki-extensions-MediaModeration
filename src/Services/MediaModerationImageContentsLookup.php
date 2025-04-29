@@ -344,6 +344,10 @@ class MediaModerationImageContentsLookup {
 			$returnStatus->fatal( new RawMessage(
 				$genericErrorMessage . ', got a ' . get_class( $thumbnail ) . ' but ::hasFile() returns false.'
 			) );
+		} elseif ( !$thumbnail->getLocalCopyPath() ) {
+			$returnStatus->fatal( new RawMessage(
+				$genericErrorMessage . ', got a ' . get_class( $thumbnail ) . ' but ::getLocalCopyPath returns false.'
+			) );
 		} else {
 			$returnStatus = $returnStatus->setResult( true, $thumbnail );
 		}
