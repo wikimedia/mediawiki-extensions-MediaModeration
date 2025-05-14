@@ -27,7 +27,7 @@ class MediaModerationPhotoDNAServiceProviderTest extends MediaWikiIntegrationTes
 	use MediaModerationStatsFactoryHelperTestTrait;
 
 	public function testCheck() {
-		$this->overrideConfigValue( 'MediaModerationPhotoDNASubscriptionKey', '' );
+		$this->overrideConfigValue( 'MediaModerationPhotoDNASubscriptionKey', 'testing-abc' );
 		$mwHttpRequest = $this->createMock( MWHttpRequest::class );
 		$mwHttpRequest->method( 'execute' )
 			->willReturn( StatusValue::newGood() );
@@ -54,7 +54,7 @@ class MediaModerationPhotoDNAServiceProviderTest extends MediaWikiIntegrationTes
 	}
 
 	public function testCheckWithHttpError() {
-		$this->overrideConfigValue( 'MediaModerationPhotoDNASubscriptionKey', '' );
+		$this->overrideConfigValue( 'MediaModerationPhotoDNASubscriptionKey', 'test-abc' );
 		$mwHttpRequest = $this->createMock( MWHttpRequest::class );
 		$mwHttpRequest->method( 'execute' )
 			->willReturn( Status::wrap( StatusValue::newFatal( new ApiRawMessage( 'Some error' ) ) ) );
@@ -80,7 +80,7 @@ class MediaModerationPhotoDNAServiceProviderTest extends MediaWikiIntegrationTes
 	}
 
 	public function testCheckWithHttpErrorNoJson() {
-		$this->overrideConfigValue( 'MediaModerationPhotoDNASubscriptionKey', '' );
+		$this->overrideConfigValue( 'MediaModerationPhotoDNASubscriptionKey', 'test-abc' );
 		$mwHttpRequest = $this->createMock( MWHttpRequest::class );
 		$mwHttpRequest->method( 'execute' )
 			->willReturn( Status::wrap( StatusValue::newFatal( new ApiRawMessage( 'Some error' ) ) ) );
@@ -109,7 +109,7 @@ class MediaModerationPhotoDNAServiceProviderTest extends MediaWikiIntegrationTes
 	}
 
 	public function testCheckWithHttpErrorInvalidJson() {
-		$this->overrideConfigValue( 'MediaModerationPhotoDNASubscriptionKey', '' );
+		$this->overrideConfigValue( 'MediaModerationPhotoDNASubscriptionKey', 'test-abc' );
 		$mwHttpRequest = $this->createMock( MWHttpRequest::class );
 		$mwHttpRequest->method( 'execute' )
 			->willReturn( Status::wrap( StatusValue::newGood() ) );

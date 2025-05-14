@@ -2,6 +2,7 @@
 
 namespace MediaWiki\Extension\MediaModeration\Services;
 
+use LogicException;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Extension\MediaModeration\PhotoDNA\IMediaModerationPhotoDNAServiceProvider;
 use MediaWiki\Extension\MediaModeration\PhotoDNA\MediaModerationPhotoDNAResponseHandler;
@@ -142,6 +143,10 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 	 * @return StatusValue
 	 */
 	private function getRequest( $file ): StatusValue {
+		if ( !$this->photoDNASubscriptionKey ) {
+			throw new LogicException( '$wgMediaModerationPhotoDNASubscriptionKey API key is not set' );
+		}
+
 		$imageContentsStatus = $this->mediaModerationImageContentsLookup->getImageContents( $file );
 		if ( !$imageContentsStatus->isOK() ) {
 			// Hide the thumbnail contents and mime type from the caller of ::getRequest by

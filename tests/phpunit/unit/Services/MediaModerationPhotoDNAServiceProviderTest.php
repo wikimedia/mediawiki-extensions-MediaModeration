@@ -2,6 +2,7 @@
 
 namespace MediaWiki\Extension\MediaModeration\Tests\Unit\Services;
 
+use LogicException;
 use MediaWiki\Config\HashConfig;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationImageContentsLookup;
@@ -28,6 +29,22 @@ class MediaModerationPhotoDNAServiceProviderTest extends MediaWikiUnitTestCase {
 		'MediaModerationHttpProxy' => '',
 	];
 
+	public function testGetRequestWhenPhotoDNAApiKeyUnset() {
+		// Call the method under test
+		/** @var MediaModerationPhotoDNAServiceProvider $objectUnderTest */
+		$objectUnderTest = $this->newServiceInstance(
+			MediaModerationPhotoDNAServiceProvider::class,
+			[
+				'options' => new ServiceOptions(
+					MediaModerationPhotoDNAServiceProvider::CONSTRUCTOR_OPTIONS,
+					new HashConfig( self::CONSTRUCTOR_OPTIONS_DEFAULTS )
+				)
+			]
+		);
+		$this->expectException( LogicException::class );
+		$objectUnderTest->check( $this->createMock( File::class ) );
+	}
+
 	public function testCheckOnFailedImageContentsLookup() {
 		$mockFile = $this->createMock( File::class );
 		// Create a mock MediaModerationImageContentsLookup service that always returns a status with a fatal error.
@@ -42,7 +59,11 @@ class MediaModerationPhotoDNAServiceProviderTest extends MediaWikiUnitTestCase {
 			[
 				'options' => new ServiceOptions(
 					MediaModerationPhotoDNAServiceProvider::CONSTRUCTOR_OPTIONS,
-					new HashConfig( self::CONSTRUCTOR_OPTIONS_DEFAULTS )
+					new HashConfig( [
+						'MediaModerationPhotoDNAUrl' => 'photo-dna-url-test',
+						'MediaModerationPhotoDNASubscriptionKey' => 'photo-dna-key-test',
+						'MediaModerationHttpProxy' => 'photo-dna-proxy-test',
+					] )
 				),
 				'mediaModerationImageContentsLookup' => $mockMediaModerationImageContentsLookup
 			]
