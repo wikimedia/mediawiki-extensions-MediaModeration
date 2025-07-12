@@ -78,7 +78,7 @@ class PopulateImageTables extends Maintenance {
 				} else {
 					$this->error( "... unable to perform upload.\n" );
 				}
-			} catch ( Error $error ) {
+			} catch ( Error ) {
 				$this->error( "... unable to import\n" );
 			}
 		}

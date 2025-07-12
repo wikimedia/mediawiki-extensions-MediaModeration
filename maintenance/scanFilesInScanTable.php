@@ -117,7 +117,7 @@ class ScanFilesInScanTable extends Maintenance {
 						'mediaModerationScanFileJob',
 						[ 'sha1' => $sha1 ]
 					) );
-				} catch ( JobQueueError $e ) {
+				} catch ( JobQueueError ) {
 					// If the job failed to be inserted, then catch the exception and sleep as this can occur if the
 					// server is experiencing instability.
 					sleep( intval( $this->getOption( 'sleep', 1 ) ) );
