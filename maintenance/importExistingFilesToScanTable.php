@@ -11,11 +11,13 @@ use MediaWiki\Maintenance\LoggedUpdateMaintenance;
 use Wikimedia\Rdbms\IReadableDatabase;
 use Wikimedia\Rdbms\SelectQueryBuilder;
 
+// @codeCoverageIgnoreStart
 $IP = getenv( 'MW_INSTALL_PATH' );
 if ( $IP === false ) {
 	$IP = __DIR__ . '/../../..';
 }
 require_once "$IP/maintenance/Maintenance.php";
+// @codeCoverageIgnoreEnd
 
 class ImportExistingFilesToScanTable extends LoggedUpdateMaintenance {
 
@@ -391,5 +393,7 @@ class ImportExistingFilesToScanTable extends LoggedUpdateMaintenance {
 	}
 }
 
+// @codeCoverageIgnoreStart
 $maintClass = ImportExistingFilesToScanTable::class;
 require_once RUN_MAINTENANCE_IF_MAIN;
+// @codeCoverageIgnoreEnd

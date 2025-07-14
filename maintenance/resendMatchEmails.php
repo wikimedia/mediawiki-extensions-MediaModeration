@@ -12,11 +12,13 @@ use Wikimedia\Rdbms\IDBAccessObject;
 use Wikimedia\Rdbms\SelectQueryBuilder;
 use Wikimedia\Timestamp\ConvertibleTimestamp;
 
+// @codeCoverageIgnoreStart
 $IP = getenv( 'MW_INSTALL_PATH' );
 if ( $IP === false ) {
 	$IP = __DIR__ . '/../../..';
 }
 require_once "$IP/maintenance/Maintenance.php";
+// @codeCoverageIgnoreEnd
 
 /**
  * Re-sends emails for SHA-1 values determined to be a match for files from a given timestamp.
@@ -184,5 +186,7 @@ class ResendMatchEmails extends Maintenance {
 	}
 }
 
+// @codeCoverageIgnoreStart
 $maintClass = ResendMatchEmails::class;
 require_once RUN_MAINTENANCE_IF_MAIN;
+// @codeCoverageIgnoreEnd
