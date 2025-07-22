@@ -22,37 +22,26 @@ namespace MediaWiki\Extension\MediaModeration\Hooks\Handlers;
 
 use MediaWiki\Config\Config;
 use MediaWiki\Deferred\DeferredUpdates;
+use MediaWiki\Extension\MediaModeration\Deferred\InsertFileOnUploadUpdate;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationEmailer;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileProcessor;
 use MediaWiki\Hook\UploadCompleteHook;
 use MediaWiki\Logger\LoggerFactory;
 use Psr\Log\LoggerInterface;
+use Wikimedia\Rdbms\LBFactory;
 
 class UploadCompleteHandler implements UploadCompleteHook {
 
-	private MediaModerationFileProcessor $mediaModerationFileProcessor;
-	private MediaModerationDatabaseLookup $mediaModerationDatabaseLookup;
-	private MediaModerationEmailer $mediaModerationEmailer;
 	private LoggerInterface $logger;
-	private Config $config;
 
-	/**
-	 * @param MediaModerationFileProcessor $mediaModerationFileProcessor
-	 * @param MediaModerationDatabaseLookup $mediaModerationDatabaseLookup
-	 * @param MediaModerationEmailer $mediaModerationEmailer
-	 * @param Config $config
-	 */
 	public function __construct(
-		MediaModerationFileProcessor $mediaModerationFileProcessor,
-		MediaModerationDatabaseLookup $mediaModerationDatabaseLookup,
-		MediaModerationEmailer $mediaModerationEmailer,
-		Config $config
+		private readonly MediaModerationFileProcessor $mediaModerationFileProcessor,
+		private readonly MediaModerationDatabaseLookup $mediaModerationDatabaseLookup,
+		private readonly MediaModerationEmailer $mediaModerationEmailer,
+		private readonly LBFactory $lbFactory,
+		private readonly Config $config
 	) {
-		$this->mediaModerationFileProcessor = $mediaModerationFileProcessor;
-		$this->mediaModerationDatabaseLookup = $mediaModerationDatabaseLookup;
-		$this->mediaModerationEmailer = $mediaModerationEmailer;
-		$this->config = $config;
 		$this->logger = LoggerFactory::getInstance( 'mediamoderation' );
 	}
 
@@ -62,21 +51,27 @@ class UploadCompleteHandler implements UploadCompleteHook {
 		if ( $file === null ) {
 			// This should not happen, but if the $file is null then log this as a warning.
 			$this->logger->warning( 'UploadBase::getLocalFile is null on run of UploadComplete hook.' );
-		} elseif ( $this->config->get( 'MediaModerationAddToScanTableOnUpload' ) ) {
-			// If the $file is not null, then process the file on POSTSEND.
-			DeferredUpdates::addCallableUpdate( function () use ( $file ) {
-				if (
-					$this->mediaModerationDatabaseLookup->fileExistsInScanTable( $file ) &&
-					$this->mediaModerationDatabaseLookup->getMatchStatusForSha1( $file->getSha1() )
-				) {
-					// Send an email for just this file if the SHA-1 is already marked as a match.
-					// Previously uploaded files that match this SHA-1 have already been sent via email,
-					// so sending them again is unnecessary.
-					$this->mediaModerationEmailer->sendEmailForSha1( $file->getSha1(), $file->getTimestamp() );
-				}
-				// Add the file to the scan table if it doesn't already exist.
-				$this->mediaModerationFileProcessor->insertFile( $file );
-			} );
+			return;
+		}
+
+		// Send an email for just this file if the SHA-1 is already marked as a match.
+		// Previously uploaded files that match this SHA-1 have already been sent via email,
+		// so sending them again is unnecessary.
+		if (
+			$this->mediaModerationDatabaseLookup->fileExistsInScanTable( $file ) &&
+			$this->mediaModerationDatabaseLookup->getMatchStatusForSha1( $file->getSha1() )
+		) {
+			$this->mediaModerationEmailer->sendEmailForSha1( $file->getSha1(), $file->getTimestamp() );
+			return;
+		}
+
+		// Add the image to the mediamoderation_scan table if adding to the table on upload is configured.
+		if ( $this->config->get( 'MediaModerationAddToScanTableOnUpload' ) ) {
+			DeferredUpdates::addUpdate( new InsertFileOnUploadUpdate(
+				$this->mediaModerationFileProcessor,
+				$this->lbFactory,
+				$file
+			) );
 		}
 	}
 }

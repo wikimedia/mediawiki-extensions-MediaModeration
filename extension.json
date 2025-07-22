@@ -37,6 +37,7 @@
 				"MediaModerationFileProcessor",
 				"MediaModerationDatabaseLookup",
 				"MediaModerationEmailer",
+				"DBLoadBalancerFactory",
 				"MainConfig"
 			]
 		},
@@ -49,6 +50,13 @@
 			"class": "MediaWiki\\Extension\\MediaModeration\\Job\\MediaModerationScanFileJob",
 			"services": [
 				"MediaModerationFileScanner"
+			],
+			"needsPage": false
+		},
+		"mediaModerationInsertFileOnUploadJob": {
+			"class": "MediaWiki\\Extension\\MediaModeration\\Job\\MediaModerationInsertFileOnUploadJob",
+			"services": [
+				"MediaModerationDatabaseManager"
 			],
 			"needsPage": false
 		}

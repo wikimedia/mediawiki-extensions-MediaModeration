@@ -31,10 +31,12 @@ use MediaWiki\Tests\Unit\MockServiceDependenciesTrait;
 use MediaWikiUnitTestCase;
 use Psr\Log\LoggerInterface;
 use UploadBase;
+use Wikimedia\Rdbms\LBFactory;
 use Wikimedia\TestingAccessWrapper;
 
 /**
  * @covers MediaWiki\Extension\MediaModeration\Hooks\Handlers\UploadCompleteHandler
+ * @covers \MediaWiki\Extension\MediaModeration\Deferred\InsertFileOnUploadUpdate
  * @group MediaModeration
  */
 class UploadCompleteHandlerTest extends MediaWikiUnitTestCase {
@@ -53,10 +55,10 @@ class UploadCompleteHandlerTest extends MediaWikiUnitTestCase {
 		$mockLogger = $this->createMock( LoggerInterface::class );
 		$mockLogger->expects( $this->never() )
 			->method( 'warning' );
-		// Expect that the MediaModerationFileProcessor::insertFile method is called once
-		// with the mock file provided as the only argument.
+		// Expect that the MediaModerationFileProcessor::insertFile method is called once if the file is not already
+		// scanned as a match.
 		$mockMediaModerationFileProcessor = $this->createMock( MediaModerationFileProcessor::class );
-		$mockMediaModerationFileProcessor->expects( $this->once() )
+		$mockMediaModerationFileProcessor->expects( $sha1IsAlreadyAMatch ? $this->never() : $this->once() )
 			->method( 'insertFile' )
 			->with( $mockFile );
 		// Expect that MediaModerationDatabaseLookup::fileExistsInScanTable is called once
@@ -79,6 +81,7 @@ class UploadCompleteHandlerTest extends MediaWikiUnitTestCase {
 			$mockMediaModerationFileProcessor,
 			$mockMediaModerationDatabaseLookup,
 			$mockMediaModerationEmailer,
+			$this->createMock( LBFactory::class ),
 			new HashConfig( [ 'MediaModerationAddToScanTableOnUpload' => true ] )
 		);
 		// As the logger is created in the constructor, re-assign it to the mock

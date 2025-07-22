@@ -27,13 +27,37 @@ class MediaModerationDatabaseManager {
 	 * not already exist.
 	 *
 	 * @param File|ArchivedFile $file The file to be added to the mediamoderation_scan table.
-	 * @return void
 	 */
-	public function insertFileToScanTable( $file ) {
+	public function insertFileToScanTable( File|ArchivedFile $file ): void {
 		if ( !$this->mediaModerationDatabaseLookup->fileExistsInScanTable(
 			$file, IDBAccessObject::READ_LATEST
 		) ) {
 			$this->insertToScanTableInternal( $file );
+		}
+	}
+
+	/**
+	 * Adds the given SHA-1 value to the mediamoderation_scan table if it is not already in the table.
+	 *
+	 * If you have a {@link File} object, you should then use
+	 * {@link MediaModerationDatabaseManager::insertFileToScanTable} instead.
+	 *
+	 * @param string $sha1 The SHA-1 of the file
+	 */
+	public function insertSha1ToScanTable( string $sha1 ): void {
+		$rowExists = $this->dbw->newSelectQueryBuilder()
+			->select( '1' )
+			->from( 'mediamoderation_scan' )
+			->where( [ 'mms_sha1' => $sha1 ] )
+			->caller( __METHOD__ )
+			->fetchField();
+
+		if ( !$rowExists ) {
+			$this->dbw->newInsertQueryBuilder()
+				->insert( 'mediamoderation_scan' )
+				->row( [ 'mms_sha1' => $sha1 ] )
+				->caller( __METHOD__ )
+				->execute();
 		}
 	}
 
