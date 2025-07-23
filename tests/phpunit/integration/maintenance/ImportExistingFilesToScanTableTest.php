@@ -59,38 +59,15 @@ class ImportExistingFilesToScanTableTest extends MaintenanceBaseTestCase {
 	}
 
 	public function testExecuteWithInvalidTableProvided() {
-		/** @var TestingAccessWrapper $maintenance */
-		$maintenance = $this->maintenance;
-		// Set sleep as 0, otherwise the tests will take ages.
-		$maintenance->setOption( 'sleep', 0 );
-		// Set the 'table' option to include an unsupported table.
-		$maintenance->setOption( 'table', [ 'image', 'invalidtable', 'oldimage' ] );
-		// Run the maintenance script
-		$maintenance->execute();
+		$this->maintenance->setOption( 'sleep', 0 );
+
+		// Execute the maintenance script with an invalid table provided and expect a fatal error
+		$this->maintenance->setOption( 'table', [ 'image', 'invalidtable', 'oldimage' ] );
 		$this->expectOutputString(
 			"The table option value 'invalidtable' is not a valid table to import images from.\n\n"
 		);
-		// Expect no rows in mediamoderation_scan, as the import should have added nothing.
-		$this->assertSame(
-			0,
-			(int)$this->getDb()->newSelectQueryBuilder()
-				->select( 'COUNT(*)' )
-				->table( 'mediamoderation_scan' )
-				->caller( __METHOD__ )
-				->fetchField(),
-			'The importExistingFilesToScanTable.php maintenance script added rows to mediamoderation_scan ' .
-			'when no rows existed in the image, oldimage, or filearchive tables.'
-		);
-		// Should have no row in the updatelog
-		$this->assertSame(
-			0,
-			(int)$this->getDb()->newSelectQueryBuilder()
-				->select( 'COUNT(*)' )
-				->table( 'updatelog' )
-				->caller( __METHOD__ )
-				->fetchField(),
-			'The updatelog table should be empty as the script was not run.'
-		);
+		$this->expectCallToFatalError();
+		$this->maintenance->execute();
 	}
 
 	/** @dataProvider provideExecuteWithMarkCompleteSpecified */
@@ -152,12 +129,24 @@ class ImportExistingFilesToScanTableTest extends MaintenanceBaseTestCase {
 	}
 
 	public function testExecuteWhenInvalidTableProvided() {
-		// Set sleep as 0, otherwise the tests will take ages.
 		$this->maintenance->setOption( 'sleep', 0 );
-		// Execute the maintenance script with an empty tables list
+
+		// Execute the maintenance script with an empty tables list and expect a fatal error
+		$this->expectCallToFatalError();
+		$this->expectOutputRegex( "/The array of tables to have images imported from cannot be empty/" );
 		$this->maintenance->setOption( 'table', [] );
 		$this->maintenance->execute();
-		// Expect that an error is displayed
-		$this->expectOutputRegex( "/The array of tables to have images imported from cannot be empty/" );
+	}
+
+	public function testExecuteWhenStartTimestampInvalid() {
+		$this->maintenance->setOption( 'sleep', 0 );
+
+		// Execute the maintenance script with a invalid start-timestamp option value and expect a fatal error
+		$this->expectCallToFatalError();
+		$this->expectOutputRegex(
+			'/start-timestamp could not be parsed as either a valid absolute or relative timestamp/'
+		);
+		$this->maintenance->setOption( 'start-timestamp', 'invalid timestamp abc' );
+		$this->maintenance->execute();
 	}
 }

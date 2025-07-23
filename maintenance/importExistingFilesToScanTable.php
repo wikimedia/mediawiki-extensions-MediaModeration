@@ -10,6 +10,7 @@ use MediaWiki\FileRepo\File\FileSelectQueryBuilder;
 use MediaWiki\Maintenance\LoggedUpdateMaintenance;
 use Wikimedia\Rdbms\IReadableDatabase;
 use Wikimedia\Rdbms\SelectQueryBuilder;
+use Wikimedia\Timestamp\ConvertibleTimestamp;
 
 // @codeCoverageIgnoreStart
 $IP = getenv( 'MW_INSTALL_PATH' );
@@ -46,8 +47,8 @@ class ImportExistingFilesToScanTable extends LoggedUpdateMaintenance {
 		);
 		$this->addOption(
 			'start-timestamp',
-			'The timestamp which to start importing files from. Default is for no timestamp start point ' .
-			'(which means importing all images)',
+			'The timestamp which to start importing files from. Can also be a relative timestamp. ' . '
+			Default is for no timestamp start point (which means importing all images).',
 			false,
 			true
 		);
@@ -82,24 +83,40 @@ class ImportExistingFilesToScanTable extends LoggedUpdateMaintenance {
 		$this->mediaModerationDatabaseLookup = $services->get( 'MediaModerationDatabaseLookup' );
 		$this->mediaModerationFileLookup = $services->get( 'MediaModerationFileLookup' );
 
-		// Get the list of tables to import images from.
-		$tablesToProcess = $this->getTablesToProcess();
-		if ( $tablesToProcess === false ) {
-			// If the value is false, then return false
-			// as this indicates the script did not run.
-			return false;
-		}
+		$startTimestamp = $this->getOption( 'start-timestamp', '' );
+		if ( $startTimestamp ) {
+			$startTimestamp = ConvertibleTimestamp::convert( TS_MW, $this->getOption( 'start-timestamp', '' ) );
+			if ( $startTimestamp === false && $this->getOption( 'start-timestamp', '' ) !== '' ) {
+				// If it could not be parsed by ConvertibleTimestamp, then try parsing it through strtotime in case
+				// it is a relative timestamp
+				$startTimestamp = strtotime( $this->getOption( 'start-timestamp', '' ), ConvertibleTimestamp::time() );
+				if ( $startTimestamp !== false ) {
+					$startTimestamp = ConvertibleTimestamp::convert( TS_MW, $startTimestamp );
+				}
+			}
 
-		foreach ( $tablesToProcess as $table ) {
-			$batchSize = $this->getBatchSize() ?? 200;
-			$this->output( "Now importing rows from the table '$table' in batches of $batchSize.\n" );
-			$previousBatchFinalTimestamp = $this->getOption( 'start-timestamp', '' );
-			if ( $previousBatchFinalTimestamp ) {
-				$this->output(
-					"Starting from timestamp $previousBatchFinalTimestamp and importing files with a " .
-					"greater timestamp.\n"
+			if ( !$startTimestamp ) {
+				$this->fatalError(
+					'--start-timestamp could not be parsed as either a valid absolute or relative timestamp'
 				);
 			}
+		}
+
+		// Phan false positive. We validated the --start-timestamp value above. It can either be an empty string
+		// or a valid timestamp as a string.
+		'@phan-var string $startTimestamp';
+
+		foreach ( $this->getTablesToProcess() as $table ) {
+			$batchSize = $this->getBatchSize() ?? 200;
+			$this->output( "Now importing rows from the table '$table' in batches of $batchSize.\n" );
+
+			if ( $startTimestamp ) {
+				$this->output(
+					"Starting from timestamp $startTimestamp and importing files with a greater timestamp.\n"
+				);
+			}
+
+			$previousBatchFinalTimestamp = $startTimestamp;
 			$expectedNumberOfBatches = $this->getEstimatedNumberOfBatchesForTable(
 				$table, $previousBatchFinalTimestamp
 			);
@@ -174,13 +191,11 @@ class ImportExistingFilesToScanTable extends LoggedUpdateMaintenance {
 	protected function getTablesToProcess() {
 		$tablesToProcess = $this->getOption( 'table', self::TABLES_TO_IMPORT_FROM );
 		if ( !count( $tablesToProcess ) ) {
-			$this->error( "The array of tables to have images imported from cannot be empty.\n" );
-			return false;
+			$this->fatalError( "The array of tables to have images imported from cannot be empty.\n" );
 		}
 		foreach ( $tablesToProcess as $table ) {
 			if ( !in_array( $table, self::TABLES_TO_IMPORT_FROM ) ) {
-				$this->error( "The table option value '$table' is not a valid table to import images from.\n" );
-				return false;
+				$this->fatalError( "The table option value '$table' is not a valid table to import images from.\n" );
 			}
 		}
 		return $tablesToProcess;

@@ -8,6 +8,7 @@ use MediaWiki\MainConfigNames;
 use MediaWiki\Tests\Maintenance\MaintenanceBaseTestCase;
 use MediaWiki\Tests\Unit\Permissions\MockAuthorityTrait;
 use Wikimedia\TestingAccessWrapper;
+use Wikimedia\Timestamp\ConvertibleTimestamp;
 
 /**
  * @covers \MediaWiki\Extension\MediaModeration\Maintenance\ImportExistingFilesToScanTable
@@ -27,6 +28,7 @@ class ImportExistingFilesToScanTableWhenRowsExistTest extends MaintenanceBaseTes
 		$batchSize, $startTimestamp, $table, $expectedOutput, $expectedScanTableRowCount, $updateLogHasEntry,
 		$fileSchemaMigrationStage
 	) {
+		ConvertibleTimestamp::setFakeTime( '20231205235239' );
 		$this->overrideConfigValue( MainConfigNames::FileSchemaMigrationStage, $fileSchemaMigrationStage );
 		/** @var TestingAccessWrapper $maintenance */
 		$maintenance = $this->maintenance;
@@ -136,6 +138,27 @@ class ImportExistingFilesToScanTableWhenRowsExistTest extends MaintenanceBaseTes
 			'Default batch size and start timestamp only including one file' => [
 				null,
 				'20231105235239',
+				null,
+				"Now importing rows from the table 'image' in batches of 200.\n" .
+				"Starting from timestamp 20231105235239 and importing files with a greater timestamp.\n" .
+				"Batch 1 of ~1 with rows starting at timestamp 20231105235239.\n" .
+				"Now importing rows from the table 'filearchive' in batches of 200.\n" .
+				"Starting from timestamp 20231105235239 and importing files with a greater timestamp.\n" .
+				"Batch 1 of ~1 with rows starting at timestamp 20231105235239.\n" .
+				"Now importing rows from the table 'oldimage' in batches of 200.\n" .
+				"Starting from timestamp 20231105235239 and importing files with a greater timestamp.\n" .
+				"Batch 1 of ~1 with rows starting at timestamp 20231105235239.\n" .
+				'Script not marked as completed (not added to updatelog). The script was marked as not complete ' .
+				"because not all the images on the wiki were processed in this run of the script.\n" .
+				'To mark the script as complete and not have it run again through update.php, make sure to run the ' .
+				"script again with the 'mark-complete' option specified. You should only do this once you are sure " .
+				"that all the images on the wiki have been imported.\n",
+				1,
+				false,
+			],
+			'Default batch size and start timestamp is a relative timestamp that only includes one file' => [
+				null,
+				'1 month ago',
 				null,
 				"Now importing rows from the table 'image' in batches of 200.\n" .
 				"Starting from timestamp 20231105235239 and importing files with a greater timestamp.\n" .
