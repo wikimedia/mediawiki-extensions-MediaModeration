@@ -4,9 +4,19 @@ namespace MediaWiki\Extension\MediaModeration\Status;
 
 use StatusValue;
 
+/**
+ * @template T
+ * @inherits StatusValue<T>
+ */
 class ImageContentsLookupStatus extends StatusValue {
 	private string $mimeType;
 	private string $imageContents;
+
+	/**
+	 * @suppress PhanGenericConstructorTypes
+	 */
+	public function __construct() {
+	}
 
 	/**
 	 * @param string $mimeType
