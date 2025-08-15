@@ -70,7 +70,7 @@
 		]
 	},
 	"ConfigRegistry": {
-		"MediaModeration": "GlobalVarConfig::newInstance"
+		"MediaModeration": "MediaWiki\\Config\\GlobalVarConfig::newInstance"
 	},
 	"config": {
 		"MediaModerationDeveloperMode": {
