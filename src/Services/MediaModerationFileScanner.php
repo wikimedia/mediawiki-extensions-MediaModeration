@@ -17,36 +17,17 @@ use Wikimedia\Stats\StatsFactory;
  */
 class MediaModerationFileScanner {
 
-	private MediaModerationDatabaseManager $mediaModerationDatabaseManager;
-	private MediaModerationDatabaseLookup $mediaModerationDatabaseLookup;
-	private MediaModerationFileLookup $mediaModerationFileLookup;
-	private MediaModerationFileProcessor $mediaModerationFileProcessor;
-	private IMediaModerationPhotoDNAServiceProvider $mediaModerationPhotoDNAServiceProvider;
-	private MediaModerationEmailer $mediaModerationEmailer;
-	private StatsFactory $statsFactory;
-	private StatusFormatter $statusFormatter;
-	private LoggerInterface $logger;
-
 	public function __construct(
-		MediaModerationDatabaseLookup $mediaModerationDatabaseLookup,
-		MediaModerationDatabaseManager $mediaModerationDatabaseManager,
-		MediaModerationFileLookup $mediaModerationFileLookup,
-		MediaModerationFileProcessor $mediaModerationFileProcessor,
-		IMediaModerationPhotoDNAServiceProvider $mediaModerationPhotoDNAServiceProvider,
-		MediaModerationEmailer $mediaModerationEmailer,
-		StatusFormatter $statusFormatter,
-		StatsFactory $statsFactory,
-		LoggerInterface $logger
+		private readonly MediaModerationDatabaseLookup $mediaModerationDatabaseLookup,
+		private readonly MediaModerationDatabaseManager $mediaModerationDatabaseManager,
+		private readonly MediaModerationFileLookup $mediaModerationFileLookup,
+		private readonly MediaModerationFileProcessor $mediaModerationFileProcessor,
+		private readonly IMediaModerationPhotoDNAServiceProvider $mediaModerationPhotoDNAServiceProvider,
+		private readonly MediaModerationEmailer $mediaModerationEmailer,
+		private readonly StatusFormatter $statusFormatter,
+		private readonly StatsFactory $statsFactory,
+		private readonly LoggerInterface $logger,
 	) {
-		$this->mediaModerationDatabaseLookup = $mediaModerationDatabaseLookup;
-		$this->mediaModerationDatabaseManager = $mediaModerationDatabaseManager;
-		$this->mediaModerationFileLookup = $mediaModerationFileLookup;
-		$this->mediaModerationFileProcessor = $mediaModerationFileProcessor;
-		$this->mediaModerationPhotoDNAServiceProvider = $mediaModerationPhotoDNAServiceProvider;
-		$this->mediaModerationEmailer = $mediaModerationEmailer;
-		$this->statusFormatter = $statusFormatter;
-		$this->statsFactory = $statsFactory;
-		$this->logger = $logger;
 	}
 
 	/**

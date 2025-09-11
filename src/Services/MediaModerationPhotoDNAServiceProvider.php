@@ -33,29 +33,21 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 		'MediaModerationHttpProxy',
 	];
 
-	private HttpRequestFactory $httpRequestFactory;
-	private StatsFactory $statsFactory;
-	private MediaModerationImageContentsLookup $mediaModerationImageContentsLookup;
-	private StatusFormatter $statusFormatter;
 	private string $photoDNAUrl;
 	private ?string $httpProxy;
 	private string $photoDNASubscriptionKey;
 
 	public function __construct(
 		ServiceOptions $options,
-		HttpRequestFactory $httpRequestFactory,
-		StatsFactory $statsFactory,
-		MediaModerationImageContentsLookup $mediaModerationImageContentsLookup,
-		StatusFormatter $statusFormatter
+		private readonly HttpRequestFactory $httpRequestFactory,
+		private readonly StatsFactory $statsFactory,
+		private readonly MediaModerationImageContentsLookup $mediaModerationImageContentsLookup,
+		private readonly StatusFormatter $statusFormatter,
 	) {
 		$options->assertRequiredOptions( self::CONSTRUCTOR_OPTIONS );
-		$this->httpRequestFactory = $httpRequestFactory;
 		$this->photoDNAUrl = $options->get( 'MediaModerationPhotoDNAUrl' );
 		$this->photoDNASubscriptionKey = $options->get( 'MediaModerationPhotoDNASubscriptionKey' );
 		$this->httpProxy = $options->get( 'MediaModerationHttpProxy' );
-		$this->statsFactory = $statsFactory;
-		$this->mediaModerationImageContentsLookup = $mediaModerationImageContentsLookup;
-		$this->statusFormatter = $statusFormatter;
 	}
 
 	/** @inheritDoc */

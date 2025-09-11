@@ -20,15 +20,10 @@ class MediaModerationFileLookup {
 		'filearchive',
 	];
 
-	private LocalRepo $localRepo;
-	private MediaModerationFileFactory $mediaModerationFileFactory;
-
 	public function __construct(
-		LocalRepo $localRepo,
-		MediaModerationFileFactory $mediaModerationFileFactory
+		private readonly LocalRepo $localRepo,
+		private readonly MediaModerationFileFactory $mediaModerationFileFactory,
 	) {
-		$this->localRepo = $localRepo;
-		$this->mediaModerationFileFactory = $mediaModerationFileFactory;
 	}
 
 	/**

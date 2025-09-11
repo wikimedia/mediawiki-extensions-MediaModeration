@@ -12,8 +12,6 @@ use Wikimedia\Rdbms\IReadableDatabase;
  */
 class MediaModerationMetricsFactory {
 
-	private IReadableDatabase $dbr;
-
 	/** @var string[] */
 	public const METRICS = [
 		TotalTableCountMetric::class,
@@ -22,11 +20,9 @@ class MediaModerationMetricsFactory {
 		UnscannedImagesWithLastCheckedDefinedMetric::class,
 	];
 
-	/**
-	 * @param IReadableDatabase $dbr
-	 */
-	public function __construct( IReadableDatabase $dbr ) {
-		$this->dbr = $dbr;
+	public function __construct(
+		private readonly IReadableDatabase $dbr,
+	) {
 	}
 
 	/**

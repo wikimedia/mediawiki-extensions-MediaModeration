@@ -24,18 +24,11 @@ class MediaModerationFileProcessor {
 		MEDIATYPE_DRAWING,
 	];
 
-	private MediaModerationDatabaseManager $mediaModerationDatabaseManager;
-	private MediaHandlerFactory $mediaHandlerFactory;
-	private LoggerInterface $logger;
-
 	public function __construct(
-		MediaModerationDatabaseManager $mediaModerationDatabaseManager,
-		MediaHandlerFactory $mediaHandlerFactory,
-		LoggerInterface $logger
+		private readonly MediaModerationDatabaseManager $mediaModerationDatabaseManager,
+		private readonly MediaHandlerFactory $mediaHandlerFactory,
+		private readonly LoggerInterface $logger,
 	) {
-		$this->mediaModerationDatabaseManager = $mediaModerationDatabaseManager;
-		$this->mediaHandlerFactory = $mediaHandlerFactory;
-		$this->logger = $logger;
 	}
 
 	/**

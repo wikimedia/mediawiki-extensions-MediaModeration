@@ -10,15 +10,10 @@ use Wikimedia\Timestamp\ConvertibleTimestamp;
 
 class MediaModerationDatabaseManager {
 
-	private IDatabase $dbw;
-	private MediaModerationDatabaseLookup $mediaModerationDatabaseLookup;
-
 	public function __construct(
-		IDatabase $dbw,
-		MediaModerationDatabaseLookup $mediaModerationDatabaseLookup
+		private readonly IDatabase $dbw,
+		private readonly MediaModerationDatabaseLookup $mediaModerationDatabaseLookup,
 	) {
-		$this->dbw = $dbw;
-		$this->mediaModerationDatabaseLookup = $mediaModerationDatabaseLookup;
 	}
 
 	/**

@@ -33,28 +33,15 @@ class MediaModerationImageContentsLookup {
 		'MediaModerationThumborRequestTimeout',
 	];
 
-	private ServiceOptions $options;
-	private FileBackend $fileBackend;
-	private StatsFactory $statsFactory;
-	private MimeAnalyzer $mimeAnalyzer;
-	private LocalRepo $localRepo;
-	private HttpRequestFactory $httpRequestFactory;
-
 	public function __construct(
-		ServiceOptions $options,
-		FileBackend $fileBackend,
-		StatsFactory $statsFactory,
-		MimeAnalyzer $mimeAnalyzer,
-		LocalRepo $localRepo,
-		HttpRequestFactory $httpRequestFactory
+		private readonly ServiceOptions $options,
+		private readonly FileBackend $fileBackend,
+		private readonly StatsFactory $statsFactory,
+		private readonly MimeAnalyzer $mimeAnalyzer,
+		private readonly LocalRepo $localRepo,
+		private readonly HttpRequestFactory $httpRequestFactory,
 	) {
 		$options->assertRequiredOptions( self::CONSTRUCTOR_OPTIONS );
-		$this->options = $options;
-		$this->fileBackend = $fileBackend;
-		$this->statsFactory = $statsFactory;
-		$this->mimeAnalyzer = $mimeAnalyzer;
-		$this->localRepo = $localRepo;
-		$this->httpRequestFactory = $httpRequestFactory;
 	}
 
 	/**

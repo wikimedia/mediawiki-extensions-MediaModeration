@@ -6,14 +6,11 @@ use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileScanner;
 use MediaWiki\JobQueue\Job;
 
 class MediaModerationScanFileJob extends Job {
-	private MediaModerationFileScanner $mediaModerationFileScanner;
-
 	public function __construct(
 		array $params,
-		MediaModerationFileScanner $mediaModerationFileScanner
+		private readonly MediaModerationFileScanner $mediaModerationFileScanner,
 	) {
 		parent::__construct( 'mediaModerationScanFileJob', $params );
-		$this->mediaModerationFileScanner = $mediaModerationFileScanner;
 	}
 
 	/** @inheritDoc */

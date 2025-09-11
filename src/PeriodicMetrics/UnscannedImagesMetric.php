@@ -10,13 +10,9 @@ use Wikimedia\Rdbms\IReadableDatabase;
  */
 class UnscannedImagesMetric implements IMetric {
 
-	private IReadableDatabase $dbr;
-
-	/**
-	 * @param IReadableDatabase $dbr
-	 */
-	public function __construct( IReadableDatabase $dbr ) {
-		$this->dbr = $dbr;
+	public function __construct(
+		private readonly IReadableDatabase $dbr,
+	) {
 	}
 
 	/** @inheritDoc */

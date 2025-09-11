@@ -24,28 +24,15 @@ class MediaModerationEmailer {
 		MainConfigNames::CanonicalServer,
 	];
 
-	private ServiceOptions $options;
-	private IEmailer $emailer;
-	private MediaModerationFileLookup $mediaModerationFileLookup;
-	private MessageLocalizer $messageLocalizer;
-	private Language $language;
-	private LoggerInterface $logger;
-
 	public function __construct(
-		ServiceOptions $options,
-		IEmailer $emailer,
-		MediaModerationFileLookup $mediaModerationFileLookup,
-		MessageLocalizer $messageLocalizer,
-		Language $language,
-		LoggerInterface $logger
+		private readonly ServiceOptions $options,
+		private readonly IEmailer $emailer,
+		private readonly MediaModerationFileLookup $mediaModerationFileLookup,
+		private readonly MessageLocalizer $messageLocalizer,
+		private readonly Language $language,
+		private readonly LoggerInterface $logger,
 	) {
 		$options->assertRequiredOptions( self::CONSTRUCTOR_OPTIONS );
-		$this->options = $options;
-		$this->emailer = $emailer;
-		$this->mediaModerationFileLookup = $mediaModerationFileLookup;
-		$this->messageLocalizer = $messageLocalizer;
-		$this->language = $language;
-		$this->logger = $logger;
 	}
 
 	/**

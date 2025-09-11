@@ -18,10 +18,9 @@ class MediaModerationDatabaseLookup {
 	public const NEGATIVE_MATCH_STATUS = '0';
 	public const NULL_MATCH_STATUS = null;
 
-	private IConnectionProvider $connectionProvider;
-
-	public function __construct( IConnectionProvider $connectionProvider ) {
-		$this->connectionProvider = $connectionProvider;
+	public function __construct(
+		private readonly IConnectionProvider $connectionProvider,
+	) {
 	}
 
 	/**

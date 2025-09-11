@@ -13,10 +13,9 @@ use MediaWiki\FileRepo\LocalRepo;
  */
 class MediaModerationFileFactory {
 
-	private LocalRepo $localRepo;
-
-	public function __construct( LocalRepo $localRepo ) {
-		$this->localRepo = $localRepo;
+	public function __construct(
+		private readonly LocalRepo $localRepo,
+	) {
 	}
 
 	/**
