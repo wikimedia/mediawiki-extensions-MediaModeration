@@ -3,9 +3,9 @@
 namespace MediaWiki\Extension\MediaModeration\Services;
 
 use Error;
-use MediaHandlerFactory;
 use MediaWiki\FileRepo\File\ArchivedFile;
 use MediaWiki\FileRepo\File\File;
+use MediaWiki\Media\MediaHandlerFactory;
 use Psr\Log\LoggerInterface;
 
 class MediaModerationFileProcessor {

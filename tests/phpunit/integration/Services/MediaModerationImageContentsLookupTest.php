@@ -2,7 +2,6 @@
 
 namespace MediaWiki\Extension\MediaModeration\Tests\Integration\Services;
 
-use MediaTransformError;
 use MediaWiki\Config\HashConfig;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Extension\MediaModeration\Exception\RuntimeException;
@@ -12,15 +11,16 @@ use MediaWiki\FileRepo\File\ArchivedFile;
 use MediaWiki\FileRepo\File\File;
 use MediaWiki\FileRepo\LocalRepo;
 use MediaWiki\Http\HttpRequestFactory;
+use MediaWiki\Http\MWHttpRequest;
 use MediaWiki\Language\RawMessage;
 use MediaWiki\MainConfigNames;
+use MediaWiki\Media\MediaTransformError;
+use MediaWiki\Media\ThumbnailImage;
 use MediaWiki\Tests\Unit\MockServiceDependenciesTrait;
 use MediaWikiIntegrationTestCase;
 use MockHttpTrait;
-use MWHttpRequest;
 use PHPUnit\Framework\MockObject\MockObject;
 use StatusValue;
-use ThumbnailImage;
 use Wikimedia\FileBackend\FileBackend;
 use Wikimedia\Mime\MimeAnalyzer;
 use Wikimedia\TestingAccessWrapper;

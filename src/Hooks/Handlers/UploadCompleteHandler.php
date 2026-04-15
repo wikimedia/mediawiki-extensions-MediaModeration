@@ -26,8 +26,8 @@ use MediaWiki\Extension\MediaModeration\Deferred\InsertFileOnUploadUpdate;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationEmailer;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileProcessor;
-use MediaWiki\Hook\UploadCompleteHook;
 use MediaWiki\Logger\LoggerFactory;
+use MediaWiki\Upload\Hook\UploadCompleteHook;
 use Psr\Log\LoggerInterface;
 use Wikimedia\Rdbms\LBFactory;
 

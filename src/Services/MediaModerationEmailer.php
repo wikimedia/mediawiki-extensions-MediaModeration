@@ -2,16 +2,16 @@
 
 namespace MediaWiki\Extension\MediaModeration\Services;
 
-use MailAddress;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\FileRepo\File\ArchivedFile;
 use MediaWiki\FileRepo\File\File;
 use MediaWiki\FileRepo\File\LocalFile;
 use MediaWiki\Html\Html;
 use MediaWiki\Language\Language;
+use MediaWiki\Language\MessageLocalizer;
 use MediaWiki\Mail\IEmailer;
+use MediaWiki\Mail\MailAddress;
 use MediaWiki\MainConfigNames;
-use MessageLocalizer;
 use Psr\Log\LoggerInterface;
 use StatusValue;
 use Wikimedia\Timestamp\ConvertibleTimestamp;

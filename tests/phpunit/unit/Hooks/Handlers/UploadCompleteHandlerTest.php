@@ -28,9 +28,9 @@ use MediaWiki\Extension\MediaModeration\Services\MediaModerationEmailer;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileProcessor;
 use MediaWiki\FileRepo\File\File;
 use MediaWiki\Tests\Unit\MockServiceDependenciesTrait;
+use MediaWiki\Upload\UploadBase;
 use MediaWikiUnitTestCase;
 use Psr\Log\LoggerInterface;
-use UploadBase;
 use Wikimedia\Rdbms\LBFactory;
 use Wikimedia\TestingAccessWrapper;
 

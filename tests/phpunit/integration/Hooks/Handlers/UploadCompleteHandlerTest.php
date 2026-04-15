@@ -8,10 +8,10 @@ use MediaWiki\Extension\MediaModeration\Hooks\Handlers\UploadCompleteHandler;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseLookup;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileProcessor;
 use MediaWiki\FileRepo\File\File;
+use MediaWiki\Upload\UploadBase;
 use MediaWikiIntegrationTestCase;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
-use UploadBase;
 
 /**
  * @covers \MediaWiki\Extension\MediaModeration\Hooks\Handlers\UploadCompleteHandler

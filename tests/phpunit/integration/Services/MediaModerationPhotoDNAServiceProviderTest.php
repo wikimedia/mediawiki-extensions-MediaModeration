@@ -5,14 +5,14 @@ namespace MediaWiki\Extension\MediaModeration\Tests\Integration\Services;
 use MediaWiki\Api\ApiRawMessage;
 use MediaWiki\Extension\MediaModeration\PhotoDNA\IMediaModerationPhotoDNAServiceProvider;
 use MediaWiki\FileRepo\File\File;
+use MediaWiki\Http\MWHttpRequest;
 use MediaWiki\Json\FormatJson;
 use MediaWiki\Status\Status;
+use MediaWiki\Upload\UploadStash;
 use MediaWiki\User\User;
 use MediaWikiIntegrationTestCase;
 use MockHttpTrait;
-use MWHttpRequest;
 use StatusValue;
-use UploadStash;
 
 /**
  * @covers \MediaWiki\Extension\MediaModeration\Services\MediaModerationPhotoDNAServiceProvider

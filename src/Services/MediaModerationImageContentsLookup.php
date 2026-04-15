@@ -2,7 +2,6 @@
 
 namespace MediaWiki\Extension\MediaModeration\Services;
 
-use MediaTransformError;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Extension\MediaModeration\Media\ThumborThumbnailImage;
 use MediaWiki\Extension\MediaModeration\Status\ImageContentsLookupStatus;
@@ -12,9 +11,10 @@ use MediaWiki\FileRepo\LocalRepo;
 use MediaWiki\Http\HttpRequestFactory;
 use MediaWiki\Language\RawMessage;
 use MediaWiki\MainConfigNames;
+use MediaWiki\Media\MediaTransformError;
+use MediaWiki\Media\ThumbnailImage;
 use MediaWiki\WikiMap\WikiMap;
 use StatusValue;
-use ThumbnailImage;
 use Wikimedia\FileBackend\FileBackend;
 use Wikimedia\Mime\MimeAnalyzer;
 use Wikimedia\Stats\StatsFactory;

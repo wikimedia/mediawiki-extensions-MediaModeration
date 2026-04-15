@@ -10,11 +10,11 @@ use MediaWiki\Extension\MediaModeration\PhotoDNA\Response;
 use MediaWiki\FileRepo\File\ArchivedFile;
 use MediaWiki\FileRepo\File\File;
 use MediaWiki\Http\HttpRequestFactory;
+use MediaWiki\Http\MWHttpRequest;
 use MediaWiki\Json\FormatJson;
 use MediaWiki\Language\RawMessage;
 use MediaWiki\Status\StatusFormatter;
 use MediaWiki\WikiMap\WikiMap;
-use MWHttpRequest;
 use StatusValue;
 use Wikimedia\Stats\StatsFactory;
 

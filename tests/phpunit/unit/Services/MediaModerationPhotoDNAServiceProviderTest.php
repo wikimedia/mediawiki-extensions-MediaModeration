@@ -10,10 +10,10 @@ use MediaWiki\Extension\MediaModeration\Services\MediaModerationPhotoDNAServiceP
 use MediaWiki\Extension\MediaModeration\Status\ImageContentsLookupStatus;
 use MediaWiki\FileRepo\File\File;
 use MediaWiki\Http\HttpRequestFactory;
+use MediaWiki\Http\MWHttpRequest;
 use MediaWiki\Language\RawMessage;
 use MediaWiki\Tests\Unit\MockServiceDependenciesTrait;
 use MediaWikiUnitTestCase;
-use MWHttpRequest;
 use Wikimedia\TestingAccessWrapper;
 
 /**

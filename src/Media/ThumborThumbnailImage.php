@@ -3,7 +3,7 @@
 namespace MediaWiki\Extension\MediaModeration\Media;
 
 use MediaWiki\FileRepo\File\File;
-use ThumbnailImage;
+use MediaWiki\Media\ThumbnailImage;
 
 /**
  * Like ThumbnailImage, but can contain the image contents and image content type.

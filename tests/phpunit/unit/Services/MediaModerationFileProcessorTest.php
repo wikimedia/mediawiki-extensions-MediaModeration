@@ -3,12 +3,12 @@
 namespace MediaWiki\Extension\MediaModeration\Tests\Unit\Services;
 
 use Error;
-use MediaHandler;
-use MediaHandlerFactory;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationDatabaseManager;
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileProcessor;
 use MediaWiki\FileRepo\File\ArchivedFile;
 use MediaWiki\FileRepo\File\File;
+use MediaWiki\Media\MediaHandler;
+use MediaWiki\Media\MediaHandlerFactory;
 use MediaWiki\Tests\Unit\MockServiceDependenciesTrait;
 use MediaWikiUnitTestCase;
 use Psr\Log\LoggerInterface;

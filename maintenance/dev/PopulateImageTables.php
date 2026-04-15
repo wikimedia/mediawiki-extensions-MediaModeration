@@ -6,8 +6,8 @@ use Error;
 use MediaWiki\FileRepo\File\LocalFile;
 use MediaWiki\Maintenance\Maintenance;
 use MediaWiki\Title\Title;
+use MediaWiki\Upload\UploadFromUrl;
 use MediaWiki\User\User;
-use UploadFromUrl;
 
 // This is a local development only script, no need to count it in code coverage metrics.
 // @codeCoverageIgnoreStart
