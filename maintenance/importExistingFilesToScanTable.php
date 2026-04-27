@@ -9,6 +9,7 @@ use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileProcessor;
 use MediaWiki\FileRepo\File\FileSelectQueryBuilder;
 use MediaWiki\Maintenance\LoggedUpdateMaintenance;
 use Wikimedia\Rdbms\IReadableDatabase;
+use Wikimedia\Rdbms\IResultWrapper;
 use Wikimedia\Rdbms\SelectQueryBuilder;
 use Wikimedia\Timestamp\ConvertibleTimestamp;
 
@@ -186,7 +187,7 @@ class ImportExistingFilesToScanTable extends LoggedUpdateMaintenance {
 	 *
 	 * Prints an error if the supplied arguments are invalid.
 	 *
-	 * @return false|array The list of tables to process, or false if the list was not valid.
+	 * @return string[] The list of tables to process
 	 */
 	protected function getTablesToProcess() {
 		$tablesToProcess = $this->getOption( 'table', self::TABLES_TO_IMPORT_FROM );
@@ -326,8 +327,8 @@ class ImportExistingFilesToScanTable extends LoggedUpdateMaintenance {
 	 *
 	 * @param string $table
 	 * @param string $previousBatchFinalTimestamp
-	 * @return array The rows for the batch, the timestamp for the last file in the results list, and the
-	 *   LIMIT used for the batch.
+	 * @return array{0:IResultWrapper,1:string,2:int} The rows for the batch,
+	 *   the timestamp for the last file in the results list, and the LIMIT used for the batch.
 	 */
 	protected function getRowsForBatch( string $table, string $previousBatchFinalTimestamp ): array {
 		// Get the FileSelectQueryBuilder with everything but the caller specified.
@@ -375,8 +376,8 @@ class ImportExistingFilesToScanTable extends LoggedUpdateMaintenance {
 	 *
 	 * @param string $table
 	 * @param string $previousBatchFinalTimestamp
-	 * @return array First value is whether another batch should be run, second value is the new value of
-	 *   $previousBatchFinalTimestamp, and third value is the new value of $shouldRaiseBatchSize
+	 * @return array{0:bool,1:string} First value is whether another batch should be run, second value is the new
+	 *   value of $previousBatchFinalTimestamp, and third value is the new value of $shouldRaiseBatchSize
 	 */
 	protected function performBatch( string $table, string $previousBatchFinalTimestamp ): array {
 		[ $rows, $lastFileTimestamp, $batchSizeUsedForBatch ] = $this->getRowsForBatch(
