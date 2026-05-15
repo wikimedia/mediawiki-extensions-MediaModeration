@@ -35,7 +35,7 @@ class MediaModerationImageContentsLookupTest extends MediaWikiIntegrationTestCas
 	use MediaModerationStatsFactoryHelperTestTrait;
 
 	private const CONSTRUCTOR_OPTIONS_DEFAULTS = [
-		'MediaModerationThumbnailWidth' => 330,
+		'MediaModerationThumbnailWidth' => 250,
 		'MediaModerationThumborRequestTimeout' => 60,
 		MainConfigNames::ThumbnailSteps => null,
 		'MediaModerationThumbnailMinimumSize' => [ 'width' => 160, 'height' => 160 ],
@@ -105,7 +105,7 @@ class MediaModerationImageContentsLookupTest extends MediaWikiIntegrationTestCas
 		$mockFile->method( 'getRepo' )
 			->willReturn( $this->createMock( LocalRepo::class ) );
 		$mockFile->expects( $this->once() )->method( 'transform' )
-			->with( [ 'width' => 330 ] );
+			->with( [ 'width' => 250 ] );
 		// Call the method under test
 		/** @var MediaModerationImageContentsLookup $objectUnderTest */
 		$objectUnderTest = $this->newServiceInstance(
@@ -200,9 +200,9 @@ class MediaModerationImageContentsLookupTest extends MediaWikiIntegrationTestCas
 
 	public static function provideGetThumbnailForFileForDifferentExpectedThumbnailWidths() {
 		return [
-			'File width and height are undefined' => [ 0, 0, 330 ],
-			'File width is undefined' => [ 0, 123, 330 ],
-			'File height is undefined' => [ 123, 0, 330 ],
+			'File width and height are undefined' => [ 0, 0, 250 ],
+			'File width is undefined' => [ 0, 123, 250 ],
+			'File height is undefined' => [ 123, 0, 250 ],
 			'Default width meets requirements' => [
 				340, 340, 160, [ 'MediaModerationThumbnailWidth' => 160 ],
 			],
@@ -303,7 +303,7 @@ class MediaModerationImageContentsLookupTest extends MediaWikiIntegrationTestCas
 		$mockFile->method( 'getThumbUrl' )
 			->willReturn( 'http://thumb' );
 		$mockFile->expects( $this->once() )->method( 'transform' )
-			->with( [ 'width' => 330 ] )
+			->with( [ 'width' => 250 ] )
 			->willReturn( $thumbnail );
 
 		// Mock that Thumbor can be used, so that it is tried first.
