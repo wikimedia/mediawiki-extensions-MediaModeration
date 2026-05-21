@@ -1,4 +1,5 @@
 <?php
+declare( strict_types=1 );
 
 namespace MediaWiki\Extension\MediaModeration\Services;
 
@@ -211,7 +212,7 @@ class MediaModerationImageContentsLookup {
 		$minHeightScalingFactor = $minThumbnailSize['height'] / $file->getHeight();
 		$scalingFactor = max( $minHeightScalingFactor, $minWidthScalingFactor );
 
-		return ceil( $file->getWidth() * $scalingFactor );
+		return (int)ceil( $file->getWidth() * $scalingFactor );
 	}
 
 	/**

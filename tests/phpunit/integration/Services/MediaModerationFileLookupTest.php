@@ -1,6 +1,7 @@
 <?php
+declare( strict_types=1 );
 
-namespace MediaWiki\Extension\MediaModeration\Tests\Integration\Hooks\Handlers;
+namespace MediaWiki\Extension\MediaModeration\Tests\Integration\Services;
 
 use MediaWiki\Extension\MediaModeration\Services\MediaModerationFileLookup;
 use MediaWiki\Extension\MediaModeration\Tests\Integration\InsertMockFileDataTrait;

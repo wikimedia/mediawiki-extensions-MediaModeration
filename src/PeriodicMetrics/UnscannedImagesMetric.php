@@ -1,4 +1,5 @@
 <?php
+declare( strict_types=1 );
 
 namespace MediaWiki\Extension\MediaModeration\PeriodicMetrics;
 
@@ -17,7 +18,7 @@ class UnscannedImagesMetric implements IMetric {
 
 	/** @inheritDoc */
 	public function calculate(): int {
-		return $this->dbr->newSelectQueryBuilder()
+		return (int)$this->dbr->newSelectQueryBuilder()
 			->select( 'COUNT(*)' )
 			->from( 'mediamoderation_scan' )
 			->where( [ 'mms_is_match' => null ] )

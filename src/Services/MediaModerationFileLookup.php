@@ -1,4 +1,5 @@
 <?php
+declare( strict_types=1 );
 
 namespace MediaWiki\Extension\MediaModeration\Services;
 
@@ -113,7 +114,7 @@ class MediaModerationFileLookup {
 				$this->getSha1FieldForTable( $table ) => $sha1,
 			] );
 		}
-		return $fileSelectQueryBuilder->caller( __METHOD__ )
+		return (int)$fileSelectQueryBuilder->caller( __METHOD__ )
 			->fetchField();
 	}
 

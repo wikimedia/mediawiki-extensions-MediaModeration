@@ -1,4 +1,5 @@
 <?php
+declare( strict_types=1 );
 
 namespace MediaWiki\Extension\MediaModeration\Maintenance;
 
@@ -188,7 +189,7 @@ class ScanFilesInScanTable extends Maintenance {
 		// If the 'last-checked' option is the string "never", then convert this to null.
 		if ( $lastChecked === "never" ) {
 			$this->lastChecked = null;
-		} elseif ( strlen( $lastChecked ) === 8 && $lastChecked === strval( intval( $lastChecked ) ) ) {
+		} elseif ( strlen( (string)$lastChecked ) === 8 && (string)$lastChecked === strval( intval( $lastChecked ) ) ) {
 			// The 'last-checked' argument is likely to be in the form YYYYMMDD because:
 			// * The length of the argument is 8 (which is the length of a YYYYMMDD format)
 			// * The intval of the 'last-checked' parameter can be converted to an integer

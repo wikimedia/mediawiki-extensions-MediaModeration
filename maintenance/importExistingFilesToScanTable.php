@@ -1,4 +1,5 @@
 <?php
+declare( strict_types=1 );
 
 namespace MediaWiki\Extension\MediaModeration\Maintenance;
 
@@ -235,7 +236,7 @@ class ImportExistingFilesToScanTable extends LoggedUpdateMaintenance {
 		// batch count, as it may be temporarily increased to prevent
 		// infinite loops.
 		$batchSize = $this->getBatchSize() ?? 200;
-		$expectedBatchesCount = ceil( $rowCountInTable / $batchSize );
+		$expectedBatchesCount = (int)ceil( $rowCountInTable / $batchSize );
 		if ( $rowCountInTable % $batchSize === 0 ) {
 			// If the batch size divides the row count without a remainder, then
 			// the expected batch count needs to be increased by one as one
