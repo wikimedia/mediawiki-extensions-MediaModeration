@@ -606,6 +606,75 @@ class MediaModerationImageContentsLookupTest extends MediaWikiIntegrationTestCas
 		];
 	}
 
+	/** @dataProvider provideGetFileContentsForDeletedFile */
+	public function testGetFileContentsForDeletedFile(
+		string $fileClassName,
+		bool $fileRevisionDeleted
+	): void {
+		/** @var File|MockObject $mockFile */
+		$mockFile = $this->createMock( $fileClassName );
+		$mockFile->method( 'getStorageKey' )
+			->willReturn( 'mock-storage-key' );
+		$mockFile->method( 'isDeleted' )
+			->willReturn( $fileRevisionDeleted );
+
+		$mockLocalRepo = $this->createMock( LocalRepo::class );
+		$mockLocalRepo->method( 'getZonePath' )
+			->with( 'deleted' )
+			->willReturn( 'deleted-zone' );
+		$mockLocalRepo->method( 'getDeletedHashPath' )
+			->with( 'mock-storage-key' )
+			->willReturn( '1/2/3/' );
+
+		$mockFileBackend = $this->createMock( FileBackend::class );
+		$mockFileBackend->expects( $this->once() )
+			->method( 'getFileContentsMulti' )
+			->willReturnCallback( function ( $params ) {
+				$expectedFilePath = 'deleted-zone/1/2/3/mock-storage-key';
+				$this->assertArrayContains(
+					[ 'srcs' => [ $expectedFilePath ] ],
+					$params
+				);
+				return [ $expectedFilePath => 'abcdef' ];
+			} );
+
+		// Get the object under test with the FileBackend as $mockFileBackend.
+		$objectUnderTest = $this->newServiceInstance(
+			MediaModerationImageContentsLookup::class,
+			[
+				'options' => new ServiceOptions(
+					MediaModerationImageContentsLookup::CONSTRUCTOR_OPTIONS,
+					new HashConfig( self::CONSTRUCTOR_OPTIONS_DEFAULTS )
+				),
+				'fileBackend' => $mockFileBackend,
+				'statsFactory' => $this->getServiceContainer()->getStatsFactory(),
+				'localRepo' => $mockLocalRepo,
+			]
+		);
+
+		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
+		$actualStatus = $objectUnderTest->getFileContents( $mockFile );
+
+		$this->assertStatusGood( $actualStatus );
+		$this->assertCounterNotIncremented( 'image_contents_lookup_error_total' );
+		$this->assertSame(
+			'abcdef',
+			$actualStatus->getValue(),
+			'Return value of ::getFileContents was not as expected.'
+		);
+	}
+
+	public static function provideGetFileContentsForDeletedFile(): array {
+		return [
+			'File is only revision deleted' => [ 'fileClassName' => File::class, 'fileRevisionDeleted' => true ],
+			'File is deleted' => [ 'fileClassName' => ArchivedFile::class, 'fileRevisionDeleted' => false ],
+			'File is deleted and revision deleted' => [
+				'fileClassName' => ArchivedFile::class,
+				'fileRevisionDeleted' => true,
+			],
+		];
+	}
+
 	/** @dataProvider provideGetImageContents */
 	public function testGetImageContents(
 		$fileContentsStatusGood, $thumbnailStatusGood, $thumbnailContentsStatusGood, $thumbnailMimeTypeStatusGood,

@@ -447,7 +447,7 @@ class MediaModerationImageContentsLookup {
 				"Original file does not meet dimension requirements for {$file->getName()}"
 			) );
 		}
-		if ( $file instanceof ArchivedFile ) {
+		if ( $file instanceof ArchivedFile || $file->isDeleted( File::DELETED_FILE ) ) {
 			// Format for the URL is copied from SpecialUndelete::showFile
 			$filePath = $this->localRepo->getZonePath( 'deleted' ) . '/' .
 				$this->localRepo->getDeletedHashPath( $file->getStorageKey() ) . $file->getStorageKey();
