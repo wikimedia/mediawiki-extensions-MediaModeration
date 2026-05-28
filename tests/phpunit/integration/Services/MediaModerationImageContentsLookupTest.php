@@ -424,6 +424,33 @@ class MediaModerationImageContentsLookupTest extends MediaWikiIntegrationTestCas
 		];
 	}
 
+	public function testGetThumbnailMimeTypeUsesGetContentTypeForThumborThumbnailImage(): void {
+		$mockThumbnailImage = $this->createMock( ThumborThumbnailImage::class );
+		$mockThumbnailImage->method( 'getContentType' )
+			->willReturn( 'image/gif' );
+
+		$objectUnderTest = $this->newServiceInstance(
+			MediaModerationImageContentsLookup::class,
+			[
+				'options' => new ServiceOptions(
+					MediaModerationImageContentsLookup::CONSTRUCTOR_OPTIONS,
+					new HashConfig( self::CONSTRUCTOR_OPTIONS_DEFAULTS )
+				),
+				'statsFactory' => $this->getServiceContainer()->getStatsFactory(),
+			]
+		);
+		$objectUnderTest = TestingAccessWrapper::newFromObject( $objectUnderTest );
+		$actualStatus = $objectUnderTest->getThumbnailMimeType( $mockThumbnailImage );
+
+		$this->assertStatusGood( $actualStatus );
+		$this->assertCounterNotIncremented( 'image_contents_lookup_error_total' );
+		$this->assertSame(
+			'image/gif',
+			$actualStatus->getValue(),
+			'Return value of ::getThumbnailMimeType was not as expected.'
+		);
+	}
+
 	/** @dataProvider provideGetThumbnailContents */
 	public function testGetThumbnailContents(
 		$mockThumbnailHeight, $mockThumbnailWidth, $mockStoragePathValue, $mockFileContentsValue, $expectedReturnValue,
