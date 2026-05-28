@@ -135,14 +135,17 @@ class MediaModerationImageContentsLookup {
 	 * @return StatusValue
 	 */
 	protected function getThumbnailMimeType( ThumbnailImage $thumbnail ): StatusValue {
-		// Attempt to work out what the mime type of the file is based on the extension, and if that
-		// fails then try based on the contents of the thumbnail.
-		$thumbnailMimeType = $thumbnail instanceof ThumborThumbnailImage ?
-			$thumbnail->getContentType() :
-			$this->mimeAnalyzer->getMimeTypeFromExtensionOrNull( $thumbnail->getExtension() );
-		if ( $thumbnailMimeType === null ) {
-			$thumbnailMimeType = $this->mimeAnalyzer->guessMimeType( $thumbnail->getLocalCopyPath() );
+		// Attempt to work out the mime type of the thumbnail, so that we can avoid sending thumbnails which
+		// are not supported by PhotoDNA
+		$thumbnailMimeType = null;
+		if ( $thumbnail instanceof ThumborThumbnailImage ) {
+			$thumbnailMimeType = $thumbnail->getContentType();
 		}
+		if ( $thumbnailMimeType === null && $thumbnail->getExtension() ) {
+			$thumbnailMimeType = $this->mimeAnalyzer->getMimeTypeFromExtensionOrNull( $thumbnail->getExtension() );
+		}
+		$thumbnailMimeType ??= $this->mimeAnalyzer->guessMimeType( $thumbnail->getLocalCopyPath() );
+
 		if ( !$thumbnailMimeType ) {
 			// We cannot send a request to PhotoDNA without knowing what the mime type is.
 			$this->incrementImageContentsLookupErrorTotal(
