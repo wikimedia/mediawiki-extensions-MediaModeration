@@ -50,7 +50,7 @@ class ScanFilesInScanTableTest extends MaintenanceBaseTestCase {
 		$this->maintenance->execute();
 		// Wait until all jobs are complete if $useJobQueue is true
 		if ( $useJobQueue ) {
-			$this->runJobs();
+			$this->runJobs( [ 'minJobs' => 1 ], [ 'type' => 'mediaModerationScanFileJob' ] );
 		}
 		// Assert the state of the DB is as expected.
 		$this->assertArrayEquals(
