@@ -71,7 +71,7 @@ class UpdateMetrics extends Maintenance {
 				->set( $metricValue );
 
 			if ( $this->hasOption( 'verbose' ) ) {
-				$this->output( $metric->getName() . ' is ' . $metricValue . '.' . PHP_EOL );
+				$this->output( $metric->getName() . ' is ' . $metricValue . ".\n" );
 			}
 		}
 	}

@@ -111,7 +111,7 @@ class PopulateImageTables extends Maintenance {
 		$deleteImages = array_intersect_key( $uploadedImages, array_rand( $uploadedImages, $count / 5 ) );
 		/** @var LocalFile $image */
 		foreach ( $deleteImages as $image ) {
-			$this->output( 'Deleting ' . $image->getTitle()->getText() . PHP_EOL );
+			$this->output( 'Deleting ' . $image->getTitle()->getText() . "\n" );
 			$image->deleteFile( 'MediaModeration testing', $user );
 		}
 	}

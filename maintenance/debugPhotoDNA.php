@@ -66,19 +66,19 @@ class DebugPhotoDNA extends Maintenance {
 			return;
 		}
 
-		$this->output( 'StatusValue: ' . ( $result->isGood() ? 'good' : 'bad' ) . PHP_EOL );
+		$this->output( 'StatusValue: ' . ( $result->isGood() ? 'good' : 'bad' ) . "\n" );
 		if ( $response ) {
-			$this->output( 'Status code: ' . $response->getStatusCode() . PHP_EOL );
+			$this->output( 'Status code: ' . $response->getStatusCode() . "\n" );
 		}
 		if ( $result->isGood() && $response ) {
-			$this->output( 'IsMatch: ' . (int)$response->isMatch() . PHP_EOL );
+			$this->output( 'IsMatch: ' . (int)$response->isMatch() . "\n" );
 		} else {
 			$this->output(
-				'Error: ' . $statusFormatter->getWikiText( $result ) . PHP_EOL
+				'Error: ' . $statusFormatter->getWikiText( $result ) . "\n"
 			);
 		}
 		if ( $response ) {
-			$this->output( 'Raw response: ' . PHP_EOL . $response->getRawResponse() . PHP_EOL );
+			$this->output( "Raw response:\n" . $response->getRawResponse() . "\n" );
 		}
 	}
 }
