@@ -1,0 +1,10 @@
+{
+	"@metadata": {
+		"authors": [
+			"Wizzard"
+		]
+	},
+	"mediamoderation-desc": "Služba na zisťovanie zhôd voči známym dátovým súborom hashov obrázkov zneužívania detí.",
+	"mediamoderation-email-body-file-line": "* $1: $2",
+	"mediamoderation-email-body-file-revision-plaintext-url": "$1 ( $2 )"
+}
