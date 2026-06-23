@@ -170,14 +170,15 @@ class MediaModerationFileLookup {
 	protected function getBatchOfFileRows(
 		string $table, string $startTimestamp, string $sha1, int $batchSize
 	): array {
-		// Check that rows with the $sha1 and $startTimestamp do not exceed $batchSize. Otherwise, raise the $batchSize
-		// to prevent infinite loops.
-		$rowsWithStartTimestamp = $this->getRowCountForTimestamp( $table, $startTimestamp, $sha1 );
-		if ( $rowsWithStartTimestamp > $batchSize ) {
-			// Increase the batch size to account for this, as if not the next batch would start with
-			// the same rows causing an infinite loop.
-			$batchSize = $rowsWithStartTimestamp;
+		// If the number of rows with this exact $sha1 and $startTimestamp exceed $batchSize, we need to
+		// raise the batch size to cover all these rows to prevent indefinite loops.
+		if ( $startTimestamp !== '' ) {
+			$rowsWithStartTimestamp = $this->getRowCountForTimestamp( $table, $startTimestamp, $sha1 );
+			if ( $rowsWithStartTimestamp > $batchSize ) {
+				$batchSize = $rowsWithStartTimestamp;
+			}
 		}
+
 		// Get the batch which contains $batchSize + 1 rows. The added row is to ensure proper paging.
 		$resultWrapper = $this->performBatchQuery( $table, $startTimestamp, $sha1, $batchSize + 1 );
 		if ( $resultWrapper->count() < $batchSize + 1 ) {

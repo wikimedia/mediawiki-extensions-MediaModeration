@@ -74,10 +74,15 @@ class MediaModerationFileLookupTest extends MediaWikiUnitTestCase {
 			->onlyMethods( [ 'performBatchQuery', 'getRowCountForTimestamp' ] )
 			->getMock();
 		// Define the mock of ::getRowCountForTimestamp to return $getRowCountForTimestampResult
-		$objectUnderTest->expects( $this->once() )
-			->method( 'getRowCountForTimestamp' )
-			->with( $table, $startTimestamp, $sha1 )
-			->willReturn( $getRowCountForTimestampResult );
+		if ( $getRowCountForTimestampResult == null ) {
+			$objectUnderTest->expects( $this->never() )
+				->method( 'getRowCountForTimestamp' );
+		} else {
+			$objectUnderTest->expects( $this->once() )
+				->method( 'getRowCountForTimestamp' )
+				->with( $table, $startTimestamp, $sha1 )
+				->willReturn( $getRowCountForTimestampResult );
+		}
 		// Define the mock of ::getBatchOfFileRows to return $getBatchOfFileRowsResult
 		$objectUnderTest->expects( $this->once() )
 			->method( 'performBatchQuery' )
@@ -114,7 +119,7 @@ class MediaModerationFileLookupTest extends MediaWikiUnitTestCase {
 				// The batch size parameter
 				2,
 				// The result of ::getRowCountForTimestamp
-				2,
+				null,
 				// The result of ::performBatchQuery
 				new FakeResultWrapper( [
 					[ 'img_timestamp' => '20230405060708' ],
