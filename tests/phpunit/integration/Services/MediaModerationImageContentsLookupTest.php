@@ -453,24 +453,33 @@ class MediaModerationImageContentsLookupTest extends MediaWikiIntegrationTestCas
 
 	/** @dataProvider provideGetThumbnailContents */
 	public function testGetThumbnailContents(
-		$mockThumbnailHeight, $mockThumbnailWidth, $mockStoragePathValue, $mockFileContentsValue, $expectedReturnValue,
-		$expectedPrometheusErrorLabel
+		string $thumbnailImageClassName,
+		int $mockThumbnailHeight,
+		int $mockThumbnailWidth,
+		string|bool $mockStoragePathValue,
+		string|bool $mockFileContentsValue,
+		?string $expectedReturnValue,
+		?string $expectedPrometheusErrorLabel
 	) {
-		// Create a mock ThumbnailImage that is mocked to return a given height, width, and storage
-		// path value.
-		$mockThumbnailImage = $this->createMock( ThumbnailImage::class );
-		$mockThumbnailImage->method( 'getStoragePath' )
-			->willReturn( $mockStoragePathValue );
+		$mockThumbnailImage = $this->createMock( $thumbnailImageClassName );
+		if ( $thumbnailImageClassName === ThumbnailImage::class ) {
+			$mockThumbnailImage->method( 'getStoragePath' )
+				->willReturn( $mockStoragePathValue );
+		} else {
+			$mockThumbnailImage->method( 'getContent' )
+				->willReturn( $mockFileContentsValue );
+		}
 		$mockThumbnailImage->method( 'getFile' )
 			->willReturn( $this->createMock( File::class ) );
 		$mockThumbnailImage->method( 'getWidth' )
 			->willReturn( $mockThumbnailWidth );
 		$mockThumbnailImage->method( 'getHeight' )
 			->willReturn( $mockThumbnailHeight );
+
 		// Create a mock FileBackend that returns the value of $mockFileContentsValue for ::getFileContents
 		// if $mockStoragePathValue is truthy. Otherwise expect that ::getFileContents is never called.
 		$mockFileBackend = $this->createMock( FileBackend::class );
-		if ( !$mockStoragePathValue ) {
+		if ( !$mockStoragePathValue || $thumbnailImageClassName === ThumborThumbnailImage::class ) {
 			// ::getFileContents is final, so have to mock ::getFileContentsMulti instead (which works fine).
 			$mockFileBackend->expects( $this->never() )
 				->method( 'getFileContentsMulti' );
@@ -517,29 +526,68 @@ class MediaModerationImageContentsLookupTest extends MediaWikiIntegrationTestCas
 	public static function provideGetThumbnailContents() {
 		return [
 			'Valid storage path and file contents' => [
-				// The mock height of the thumbnail as returned by ThumbnailImage::getHeight
-				200,
-				// The mock width of the thumbnail as returned by ThumbnailImage::getWidth
-				200,
-				// The storage path for the thumbnail. Specify false to indicate that no attempt
-				// should be made to access the contents.
-				'test/test.png',
-				// The mock thumbnail contents as returned by FileBackend::getFileContents
-				'abcdef1234',
-				// The expected return value of the method under test
-				'abcdef1234',
-				// If the return value is null, then what is the value for the error label on the Prometheus event
-				null,
+				'thumbnailImageClassName' => ThumbnailImage::class,
+				'mockThumbnailHeight' => 200,
+				'mockThumbnailWidth' => 200,
+				'mockStoragePathValue' => 'test/test.png',
+				'mockFileContentsValue' => 'abcdef1234',
+				'expectedReturnValue' => 'abcdef1234',
+				'expectedPrometheusErrorLabel' => null,
+			],
+			'Valid storage path and file contents for ThumborThumbnailImage' => [
+				'thumbnailImageClassName' => ThumborThumbnailImage::class,
+				'mockThumbnailHeight' => 200,
+				'mockThumbnailWidth' => 200,
+				'mockStoragePathValue' => 'test/test.png',
+				'mockFileContentsValue' => 'abcdef1234',
+				'expectedReturnValue' => 'abcdef1234',
+				'expectedPrometheusErrorLabel' => null,
 			],
 			'Valid storage path, but invalid thumbnail contents' => [
-				200, 200, 'test/test.png', false, null, 'lookup_failed',
+				'thumbnailImageClassName' => ThumbnailImage::class,
+				'mockThumbnailHeight' => 200,
+				'mockThumbnailWidth' => 200,
+				'mockStoragePathValue' => 'test/test.png',
+				'mockFileContentsValue' => false,
+				'expectedReturnValue' => null,
+				'expectedPrometheusErrorLabel' => 'lookup_failed',
 			],
 			'Thumbnail contents are too large' => [
-				200, 200, 'test/test.png', str_repeat( '1', 4000001 ), null, 'too_large',
+				'thumbnailImageClassName' => ThumbnailImage::class,
+				'mockThumbnailHeight' => 200,
+				'mockThumbnailWidth' => 200,
+				'mockStoragePathValue' => 'test/test.png',
+				'mockFileContentsValue' => str_repeat( '1', 4000001 ),
+				'expectedReturnValue' => null,
+				'expectedPrometheusErrorLabel' => 'too_large',
 			],
-			'Invalid storage path' => [ 200, 200, false, false, null, 'lookup_failed' ],
-			'Thumbnail is not tall enough' => [ 100, 200, false, false, null, 'too_small' ],
-			'Thumbnail is not wide enough' => [ 200, 100, false, false, null, 'too_small' ],
+			'Invalid storage path' => [
+				'thumbnailImageClassName' => ThumbnailImage::class,
+				'mockThumbnailHeight' => 200,
+				'mockThumbnailWidth' => 200,
+				'mockStoragePathValue' => false,
+				'mockFileContentsValue' => false,
+				'expectedReturnValue' => null,
+				'expectedPrometheusErrorLabel' => 'lookup_failed',
+			],
+			'Thumbnail is not tall enough' => [
+				'thumbnailImageClassName' => ThumbnailImage::class,
+				'mockThumbnailHeight' => 100,
+				'mockThumbnailWidth' => 200,
+				'mockStoragePathValue' => false,
+				'mockFileContentsValue' => false,
+				'expectedReturnValue' => null,
+				'expectedPrometheusErrorLabel' => 'too_small',
+			],
+			'Thumbnail is not wide enough' => [
+				'thumbnailImageClassName' => ThumbnailImage::class,
+				'mockThumbnailHeight' => 200,
+				'mockThumbnailWidth' => 100,
+				'mockStoragePathValue' => false,
+				'mockFileContentsValue' => false,
+				'expectedReturnValue' => null,
+				'expectedPrometheusErrorLabel' => 'too_small',
+			],
 		];
 	}
 
