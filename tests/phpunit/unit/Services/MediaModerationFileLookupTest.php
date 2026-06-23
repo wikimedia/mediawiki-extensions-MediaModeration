@@ -74,7 +74,7 @@ class MediaModerationFileLookupTest extends MediaWikiUnitTestCase {
 			->onlyMethods( [ 'performBatchQuery', 'getRowCountForTimestamp' ] )
 			->getMock();
 		// Define the mock of ::getRowCountForTimestamp to return $getRowCountForTimestampResult
-		if ( $getRowCountForTimestampResult == null ) {
+		if ( $getRowCountForTimestampResult === null ) {
 			$objectUnderTest->expects( $this->never() )
 				->method( 'getRowCountForTimestamp' );
 		} else {
@@ -111,7 +111,7 @@ class MediaModerationFileLookupTest extends MediaWikiUnitTestCase {
 
 	public static function provideGetBatchOfFileRows() {
 		return [
-			'image table, no start timestamp, batch size 2, row count 2' => [
+			'image table, no start timestamp, batch size 2, row count helper not called' => [
 				// The table parameter
 				'image',
 				// The start timestamp parameter
