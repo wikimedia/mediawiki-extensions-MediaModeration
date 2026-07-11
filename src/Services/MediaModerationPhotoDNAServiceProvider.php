@@ -66,25 +66,12 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 		$this->statsFactory->withComponent( 'MediaModeration' )
 			->getTiming( 'photo_dna_request_time' )
 			->setLabel( 'wiki', $wiki )
-			->copyToStatsdAt( "$wiki.MediaModeration.PhotoDNAServiceProviderRequestTime" )
 			->observeSeconds( $delay );
-		if ( $status->isOK() ) {
-			$this->statsFactory->withComponent( 'MediaModeration' )
-				->getCounter( 'photo_dna_http_status_code_total' )
-				->setLabel( 'wiki', $wiki )
-				->setLabel( 'status_code', strval( $request->getStatus() ) )
-				->copyToStatsdAt( "$wiki.MediaModeration.PhotoDNAServiceProvider.Execute.OK" )
-				->increment();
-		} else {
-			$this->statsFactory->withComponent( 'MediaModeration' )
-				->getCounter( 'photo_dna_http_status_code_total' )
-				->setLabel( 'wiki', $wiki )
-				->setLabel( 'status_code', strval( $request->getStatus() ) )
-				->copyToStatsdAt(
-					"$wiki.MediaModeration.PhotoDNAServiceProvider.Execute.Error." . $request->getStatus()
-				)
-				->increment();
-		}
+		$this->statsFactory->withComponent( 'MediaModeration' )
+			->getCounter( 'photo_dna_http_status_code_total' )
+			->setLabel( 'wiki', $wiki )
+			->setLabel( 'status_code', strval( $request->getStatus() ) )
+			->increment();
 		if ( !$status->isOK() ) {
 			// Something went badly wrong.
 			$errorMessage = FormatJson::decode( $request->getContent(), true );
@@ -96,7 +83,6 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 			$this->statsFactory->withComponent( 'MediaModeration' )
 				->getCounter( 'photo_dna_response_parse_error_total' )
 				->setLabel( 'wiki', $wiki )
-				->copyToStatsdAt( "$wiki.MediaModeration.PhotoDNAServiceProvider.Execute.InvalidJsonResponse" )
 				->increment();
 
 			return StatusValue::newFatal(
@@ -112,7 +98,6 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 			$this->statsFactory->withComponent( 'MediaModeration' )
 				->getCounter( 'photo_dna_response_parse_error_total' )
 				->setLabel( 'wiki', $wiki )
-				->copyToStatsdAt( "$wiki.MediaModeration.PhotoDNAServiceProvider.Execute.InvalidJsonResponse" )
 				->increment();
 			return StatusValue::newFatal( new RawMessage(
 				'PhotoDNA returned an invalid JSON body for ' . $file->getName() . '. Parse error: ' .
@@ -124,9 +109,6 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 			->getCounter( 'photo_dna_status_code_total' )
 			->setLabel( 'wiki', $wiki )
 			->setLabel( 'status_code', strval( $response->getStatusCode() ) )
-			->copyToStatsdAt(
-				"$wiki.'MediaModeration.PhotoDNAServiceProvider.Execute.StatusCode" . $response->getStatusCode()
-			)
 			->increment();
 		return $this->createStatusFromResponse( $response );
 	}

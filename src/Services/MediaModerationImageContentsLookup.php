@@ -96,9 +96,6 @@ class MediaModerationImageContentsLookup {
 					$this->statsFactory->withComponent( 'MediaModeration' )
 						->getCounter( 'image_contents_lookup_used_source_file_total' )
 						->setLabel( 'wiki', $wiki )
-						->copyToStatsdAt(
-							"$wiki.MediaModeration.PhotoDNAServiceProvider.Execute.SourceFileUsedForFileObject"
-						)
 						->increment();
 				}
 				// Set the result as OK as we got the original file, but still include the
@@ -123,7 +120,6 @@ class MediaModerationImageContentsLookup {
 		$this->statsFactory->withComponent( 'MediaModeration' )
 			->getCounter( 'image_contents_lookup_failure_total' )
 			->setLabel( 'wiki', $wiki )
-			->copyToStatsdAt( "$wiki.MediaModeration.PhotoDNAServiceProvider.Execute.RuntimeException" )
 			->increment();
 		return $returnStatus;
 	}
@@ -149,8 +145,7 @@ class MediaModerationImageContentsLookup {
 		if ( !$thumbnailMimeType ) {
 			// We cannot send a request to PhotoDNA without knowing what the mime type is.
 			$this->incrementImageContentsLookupErrorTotal(
-				'thumbnail', 'mime', 'lookup_failed',
-				'MediaModeration.ImageContentsLookup.Thumbnail.MimeType.LookupFailed'
+				'thumbnail', 'mime', 'lookup_failed'
 			);
 			return StatusValue::newFatal( new RawMessage(
 				"Could not get mime type of thumbnail for {$thumbnail->getFile()->getName()}"
@@ -159,8 +154,7 @@ class MediaModerationImageContentsLookup {
 		if ( !in_array( $thumbnailMimeType, MediaModerationFileProcessor::ALLOWED_MIME_TYPES, true ) ) {
 			// We cannot send a request to PhotoDNA with a thumbnail type that is unsupported by the API.
 			$this->incrementImageContentsLookupErrorTotal(
-				'thumbnail', 'mime', 'unsupported',
-				'MediaModeration.ImageContentsLookup.Thumbnail.MimeType.Unsupported'
+				'thumbnail', 'mime', 'unsupported'
 			);
 			return StatusValue::newFatal( new RawMessage(
 				"Mime type of thumbnail for {$thumbnail->getFile()->getName()} is not supported by PhotoDNA."
@@ -294,9 +288,6 @@ class MediaModerationImageContentsLookup {
 						->getTiming( 'image_contents_lookup_thumbnail_transform_time' )
 						->setLabel( 'wiki', $wiki )
 						->setLabel( 'method', 'thumbor' )
-						->copyToStatsdAt(
-							"$wiki.MediaModeration.PhotoDNAServiceProviderThumbnailTransformThumborRequest"
-						)
 						->observeSeconds( microtime( true ) - $start );
 					return StatusValue::newGood( $thumbnail );
 				}
@@ -304,8 +295,7 @@ class MediaModerationImageContentsLookup {
 			// The request failed, so increment the failure counter and use regular ::transform
 			// for checks done further on.
 			$this->incrementImageContentsLookupErrorTotal(
-				'thumbnail', 'thumbor_transform', 'failed',
-				'MediaModeration.ImageContentsLookup.Thumbnail.ThumborTransform.Failed'
+				'thumbnail', 'thumbor_transform', 'failed'
 			);
 			$thumbnail = $file->transform( [ 'width' => $thumbnailWidth ] );
 		} else {
@@ -318,7 +308,6 @@ class MediaModerationImageContentsLookup {
 			->getTiming( 'image_contents_lookup_thumbnail_transform_time' )
 			->setLabel( 'wiki', $wiki )
 			->setLabel( 'method', 'php' )
-			->copyToStatsdAt( "$wiki.MediaModeration.PhotoDNAServiceProviderThumbnailTransform" )
 			->observeSeconds( $delay );
 
 		// Check if the $thumbnail is valid, returning a good status if this is the case.
@@ -345,8 +334,7 @@ class MediaModerationImageContentsLookup {
 
 		if ( !$returnStatus->isGood() ) {
 			$this->incrementImageContentsLookupErrorTotal(
-				'thumbnail', 'transform', 'failed',
-				'MediaModeration.ImageContentsLookup.Thumbnail.Transform.Failed'
+				'thumbnail', 'transform', 'failed'
 			);
 		}
 		return $returnStatus;
@@ -359,8 +347,7 @@ class MediaModerationImageContentsLookup {
 			$thumbnail->getWidth() < $minThumbnailSize['width']
 		) {
 			$this->incrementImageContentsLookupErrorTotal(
-				'thumbnail', 'contents', 'too_small',
-				'MediaModeration.ImageContentsLookup.Thumbnail.Contents.TooSmall'
+				'thumbnail', 'contents', 'too_small'
 			);
 			// PhotoDNA requires that images be at least 160px by 160px, so don't use the
 			// thumbnail if either dimension is too small.
@@ -370,8 +357,7 @@ class MediaModerationImageContentsLookup {
 		}
 		if ( !( $thumbnail instanceof ThumborThumbnailImage ) && !$thumbnail->getStoragePath() ) {
 			$this->incrementImageContentsLookupErrorTotal(
-				'thumbnail', 'contents', 'lookup_failed',
-				'MediaModeration.ImageContentsLookup.Thumbnail.Contents.LookupFailed'
+				'thumbnail', 'contents', 'lookup_failed'
 			);
 			return StatusValue::newFatal( new RawMessage(
 				"Could not get storage path of thumbnail for {$thumbnail->getFile()->getName()}"
@@ -382,8 +368,7 @@ class MediaModerationImageContentsLookup {
 			$this->fileBackend->getFileContents( [ 'src' => $thumbnail->getStoragePath() ] );
 		if ( !$fileContents ) {
 			$this->incrementImageContentsLookupErrorTotal(
-				'thumbnail', 'contents', 'lookup_failed',
-				'MediaModeration.ImageContentsLookup.Thumbnail.Contents.LookupFailed'
+				'thumbnail', 'contents', 'lookup_failed'
 			);
 			return StatusValue::newFatal( new RawMessage(
 				"Could not get thumbnail contents for {$thumbnail->getFile()->getName()}"
@@ -391,8 +376,7 @@ class MediaModerationImageContentsLookup {
 		}
 		if ( strlen( $fileContents ) > 4000000 ) {
 			$this->incrementImageContentsLookupErrorTotal(
-				'thumbnail', 'contents', 'too_large',
-				'MediaModeration.ImageContentsLookup.Thumbnail.Contents.TooLarge'
+				'thumbnail', 'contents', 'too_large'
 			);
 			// Check that the size of the file does not exceed 4MB, as PhotoDNA returns an
 			// error for files that are any larger.
@@ -413,8 +397,7 @@ class MediaModerationImageContentsLookup {
 	protected function getFileContents( $file ): StatusValue {
 		if ( $file->getSize() && $file->getSize() > 4000000 ) {
 			$this->incrementImageContentsLookupErrorTotal(
-				'source_file', 'contents', 'too_large',
-				'MediaModeration.ImageContentsLookup.File.Contents.TooLarge'
+				'source_file', 'contents', 'too_large'
 			);
 			// Check that the size of the file does not exceed 4MB, as PhotoDNA returns an
 			// error for files that are any larger.
@@ -427,8 +410,7 @@ class MediaModerationImageContentsLookup {
 			( $file->getWidth() && $file->getWidth() < 160 )
 		) {
 			$this->incrementImageContentsLookupErrorTotal(
-				'source_file', 'contents', 'too_small',
-				'MediaModeration.ImageContentsLookup.File.Contents.TooSmall'
+				'source_file', 'contents', 'too_small'
 			);
 			// Check that the height and width is at least 160px by 160px
 			// as PhotoDNA requires that the file be at least that size.
@@ -447,8 +429,7 @@ class MediaModerationImageContentsLookup {
 		}
 		if ( !$filePath ) {
 			$this->incrementImageContentsLookupErrorTotal(
-				'source_file', 'contents', 'lookup_failed',
-				'MediaModeration.ImageContentsLookup.File.Contents.LookupFailed'
+				'source_file', 'contents', 'lookup_failed'
 			);
 			return StatusValue::newFatal( new RawMessage(
 				"Could not get storage path of original file for {$file->getName()}"
@@ -457,8 +438,7 @@ class MediaModerationImageContentsLookup {
 		$fileContents = $this->fileBackend->getFileContents( [ 'src' => $filePath ] );
 		if ( !$fileContents ) {
 			$this->incrementImageContentsLookupErrorTotal(
-				'source_file', 'contents', 'lookup_failed',
-				'MediaModeration.ImageContentsLookup.File.Contents.LookupFailed'
+				'source_file', 'contents', 'lookup_failed'
 			);
 			return StatusValue::newFatal( new RawMessage(
 				"Could not get original file contents for {$file->getName()}"
@@ -475,19 +455,16 @@ class MediaModerationImageContentsLookup {
 	 * @param string $errorType The type of error. Used to group errors into a common group, such as all errors related
 	 *   to looking up the contents of an image being 'contents'
 	 * @param string $error The error that occurred (for example 'lookup_failed')
-	 * @param string $statsDBucket Used to copy data to the old StatsD metric
 	 */
 	private function incrementImageContentsLookupErrorTotal(
-		string $imageType, string $errorType, string $error, string $statsDBucket
+		string $imageType, string $errorType, string $error
 	): void {
-		$wiki = WikiMap::getCurrentWikiId();
 		$this->statsFactory->withComponent( 'MediaModeration' )
 			->getCounter( 'image_contents_lookup_error_total' )
-			->setLabel( 'wiki', $wiki )
+			->setLabel( 'wiki', WikiMap::getCurrentWikiId() )
 			->setLabel( 'image_type', $imageType )
 			->setLabel( 'error_type', $errorType )
 			->setLabel( 'error', $error )
-			->copyToStatsdAt( "$wiki.$statsDBucket" )
 			->increment();
 	}
 }

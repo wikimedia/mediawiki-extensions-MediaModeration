@@ -67,7 +67,6 @@ class UpdateMetrics extends Maintenance {
 			$this->statsFactory->withComponent( 'MediaModeration' )
 				->getGauge( $metric->getName() )
 				->setLabel( 'wiki', $wiki )
-				->copyToStatsdAt( "$wiki." . $metric->getStatsdKey() )
 				->set( $metricValue );
 
 			if ( $this->hasOption( 'verbose' ) ) {

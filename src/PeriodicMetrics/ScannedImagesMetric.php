@@ -30,9 +30,4 @@ class ScannedImagesMetric implements IMetric {
 	public function getName(): string {
 		return 'scan_table_scanned_total';
 	}
-
-	/** @inheritDoc */
-	public function getStatsdKey(): string {
-		return 'MediaModeration.ScanTable.Scanned';
-	}
 }

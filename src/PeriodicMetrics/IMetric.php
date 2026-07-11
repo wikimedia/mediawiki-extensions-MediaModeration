@@ -16,15 +16,6 @@ interface IMetric {
 	public function calculate(): int;
 
 	/**
-	 * Gets the name of the StatsD key for the metric. Used to
-	 * copy the Prometheus data to StatsD to assist in migration
-	 * from StatsD to Prometheus.
-	 *
-	 * @return string
-	 */
-	public function getStatsdKey(): string;
-
-	/**
 	 * Gets the name of the metric.
 	 *
 	 * @return string

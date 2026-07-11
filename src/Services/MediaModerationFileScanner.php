@@ -53,7 +53,6 @@ class MediaModerationFileScanner {
 				$this->statsFactory->withComponent( 'MediaModeration' )
 					->getCounter( 'file_scanner_found_unscannable_file_total' )
 					->setLabel( 'wiki', $wiki )
-					->copyToStatsdAt( "$wiki.MediaModeration.FileScanner.CanScanFileReturnedFalse" )
 					->increment();
 				$returnStatus->fatal( new RawMessage( "The file {$file->getName()} cannot be scanned." ) );
 				continue;

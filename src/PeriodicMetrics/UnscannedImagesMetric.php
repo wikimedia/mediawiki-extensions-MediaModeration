@@ -30,9 +30,4 @@ class UnscannedImagesMetric implements IMetric {
 	public function getName(): string {
 		return 'scan_table_unscanned_total';
 	}
-
-	/** @inheritDoc */
-	public function getStatsdKey(): string {
-		return 'MediaModeration.ScanTable.Unscanned';
-	}
 }
