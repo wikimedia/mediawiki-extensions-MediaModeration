@@ -1,0 +1,9 @@
+{
+	"@metadata": {
+		"authors": [
+			"شاه زمان پټان"
+		]
+	},
+	"mediamoderation-email-body-file-line": "* $1: $2",
+	"mediamoderation-email-body-file-revision-plaintext-url": "$1 ( $2 )"
+}
