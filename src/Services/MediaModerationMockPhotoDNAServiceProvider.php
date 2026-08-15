@@ -17,9 +17,6 @@ class MediaModerationMockPhotoDNAServiceProvider implements IMediaModerationPhot
 
 	use MediaModerationPhotoDNAResponseHandler;
 
-	private array $filesToIsMatchMap;
-	private array $filesToStatusCodeMap;
-
 	/**
 	 * @param array $filesToIsMatchMap Map of file names to boolean values where true indicates
 	 *   a match with PhotoDNA's database, and false (default) means no match
@@ -27,11 +24,9 @@ class MediaModerationMockPhotoDNAServiceProvider implements IMediaModerationPhot
 	 *   see the Response::STATUS_ constants. Default is STATUS_OK.
 	 */
 	public function __construct(
-		array $filesToIsMatchMap = [],
-		array $filesToStatusCodeMap = []
+		private readonly array $filesToIsMatchMap = [],
+		private readonly array $filesToStatusCodeMap = [],
 	) {
-		$this->filesToIsMatchMap = $filesToIsMatchMap;
-		$this->filesToStatusCodeMap = $filesToStatusCodeMap;
 	}
 
 	/** @inheritDoc */

@@ -24,23 +24,12 @@ class Response {
 	public const STATUS_IMAGE_PIXEL_SIZE_NOT_IN_RANGE = 3208;
 	// Not listed in API documentation, but seen in practice if one sends a file that is too large.
 	public const STATUS_REQUEST_SIZE_EXCEEDED = 3209;
-	private int $statusCode;
-	private bool $isMatch;
-	private string $rawResponse;
 
-	/**
-	 * @param int $statusCode
-	 * @param bool $isMatch
-	 * @param string $rawResponse
-	 */
 	public function __construct(
-		int $statusCode,
-		bool $isMatch = false,
-		string $rawResponse = ''
+		private readonly int $statusCode,
+		private readonly bool $isMatch = false,
+		private readonly string $rawResponse = '',
 	) {
-		$this->statusCode = $statusCode;
-		$this->isMatch = $isMatch;
-		$this->rawResponse = $rawResponse;
 	}
 
 	/**

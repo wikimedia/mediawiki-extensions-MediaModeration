@@ -11,14 +11,14 @@ use MediaWiki\Media\ThumbnailImage;
  */
 class ThumborThumbnailImage extends ThumbnailImage {
 
-	private string $content;
-	private string $contentType;
-
-	public function __construct( File $file, string $url, array $parameters, string $content, string $contentType ) {
+	public function __construct(
+		File $file,
+		string $url,
+		array $parameters,
+		private readonly string $content,
+		private readonly string $contentType,
+	) {
 		parent::__construct( $file, $url, false, $parameters );
-
-		$this->content = $content;
-		$this->contentType = $contentType;
 	}
 
 	public function getContentType(): string {

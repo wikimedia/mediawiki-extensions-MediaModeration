@@ -34,9 +34,9 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 		'MediaModerationHttpProxy',
 	];
 
-	private string $photoDNAUrl;
-	private ?string $httpProxy;
-	private string $photoDNASubscriptionKey;
+	private readonly string $photoDNAUrl;
+	private readonly ?string $httpProxy;
+	private readonly string $photoDNASubscriptionKey;
 
 	public function __construct(
 		ServiceOptions $options,
