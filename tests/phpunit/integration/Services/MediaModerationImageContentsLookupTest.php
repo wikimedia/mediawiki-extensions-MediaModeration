@@ -753,9 +753,16 @@ class MediaModerationImageContentsLookupTest extends MediaWikiIntegrationTestCas
 
 	/** @dataProvider provideGetImageContents */
 	public function testGetImageContents(
-		$fileContentsStatusGood, $thumbnailStatusGood, $thumbnailContentsStatusGood, $thumbnailMimeTypeStatusGood,
-		$fileObjectClassName, $fileMimeType, $expectSourceFileUsedMetricToBeIncremented, $expectStatusIsGood,
-		$expectStatusIsOkay
+		?bool $fileContentsStatusGood,
+		?bool $thumbnailStatusGood,
+		?bool $thumbnailContentsStatusGood,
+		?bool $thumbnailMimeTypeStatusGood,
+		string $fileObjectClassName,
+		string $fileMimeType,
+		bool $expectSourceFileUsedMetricToBeIncremented,
+		bool $expectStatusIsGood,
+		bool $expectStatusIsOkay,
+		?string $expectedMimeType
 	) {
 		// Get the object under test, with several protected methods mocked.
 		$objectUnderTest = $this->getMockBuilder( MediaModerationImageContentsLookup::class )
@@ -801,7 +808,7 @@ class MediaModerationImageContentsLookupTest extends MediaWikiIntegrationTestCas
 		if ( $expectStatusIsGood ) {
 			$this->assertStatusGood( $actualStatus );
 			$this->assertSame(
-				$fileMimeType,
+				$expectedMimeType,
 				$actualStatus->getMimeType(),
 				'The status is good, but no mime type is specified for the image'
 			);
@@ -809,7 +816,7 @@ class MediaModerationImageContentsLookupTest extends MediaWikiIntegrationTestCas
 		} elseif ( $expectStatusIsOkay ) {
 			$this->assertStatusOK( $actualStatus );
 			$this->assertSame(
-				$fileMimeType,
+				$expectedMimeType,
 				$actualStatus->getMimeType(),
 				'The status is okay, but no mime type is specified for the image'
 			);
@@ -829,43 +836,100 @@ class MediaModerationImageContentsLookupTest extends MediaWikiIntegrationTestCas
 	public static function provideGetImageContents() {
 		return [
 			'ArchivedFile that has the source file contents' => [
-				// Whether ::getFileContents returns a good status (true), a not good status (false),
-				// or expects to never be called (null)
-				true,
-				// Same as first but for ::getThumbnailForFile
-				null,
-				// Same as first but for ::getThumbnailContents
-				null,
-				// Same as first but for ::getThumbnailMimeType
-				null,
-				// The name of the class used as the $file argument
-				ArchivedFile::class,
-				// The mime type for the source file
-				'image/jpeg',
-				// Should the image_contents_lookup_used_source_file_total counter metric be incremented?
-				false,
-				// Should the status returned by ::getImageContents be good (::isGood returns true)?
-				true,
-				// Should the status returned by ::getImageContents be okay (::isOK returns true)?
-				false,
+				'fileContentsStatusGood' => true,
+				'thumbnailStatusGood' => null,
+				'thumbnailContentsStatusGood' => null,
+				'thumbnailMimeTypeStatusGood' => null,
+				'fileObjectClassName' => ArchivedFile::class,
+				'fileMimeType' => 'image/jpeg',
+				'expectSourceFileUsedMetricToBeIncremented' => false,
+				'expectStatusIsGood' => true,
+				'expectStatusIsOkay' => false,
+				'expectedMimeType' => 'image/jpeg',
 			],
 			'ArchivedFile where source file contents collection failed' => [
-				false, null, null, null, ArchivedFile::class, 'image/jpeg', false, false, false,
+				'fileContentsStatusGood' => false,
+				'thumbnailStatusGood' => null,
+				'thumbnailContentsStatusGood' => null,
+				'thumbnailMimeTypeStatusGood' => null,
+				'fileObjectClassName' => ArchivedFile::class,
+				'fileMimeType' => 'image/jpeg',
+				'expectSourceFileUsedMetricToBeIncremented' => false,
+				'expectStatusIsGood' => false,
+				'expectStatusIsOkay' => false,
+				'expectedMimeType' => null,
 			],
 			'ArchivedFile where source file is not supported' => [
-				false, null, null, null, ArchivedFile::class, 'image/svg', false, false, false,
+				'fileContentsStatusGood' => false,
+				'thumbnailStatusGood' => null,
+				'thumbnailContentsStatusGood' => null,
+				'thumbnailMimeTypeStatusGood' => null,
+				'fileObjectClassName' => ArchivedFile::class,
+				'fileMimeType' => 'image/svg',
+				'expectSourceFileUsedMetricToBeIncremented' => false,
+				'expectStatusIsGood' => false,
+				'expectStatusIsOkay' => false,
+				'expectedMimeType' => null,
 			],
 			'File where no ThumbnailImage was generated but has file contents' => [
-				true, false, null, null, File::class, 'image/jpeg', true, false, true,
+				'fileContentsStatusGood' => true,
+				'thumbnailStatusGood' => false,
+				'thumbnailContentsStatusGood' => null,
+				'thumbnailMimeTypeStatusGood' => null,
+				'fileObjectClassName' => File::class,
+				'fileMimeType' => 'image/jpeg',
+				'expectSourceFileUsedMetricToBeIncremented' => true,
+				'expectStatusIsGood' => false,
+				'expectStatusIsOkay' => true,
+				'expectedMimeType' => 'image/jpeg',
 			],
 			'File where no ThumbnailImage was generated and no file contents' => [
-				false, false, null, null, File::class, 'image/jpeg', false, false, false,
+				'fileContentsStatusGood' => false,
+				'thumbnailStatusGood' => false,
+				'thumbnailContentsStatusGood' => null,
+				'thumbnailMimeTypeStatusGood' => null,
+				'fileObjectClassName' => File::class,
+				'fileMimeType' => 'image/jpeg',
+				'expectSourceFileUsedMetricToBeIncremented' => false,
+				'expectStatusIsGood' => false,
+				'expectStatusIsOkay' => false,
+				'expectedMimeType' => null,
 			],
 			'File where thumbnail contents failed but has file contents' => [
-				true, true, false, false, File::class, 'image/jpeg', true, false, true,
+				'fileContentsStatusGood' => true,
+				'thumbnailStatusGood' => true,
+				'thumbnailContentsStatusGood' => false,
+				'thumbnailMimeTypeStatusGood' => false,
+				'fileObjectClassName' => File::class,
+				'fileMimeType' => 'image/png',
+				'expectSourceFileUsedMetricToBeIncremented' => true,
+				'expectStatusIsGood' => false,
+				'expectStatusIsOkay' => true,
+				'expectedMimeType' => 'image/png',
 			],
 			'File where thumbnail contents succeeds' => [
-				null, true, true, true, File::class, 'image/jpeg', false, true, true,
+				'fileContentsStatusGood' => null,
+				'thumbnailStatusGood' => true,
+				'thumbnailContentsStatusGood' => true,
+				'thumbnailMimeTypeStatusGood' => true,
+				'fileObjectClassName' => File::class,
+				'fileMimeType' => 'image/jpeg',
+				'expectSourceFileUsedMetricToBeIncremented' => false,
+				'expectStatusIsGood' => true,
+				'expectStatusIsOkay' => true,
+				'expectedMimeType' => 'image/jpeg',
+			],
+			'File where thumbnail contents succeeds and thumbnail mime type different to source file' => [
+				'fileContentsStatusGood' => null,
+				'thumbnailStatusGood' => true,
+				'thumbnailContentsStatusGood' => true,
+				'thumbnailMimeTypeStatusGood' => true,
+				'fileObjectClassName' => File::class,
+				'fileMimeType' => 'image/png',
+				'expectSourceFileUsedMetricToBeIncremented' => false,
+				'expectStatusIsGood' => true,
+				'expectStatusIsOkay' => true,
+				'expectedMimeType' => 'image/jpeg',
 			],
 		];
 	}

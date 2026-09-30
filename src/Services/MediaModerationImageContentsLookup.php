@@ -74,7 +74,7 @@ class MediaModerationImageContentsLookup {
 					// If we were able to get the thumbnail contents and mime type, then return with them.
 					return $returnStatus
 						->setImageContents( $thumbnailContentsStatus->getValue() )
-						->setMimeType( $file->getMimeType() );
+						->setMimeType( $thumbnailMimeTypeStatus->getValue() );
 				}
 				// Add the failures to the return status for the caller to see.
 				$returnStatus
