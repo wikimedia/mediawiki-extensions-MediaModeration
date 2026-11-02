@@ -103,6 +103,8 @@ class MediaModerationPhotoDNAServiceProviderTest extends MediaWikiUnitTestCase {
 			] );
 		// Create a mock HttpRequestFactory that will expect that the expected options and URL are passed
 		$mockHttpRequestFactory = $this->createMock( HttpRequestFactory::class );
+		$mockHttpRequestFactory->method( 'getUserAgent' )
+			->willReturn( 'MediaWiki/1.48' );
 		$mockHttpRequestFactory->method( 'create' )
 			->with(
 				'photo-dna-url-test',
@@ -110,6 +112,7 @@ class MediaModerationPhotoDNAServiceProviderTest extends MediaWikiUnitTestCase {
 					'method' => 'POST',
 					'postData' => $mockStatus->getImageContents(),
 					'proxy' => 'photo-dna-proxy-test',
+					'userAgent' => 'MediaWiki/1.48 MediaModeration-PhotoDNA',
 				]
 			)
 			->willReturn( $mockRequest );

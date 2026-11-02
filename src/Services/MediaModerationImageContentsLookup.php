@@ -254,7 +254,8 @@ class MediaModerationImageContentsLookup {
 			$req = $this->httpRequestFactory->create(
 				$thumbProxyUrl . $file->getThumbRel( $thumbName ),
 				[
-					'timeout' => $this->options->get( 'MediaModerationThumborRequestTimeout' )
+					'timeout' => $this->options->get( 'MediaModerationThumborRequestTimeout' ),
+					'userAgent' => $this->httpRequestFactory->getUserAgent() . ' MediaModerationImageContentsLookup',
 				],
 				__METHOD__
 			);

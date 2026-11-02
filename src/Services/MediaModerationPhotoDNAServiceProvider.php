@@ -131,7 +131,8 @@ class MediaModerationPhotoDNAServiceProvider implements IMediaModerationPhotoDNA
 		}
 		$options = [
 			'method' => 'POST',
-			'postData' => $imageContentsStatus->getImageContents()
+			'postData' => $imageContentsStatus->getImageContents(),
+			'userAgent' => $this->httpRequestFactory->getUserAgent() . ' MediaModeration-PhotoDNA',
 		];
 		if ( $this->httpProxy ) {
 			$options['proxy'] = $this->httpProxy;
