@@ -131,7 +131,9 @@ class MediaModerationFileProcessorTest extends MediaWikiUnitTestCase {
 
 	/** @dataProvider provideCanScanFileForArchivedFileWithUnsupportedMimeType */
 	public function testCanScanFileForArchivedFileWithUnsupportedMimeType(
-		$mediaHandler, $fileExists, $expectedReturnResult
+		?MediaHandler $mediaHandler,
+		bool $fileExists,
+		bool $expectedReturnResult
 	) {
 		// Create a mock file
 		$mockFile = $this->createMock( ArchivedFile::class );
@@ -147,6 +149,7 @@ class MediaModerationFileProcessorTest extends MediaWikiUnitTestCase {
 			->with( 'image/svg' )
 			->willReturn( $mediaHandler );
 		// Get the object under test.
+		/** @var MediaModerationFileProcessor $objectUnderTest */
 		$objectUnderTest = $this->newServiceInstance( MediaModerationFileProcessor::class, [
 			'mediaHandlerFactory' => $mediaHandlerFactory
 		] );
@@ -159,8 +162,8 @@ class MediaModerationFileProcessorTest extends MediaWikiUnitTestCase {
 
 	public static function provideCanScanFileForArchivedFileWithUnsupportedMimeType() {
 		return [
-			'No handler defined for the mime type' => [ false, true, false ],
-			'No handler defined for the mime type and file does not exist' => [ false, false, false ],
+			'No handler defined for the mime type' => [ null, true, false ],
+			'No handler defined for the mime type and file does not exist' => [ null, false, false ],
 		];
 	}
 
